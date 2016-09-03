@@ -43,7 +43,7 @@ std::array<T, N> unrank(uint64_t r) {
 }
 
 /// Computes (iteratively) the factorial of n.
-uint64_t factorial(const uint64_t n) {
+static uint64_t factorial(const uint64_t n) {
   uint64_t factorial = n;
   for (size_t i = n; i > 1; i--) {
     factorial *= i;
@@ -52,7 +52,7 @@ uint64_t factorial(const uint64_t n) {
 }
 
 /// Computes the binomial coefficient N choose K.
-uint64_t n_choose_k(const uint64_t n, const uint64_t k) {
+static uint64_t n_choose_k(const uint64_t n, const uint64_t k) {
   if (k == 0) {
     return 1;
   }
@@ -72,18 +72,18 @@ uint64_t n_choose_k(const uint64_t n, const uint64_t k) {
 ///   n = 20 exceeds 32 bit (n = 19 requires 31 bits)
 ///   n = 37 exceeds 64 bit
 //FIXME: returns wrong results for n > 33
-uint64_t catalan_number(const uint64_t n) {
+static uint64_t catalan_number(const uint64_t n) {
   return n_choose_k(2 * n, n) / (n + 1);
 }
 
-size_t ballot_number(const size_t i, const size_t j) {
+static ssize_t ballot_number(const size_t i, const size_t j) {
   const size_t n = i + 1;
   const size_t k = (i + j) / 2 + 1;
   return static_cast<size_t>(((static_cast<double>(j) + 1) / (static_cast<double>(i) + 1)) * n_choose_k(n, k));
 };
 
 /// Computes the number of paths from (i,j) to (2n,0)
-size_t number_of_paths(const size_t n, const size_t i, const size_t j) {
+static size_t number_of_paths(const size_t n, const size_t i, const size_t j) {
   return ballot_number(2 * n - i, j);
 };
 
@@ -157,6 +157,11 @@ struct trunc {
     return max ? (64 - (__builtin_clzll(max))) : 0;
   }
 };
+
+static size_t log_2(const size_t n) {
+    return 8 * sizeof(size_t) - __builtin_clzl(n) - 1;
+};
+
 
 /// Compile-time template expansions
 namespace ct {
@@ -235,7 +240,7 @@ namespace ct {
   template<size_t n>
   struct log_2{
     enum : size_t {
-      value = (8 * sizeof(size_t) - __builtin_clzl((n)))
+      value = 8 * sizeof(size_t) - __builtin_clzll(n) - 1
     };
   };
 
