@@ -77,23 +77,23 @@ static void assert_no_false_negatives(std::bitset<LEN> exact_bitmask, std::bitse
 constexpr u64 N = 1 << 11; // 12 13;
 
 template<u64 M>
-static void test_compression(std::bitset<N> bitmask) {
+static void test_compression(const std::bitset<N> bitmask) {
   assert_no_false_negatives(bitmask, tree_mask<N>::decode<M>(tree_mask<N>::compress<M>(bitmask)));
+  assert_no_false_negatives(bitmask, zone_mask<N>::decompress<M>(zone_mask<N>::compress<M>(bitmask)));
 };
 
 TEST(bitmask, compression) {
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<u64> dis(1, 1000);
+  std::uniform_int_distribution<u64> dis(1, 100);
 
   std::bitset<N> bitmask;
   for ($u64 i = 0; i < N; i++) {
-    if (dis(gen) <= 1) {
+    if (dis(gen) <= 10) {
       bitmask.set(i);
     }
   }
-  print(bitmask, 0);
   test_compression<1024>(bitmask);
   test_compression<512>(bitmask);
   test_compression<256>(bitmask);
