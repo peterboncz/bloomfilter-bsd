@@ -77,7 +77,6 @@ namespace tree {
           }
         }
       }
-      std::cout << "done w/ bottom up pruning" << std::endl;
       assert(bitmask.count() == 0 || false_positive_cnt[0] == N - bitmask.count());
     }
 
@@ -150,7 +149,6 @@ namespace tree {
           u64 right_child_idx = right_child_of(node_idx);
           if (bit[left_child_idx] == bit[right_child_idx]) {
             is_inner_node[current_node_idx] = false;
-            std::cout << "cleanup" << std::endl;
           }
           else {
             break;
@@ -161,11 +159,9 @@ namespace tree {
       while (true) {
         auto enc = encode();
         u64 current_bit_cnt = enc.size();
-        std::cout << current_bit_cnt << ": "; print(enc, 0);
         if (current_bit_cnt <= target_bit_cnt) break;
         prune_clean(prune_single(0, current_bit_cnt - target_bit_cnt));
       }
-      std::cout << "---" << std::endl;
     }
 
     static u64 find_close(const std::vector<$u1> bitstring, u64 idx) {
@@ -235,7 +231,7 @@ namespace tree {
     /// Note, that the compression can lead to an information loss. However, the following holds: m == m & d(e(m)
     /// @returns a bit set of size M containing the encoded 'tree mask'
     template<u64 M>
-    static std::bitset<M> compress(const std::bitset<N> bitmask) {
+    static std::bitset<M> compress(const std::bitset<N>& bitmask) {
       auto tree = tree_mask(bitmask);
       tree.compress(M);
       auto compressed_bitvector = tree.encode();
