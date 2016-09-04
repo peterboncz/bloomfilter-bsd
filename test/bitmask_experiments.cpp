@@ -38,30 +38,35 @@ static std::bitset<size> make_bitmask(u64 match_cnt) {
   return bitmask;
 }
 
-template<u64 size, u64 compressed_size>
+template<u64 size, u64 compressed_size, template<u64> class mask_impl>
 static u64 match_cnt_after_compression(const std::bitset<size> bitmask){
-  std::bitset<compressed_size> compressed_bitmask = tree_mask<size>::template compress<compressed_size>(bitmask);
-  std::bitset<size> decompressed_bitmask = tree_mask<size>::decode(compressed_bitmask);
+  std::bitset<compressed_size> compressed_bitmask = mask_impl<size>::template compress<compressed_size>(bitmask);
+  std::bitset<size> decompressed_bitmask = mask_impl<size>::decode(compressed_bitmask);
   return decompressed_bitmask.count();
 };
 
-template<u64 size, u64 max_match_cnt>
+template<u64 size, u64 max_match_cnt, template<u64> class mask_impl>
 static void run() {
   u64 repeat_cnt = 10;
 
-  std::cout << "actual_match_cnt|returned_match_cnt_64bit_compressed|returned_match_cnt_128bit_compressed|returned_match_cnt_256bit_compressed" << std::endl;
+  std::cout << "actual_match_cnt|returned_match_cnt_64bit_compressed|returned_match_cnt_128bit_compressed|returned_match_cnt_256bit_compressed|returned_match_cnt_512bit_compressed" << std::endl;
   for ($u64 match_cnt = 0; match_cnt < max_match_cnt; match_cnt++) {
     for($u64 repeat = 0; repeat < repeat_cnt; repeat++) {
       std::bitset<size> bitmask = make_bitmask<size>(match_cnt);
       std::cout << match_cnt;
-      std::cout << "|" << match_cnt_after_compression<size, 64>(bitmask);
-      std::cout << "|" << match_cnt_after_compression<size, 128>(bitmask);
-      std::cout << "|" << match_cnt_after_compression<size, 256>(bitmask);
+      std::cout << "|" << match_cnt_after_compression<size, 64, mask_impl>(bitmask);
+      std::cout << "|" << match_cnt_after_compression<size, 128, mask_impl>(bitmask);
+      std::cout << "|" << match_cnt_after_compression<size, 256, mask_impl>(bitmask);
+      std::cout << "|" << match_cnt_after_compression<size, 512, mask_impl>(bitmask);
       std::cout << std::endl;
     }
   }
 };
 
 TEST(bitmask_experiment, tree_mask_uniform_match_distribution) {
-  run<2048, 42>();
+  run<2048, 42, tree_mask>();
+}
+
+TEST(bitmask_experiment, zone_mask_uniform_match_distribution) {
+  run<2048, 42, zone_mask>();
 }

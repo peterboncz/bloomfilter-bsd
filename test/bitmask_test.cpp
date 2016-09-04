@@ -79,7 +79,7 @@ constexpr u64 N = 1 << 11; // 12 13;
 template<u64 M>
 static void test_compression(const std::bitset<N> bitmask) {
   assert_no_false_negatives(bitmask, tree_mask<N>::decode<M>(tree_mask<N>::compress<M>(bitmask)));
-  assert_no_false_negatives(bitmask, zone_mask<N>::decompress<M>(zone_mask<N>::compress<M>(bitmask)));
+  assert_no_false_negatives(bitmask, zone_mask<N>::decode<M>(zone_mask<N>::compress<M>(bitmask)));
 };
 
 TEST(bitmask, compression) {
