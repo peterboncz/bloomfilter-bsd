@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-using namespace tree;
+using namespace bitmask;
 
 static std::vector<$u1> bitvector(const std::string bit_string) {
   std::vector<$u1> bv;

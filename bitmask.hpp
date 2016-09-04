@@ -7,7 +7,7 @@
 #include <functional>
 #include <vector>
 
-namespace tree {
+namespace bitmask {
 
   template<u64 N>
   class tree_mask {
