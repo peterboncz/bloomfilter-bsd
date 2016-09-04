@@ -2,7 +2,7 @@
 add_subdirectory(lib/googletest)
 include_directories(lib/googletest/include lib/googletest)
 
-set(TEST_FILES bitmask_test.cpp)
+set(TEST_FILES bitmask_test.cpp bitmask_experiments.cpp)
 
 add_executable(tester ${TEST_FILES})
 
