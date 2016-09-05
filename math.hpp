@@ -76,7 +76,7 @@ static uint64_t catalan_number(const uint64_t n) {
   return n_choose_k(2 * n, n) / (n + 1);
 }
 
-static ssize_t ballot_number(const size_t i, const size_t j) {
+static size_t ballot_number(const size_t i, const size_t j) {
   const size_t n = i + 1;
   const size_t k = (i + j) / 2 + 1;
   return static_cast<size_t>(((static_cast<double>(j) + 1) / (static_cast<double>(i) + 1)) * n_choose_k(n, k));
