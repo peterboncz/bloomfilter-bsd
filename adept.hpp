@@ -31,6 +31,11 @@ using $f32 = float;
 using $f64 = double;
 
 
+// Compiler hints
+#define aligned(address, byte) __builtin_assume_aligned(address, byte)
+#define unreachable() __builtin_unreachable();
+
+
 #include <bitset>
 #include <vector>
 
