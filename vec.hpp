@@ -1,7 +1,11 @@
 #pragma once
 
+#include "math.hpp"
+
 template<typename T, size_t N>
 struct vec {
+  static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
+
   alignas(64) T data[N];
 
   using type = T;
@@ -21,11 +25,9 @@ struct vec {
     }
   }
 
-//  vec(std::initializer_list<T> l) {
-//    for (size_t i = 0; i < N; i++) {
-//      data[i] = l[i];
-//    }
-//  }
+  T& operator[](const int index) {
+    return data[index];
+  }
 
   vec operator+(const vec &o) const noexcept {
     vec<T, N> d(*this);
@@ -63,6 +65,22 @@ struct vec {
     for (size_t i = 0; i < N; i++) {
       data[i] += 1;
     }
+  }
+
+  vec operator<<(const uint32_t cnt) const noexcept {
+    vec<T, N> d(*this);
+    for (size_t i = 0; i < N; i++) {
+      d.data[i] <<= cnt;
+    }
+    return d;
+  }
+
+  vec operator>>(const uint32_t cnt) const noexcept {
+    vec<T, N> d(*this);
+    for (size_t i = 0; i < N; i++) {
+      d.data[i] >>= cnt;
+    }
+    return d;
   }
 
   void operator--() noexcept {
