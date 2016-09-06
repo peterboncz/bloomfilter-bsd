@@ -228,7 +228,7 @@ namespace bitmask {
 
     /// Encodes and compresses the given bitmask as a full binary tree using balanced parentheses representation.
     /// The length of encoded tree mask is guaranteed to be less or equal to M.
-    /// Note, that the compression can lead to an information loss. However, the following holds: m == m & d(e(m)
+    /// Note, that the compression can lead to an information loss. However, the following holds: m == m & d(e(m))
     /// @returns a bit set of size M containing the encoded 'tree mask'
     template<u64 M>
     static std::bitset<M> compress(const std::bitset<N>& bitmask) {
