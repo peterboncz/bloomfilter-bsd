@@ -2,6 +2,7 @@
 
 #include "adept.hpp"
 #include <sys/mman.h>
+#include <stdlib.h>
 
 namespace mem {
 
@@ -9,7 +10,7 @@ namespace mem {
 
   template<typename T>
   static T* aligned_alloc(u64 alignment, u64 cnt) {
-    void* ptr = aligned_alloc(aligned_alloc, cnt * sizeof(T));
+    void* ptr = ::aligned_alloc(alignment, cnt * sizeof(T));
     return reinterpret_cast<T*>(ptr);
   }
 
