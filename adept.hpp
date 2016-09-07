@@ -31,6 +31,17 @@ using $f32 = float;
 using $f64 = double;
 
 
+// polyfill until C++14
+template<u64...>
+struct integer_sequence {};
+
+template<u64 N, u64... Ints>
+struct make_integer_sequence : make_integer_sequence<N - 1, N - 1, Ints...> {};
+
+template<u64... Ints>
+struct make_integer_sequence<0, Ints...> : integer_sequence<Ints...> {};
+
+
 // Compiler hints
 #define aligned(address, byte) __builtin_assume_aligned(address, byte)
 #define unreachable() __builtin_unreachable();
