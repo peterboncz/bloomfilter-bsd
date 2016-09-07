@@ -1,8 +1,10 @@
 #pragma once
 
 #include "adept.hpp"
-#include <sys/mman.h>
+
+#include <cstring>
 #include <stdlib.h>
+#include <sys/mman.h>
 
 namespace mem {
 
@@ -11,6 +13,13 @@ namespace mem {
   template<typename T>
   static T* aligned_alloc(u64 alignment, u64 cnt) {
     void* ptr = ::aligned_alloc(alignment, cnt * sizeof(T));
+    return reinterpret_cast<T*>(ptr);
+  }
+
+  template<typename T>
+  static T* aligned_alloc(u64 alignment, u64 cnt, u32 init_value) {
+    void* ptr = aligned_alloc<T>(alignment, cnt * sizeof(T));
+    std::memset(ptr, init_value, cnt * sizeof(T));
     return reinterpret_cast<T*>(ptr);
   }
 
