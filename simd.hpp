@@ -18,8 +18,13 @@ namespace simd {
   };
 
   template<typename T>
+  static constexpr u64 lane_count = bitwidth::value / (sizeof(T) * 8);
+
+  template<typename T>
   struct lane {
-    static constexpr u64 count = bitwidth::value / (sizeof(T) * 8);
+    enum : u64 {
+      count = bitwidth::value / (sizeof(T) * 8)
+    };
   };
 
 }
