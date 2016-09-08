@@ -64,6 +64,20 @@ namespace std {
     }
   };
 
+  template<typename T>
+  struct post_increment {
+    constexpr T operator()(const T &lhs) const {
+      return lhs++;
+    }
+  };
+
+  template<typename T>
+  struct post_decrement {
+    constexpr T operator()(const T &lhs) const {
+      return lhs--;
+    }
+  };
+
 }
 
 #include <bitset>
