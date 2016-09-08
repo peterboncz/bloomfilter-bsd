@@ -13,18 +13,55 @@ struct vec {
 
   alignas(64) std::array<T, N> data;
 
+  using type = vec<T, N>;
   using mask_t = std::bitset<N>;
 
-  T& operator[](const int index) {
+  static mask_t make_all_mask() {
+    mask_t m;
+    return ~m;
+  }
+
+  static mask_t make_none_mask() {
+    mask_t m;
+    return m;
+  }
+
+  T& operator[](u64 index) {
     return data[index];
   }
 
-  vec gather(vec<$u64, N>& index) {
+  T operator[](u64 index) const {
+    return data[index];
+  }
+
+  vec gather(const vec<$u64, N>& index) const {
     vec d;
     for (size_t i = 0; i < N; i++) {
       d.data[i] = data[index[i]];
     }
     return d;
+  }
+
+  vec gather(const vec<$u64, N>& index, const mask_t& mask) const {
+    vec d;
+    for (size_t i = 0; i < N; i++) {
+      if (!mask[i]) continue;
+      d.data[i] = data[index[i]];
+    }
+    return d;
+  }
+
+  void scatter(const vec<T, N>& what, const vec<$u64, N>& where) {
+    for (size_t i = 0; i < N; i++) {
+      data[where[i]] = what[i];
+    }
+  }
+
+  void scatter(const vec<T, N>& what, const vec<$u64, N>& where, const mask_t& mask) {
+    for (size_t i = 0; i < N; i++) {
+      if (!mask[i]) continue;
+      data[where[i]] = what[i];
+    }
   }
 
   // binary operators
@@ -145,7 +182,15 @@ struct vec {
     return *this;
   }
 
+  vec& compound_assignment_operator(auto op, const vec& b, const mask_t& m) noexcept {
+    for (size_t i = 0; i < N; i++) {
+      data[i] = m[i] ? op(data[i], b.data[i]) : data[i];
+    }
+    return *this;
+  }
+
   vec& operator+=(const vec& o) noexcept { return compound_assignment_operator(std::plus<T>(), o); }
+  vec& assignment_plus(const vec& o, const mask_t& m) noexcept { return compound_assignment_operator(std::plus<T>(), o, m); }
   vec& operator-=(const vec& o) noexcept { return compound_assignment_operator(std::minus<T>(), o); }
   vec& operator|=(const vec& o) noexcept { return compound_assignment_operator(std::bit_or<T>(), o); }
   vec& operator^=(const vec& o) noexcept { return compound_assignment_operator(std::bit_xor<T>(), o); }
@@ -159,10 +204,19 @@ struct vec {
     return *this;
   }
 
+  vec& compound_assignment_operator(auto op, const T& b, const mask_t& m) noexcept {
+    for (size_t i = 0; i < N; i++) {
+      data[i] = m[i] ? op(data[i], b) : data[i];
+    }
+    return *this;
+  }
+
   vec& operator+=(const T& o) noexcept { return compound_assignment_operator(std::plus<T>(), o); }
+  vec& assignment_plus(const T& o, const mask_t& m) noexcept { return compound_assignment_operator(std::plus<T>(), o, m); }
   vec& operator-=(const T& o) noexcept { return compound_assignment_operator(std::minus<T>(), o); }
   vec& operator|=(const T& o) noexcept { return compound_assignment_operator(std::bit_or<T>(), o); }
   vec& operator^=(const T& o) noexcept { return compound_assignment_operator(std::bit_xor<T>(), o); }
   vec& operator&=(const T& o) noexcept { return compound_assignment_operator(std::bit_and<T>(), o); }
+  vec& assignment_bit_and(const T& o, const mask_t& m) noexcept { return compound_assignment_operator(std::bit_and<T>(), o, m); }
 
 };
