@@ -4,6 +4,8 @@
 #include "math.hpp"
 
 #include <array>
+#include <bitset>
+#include <functional>
 
 template<typename T, size_t N>
 struct vec {
@@ -11,7 +13,7 @@ struct vec {
 
   alignas(64) std::array<T, N> data;
 
-  using type = T;
+  using mask_t = std::bitset<N>;
 
   T& operator[](const int index) {
     return data[index];
@@ -25,155 +27,92 @@ struct vec {
     return d;
   }
 
-  vec operator+(const vec &o) const noexcept {
-    vec<T, N> d(*this);
+  // binary operators
+  vec binary_operator(auto op, const vec& b) const  noexcept {
+    vec d;
     for (size_t i = 0; i < N; i++) {
-      d.data[i] = data[i] + o.data[i];
+      d.data[i] = op(data[i], b.data[i]);
     }
     return d;
   }
 
-  vec operator+(const T &scalar_value) const noexcept {
-    vec<T, N> d(*this);
+  vec operator+(const vec& o) const noexcept { return binary_operator(std::plus<T>(), o); }
+  vec operator-(const vec& o) const noexcept { return binary_operator(std::minus<T>(), o); }
+  vec operator*(const vec& o) const noexcept { return binary_operator(std::multiplies<T>(), o); }
+  vec operator/(const vec& o) const noexcept { return binary_operator(std::divides<T>(), o); }
+  vec operator|(const vec& o) const noexcept { return binary_operator(std::bit_or<T>(), o); }
+  vec operator^(const vec& o) const noexcept { return binary_operator(std::bit_xor<T>(), o); }
+  vec operator&(const vec& o) const noexcept { return binary_operator(std::bit_and<T>(), o); }
+  vec operator<<(const vec& o) const noexcept { return binary_operator(std::bit_shift_left<T>(), o); }
+  vec operator>>(const vec& o) const noexcept { return binary_operator(std::bit_shift_right<T>(), o); }
+
+  vec binary_operator(auto op, const T& b) const noexcept {
+    vec d;
     for (size_t i = 0; i < N; i++) {
-      d.data[i] += scalar_value;
+      d.data[i] = op(data[i], b);
     }
     return d;
   }
 
-  vec operator-(const vec &o) const noexcept {
-    vec<T, N> d(*this);
+  vec operator+(const T& o) const noexcept { return binary_operator(std::plus<T>(), o); }
+  vec operator-(const T& o) const noexcept { return binary_operator(std::minus<T>(), o); }
+  vec operator*(const T& o) const noexcept { return binary_operator(std::multiplies<T>(), o); }
+  vec operator/(const T& o) const noexcept { return binary_operator(std::divides<T>(), o); }
+  vec operator|(const T& o) const noexcept { return binary_operator(std::bit_or<T>(), o); }
+  vec operator^(const T& o) const noexcept { return binary_operator(std::bit_xor<T>(), o); }
+  vec operator&(const T& o) const noexcept { return binary_operator(std::bit_and<T>(), o); }
+  vec operator<<(const T& o) const noexcept { return binary_operator(std::bit_shift_left<T>(), o); }
+  vec operator>>(const T& o) const noexcept { return binary_operator(std::bit_shift_right<T>(), o); }
+
+
+  // unary operators
+  vec unary_operator(auto op) const noexcept {
+    vec d;
     for (size_t i = 0; i < N; i++) {
-      d.data[i] = data[i] - o.data[i];
+      d.data[i] = op(data[i]);
     }
     return d;
   }
 
-  vec operator-(const T &scalar_value) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d.data[i] -= scalar_value;
-    }
-    return d;
-  }
+  vec operator~() const noexcept { return binary_operator(std::bit_not<T>()); }
 
-  vec operator*(const vec &o) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d.data[i] = data[i] * o.data[i];
-    }
-    return d;
-  }
 
-  vec operator*(const T &scalar_value) const noexcept {
-    vec<T, N> d(*this);
+  // comparison operators / relational operators
+  mask_t comparison_operator(auto op, const vec& b) const noexcept {
+    mask_t mask;
     for (size_t i = 0; i < N; i++) {
-      d.data[i] *= scalar_value;
+      mask[i] = op(data[i], b.data[i]);
     }
-    return d;
+    return mask;
   }
+  mask_t operator<(const vec& o) const noexcept { return comparison_operator(std::less<T>(), o); }
+  mask_t operator<=(const vec& o) const noexcept { return comparison_operator(std::less_equal<T>(), o); }
+  mask_t operator==(const vec& o) const noexcept { return comparison_operator(std::equal_to<T>(), o); }
+  mask_t operator!=(const vec& o) const noexcept { return comparison_operator(std::not_equal_to<T>(), o); }
+  mask_t operator>=(const vec& o) const noexcept { return comparison_operator(std::greater_equal<T>(), o); }
+  mask_t operator>(const vec& o) const noexcept { return comparison_operator(std::greater<T>(), o); }
 
-  void operator++() noexcept {
+  mask_t comparison_operator(auto op, const T& b) const noexcept {
+    mask_t mask;
     for (size_t i = 0; i < N; i++) {
-      data[i] += 1;
+      mask[i] = op(data[i], b);
     }
+    return mask;
   }
+  mask_t operator<(const T& o) const noexcept { return comparison_operator(std::less<T>(), o); }
+  mask_t operator<=(const T& o) const noexcept { return comparison_operator(std::less_equal<T>(), o); }
+  mask_t operator==(const T& o) const noexcept { return comparison_operator(std::equal_to<T>(), o); }
+  mask_t operator!=(const T& o) const noexcept { return comparison_operator(std::not_equal_to<T>(), o); }
+  mask_t operator>=(const T& o) const noexcept { return comparison_operator(std::greater_equal<T>(), o); }
+  mask_t operator>(const T& o) const noexcept { return comparison_operator(std::greater<T>(), o); }
 
-  vec operator<<(const uint32_t cnt) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d.data[i] <<= cnt;
-    }
-    return d;
-  }
 
-  vec operator>>(const uint32_t cnt) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d.data[i] >>= cnt;
-    }
-    return d;
-  }
-
-  void operator--() noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] -= 1;
-    }
-  }
-
-  void operator+=(const vec &o) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] += o.data[i];
-    }
-  }
-
-  void operator-=(const vec &o) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] -= o.data[i];
-    }
-  }
-
-  void operator^=(const vec &o) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] ^= o.data[i];
-    }
-  }
-
-  void operator|=(const vec &o) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] |= o.data[i];
-    }
-  }
-
-  void operator|=(const T scalar_value) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] |= scalar_value;
-    }
-  }
-
-  vec operator|(const T scalar_value) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d[i] |= scalar_value;
-    }
-    return d;
-  }
-
-  void operator&=(const vec &o) noexcept {
-    for (size_t i = 0; i < N; i++) {
-      data[i] &= o.data[i];
-    }
-  }
-
-  vec operator&(const vec &o) const noexcept {
-    vec<T, N> d();
-    for (size_t i = 0; i < N; i++) {
-      d[i] = data[i] & o.data[i];
-    }
-    return d;
-  }
-
-  vec operator&(const T scalar_value) const noexcept {
-    vec<T, N> d(*this);
-    for (size_t i = 0; i < N; i++) {
-      d[i] &= scalar_value;
-    }
-    return d;
-  }
 
   template<typename S>
   vec<S, N> cast() const noexcept {
     vec<S, N> d;
     for (size_t i = 0; i < N; i++) {
       d.data[i] = data[i];
-    }
-    return d;
-  }
-
-  vec operator<(const vec &r) const noexcept {
-    vec<T, N> d(0);
-    for (size_t i = 0; i < N; i++) {
-      d.data[i] = data[i] < r.data[i] ? -1 : 0;
     }
     return d;
   }
@@ -196,5 +135,34 @@ struct vec {
   static constexpr vec<T, N> make_index_vector() {
     return make_index_vector(make_integer_sequence<N>());
   };
+
+
+  // compound assignment operators
+  vec& compound_assignment_operator(auto op, const vec& b) noexcept {
+    for (size_t i = 0; i < N; i++) {
+      data[i] = op(data[i], b.data[i]);
+    }
+    return *this;
+  }
+
+  vec& operator+=(const vec& o) noexcept { return compound_assignment_operator(std::plus<T>(), o); }
+  vec& operator-=(const vec& o) noexcept { return compound_assignment_operator(std::minus<T>(), o); }
+  vec& operator|=(const vec& o) noexcept { return compound_assignment_operator(std::bit_or<T>(), o); }
+  vec& operator^=(const vec& o) noexcept { return compound_assignment_operator(std::bit_xor<T>(), o); }
+  vec& operator&=(const vec& o) noexcept { return compound_assignment_operator(std::bit_and<T>(), o); }
+
+
+  vec& compound_assignment_operator(auto op, const T& b) noexcept {
+    for (size_t i = 0; i < N; i++) {
+      data[i] = op(data[i], b);
+    }
+    return *this;
+  }
+
+  vec& operator+=(const T& o) noexcept { return compound_assignment_operator(std::plus<T>(), o); }
+  vec& operator-=(const T& o) noexcept { return compound_assignment_operator(std::minus<T>(), o); }
+  vec& operator|=(const T& o) noexcept { return compound_assignment_operator(std::bit_or<T>(), o); }
+  vec& operator^=(const T& o) noexcept { return compound_assignment_operator(std::bit_xor<T>(), o); }
+  vec& operator&=(const T& o) noexcept { return compound_assignment_operator(std::bit_and<T>(), o); }
 
 };
