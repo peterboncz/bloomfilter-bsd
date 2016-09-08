@@ -47,6 +47,25 @@ struct make_integer_sequence<0, Ints...> : integer_sequence<Ints...> {};
 #define unreachable() __builtin_unreachable();
 
 
+// add missing operator function objects
+namespace std {
+
+  template<typename T>
+  struct bit_shift_left {
+    constexpr T operator()(const T &lhs, const T &rhs) const {
+      return lhs << rhs;
+    }
+  };
+
+  template<typename T>
+  struct bit_shift_right {
+    constexpr T operator()(const T &lhs, const T &rhs) const {
+      return lhs >> rhs;
+    }
+  };
+
+}
+
 #include <bitset>
 #include <vector>
 
