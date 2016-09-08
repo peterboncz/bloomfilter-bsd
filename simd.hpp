@@ -1,26 +1,25 @@
 #pragma once
 
+#include "adept.hpp"
+
 namespace simd {
 
   struct bitwidth {
-    enum : uint32_t {
+    static const u64
 #ifdef __AVX512F__
-      value = 512
+      value = 512;
 #elif __AVX2__
-      value = 256
+      value = 256;
 #elif __SSE2__
-      value = 128
+      value = 128;
 #else
-      value = 64
+      value = 64;
 #endif
-    };
   };
 
   template<typename T>
   struct lane {
-    enum : uint32_t {
-      count = bitwidth::value / (sizeof(T) * 8)
-    };
+    static constexpr u64 count = bitwidth::value / (sizeof(T) * 8);
   };
 
 }
