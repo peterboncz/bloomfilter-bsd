@@ -100,3 +100,16 @@ TEST(bitmask, compression) {
   test_compression<128>(bitmask);
   test_compression<64>(bitmask);
 }
+
+TEST(bitmask, extract_positions) {
+  $u64 in = 0;
+
+  match_vector<64> m;
+  extract_match_positions(in, m);
+
+  std::cout << m.match_cnt << std::endl;
+  for ($u64 i = 0; i < m.match_cnt; i++) {
+    std::cout << m.match_positions[i] << ", ";
+  }
+  std::cout << std::endl;
+}
