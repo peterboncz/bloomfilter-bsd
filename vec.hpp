@@ -64,6 +64,21 @@ struct vec {
     }
   }
 
+  // conflict detection
+  vec conflict_detection(const vec<T, N>& a) {
+    // just a naive translation of the '_mm512_conflict_epi32'
+    // intrinsic function.
+    vec dst;
+    for ($u64 j = 0; j < N; j++) {
+      for ($u64 k = 0; k < j; k++) {
+        u64 are_equal = a[j] == a[k];
+        dst[j] |= are_equal << k;
+      }
+    }
+    return dst;
+  }
+
+
   // binary operators
   vec binary_operator(auto op, const vec& b) const  noexcept {
     vec d;
