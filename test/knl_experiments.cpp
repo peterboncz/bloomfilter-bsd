@@ -77,7 +77,7 @@ TEST(knl, ht) {
     // linear probing
     auto ht_bucket_index = hash_value & (bucket_cnt - 1);
     hash_vec_t ht_index;
-    auto mask = hash_vec_t::make_all_mask();
+    auto op_mask = hash_vec_t::make_all_mask();
 
     do {
       // compute the position in the hash table for each SIMD lane individually
@@ -85,32 +85,32 @@ TEST(knl, ht) {
 
       // compare hash values
       auto h = ht_hash_values_vec->gather(ht_index);
-      mask = h == hash_value;
+      op_mask = h == hash_value;
 
       // check for empty buckets
-      if (! mask.all()) {
+      if (! op_mask.all()) {
         auto empty_mask = h == 0;
         if (empty_mask.any()) {
           // write hash values and keys to the empty buckets
           ht_hash_values_vec->scatter(hash_value, ht_index, empty_mask);
           ht_keys_vec->scatter(input_keys, ht_index, empty_mask);
         }
-        mask |= empty_mask;
+        op_mask |= empty_mask;
       }
 
       // compare keys
-      if (mask.all()) {
+      if (op_mask.all()) {
         auto k = ht_keys_vec->gather(ht_index);
         auto equal_mask = k == input_keys;
-        mask &= equal_mask;
+        op_mask &= equal_mask;
       }
 
-      if (! mask.all()) {
+      if (! op_mask.all()) {
         // try next bucket (linear probing)
-        ht_bucket_index.assignment_plus(1, ~mask);
-        ht_bucket_index.assignment_bit_and(bucket_mask, ~mask);
+        ht_bucket_index.assignment_plus(1, ~op_mask);
+        ht_bucket_index.assignment_bit_and(bucket_mask, ~op_mask);
       }
-    } while (! mask.all());
+    } while (! op_mask.all());
 
     // update hash table
     auto v = ht_values_vec->gather(ht_index);
