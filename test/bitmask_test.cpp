@@ -17,28 +17,32 @@ static std::vector<$u1> bitvector(const std::string bit_string) {
 }
 
 TEST(bitmask, tree_encode) {
-  ASSERT_EQ(bitvector("11010010"), tree_mask<16>::encode(std::bitset<16>("0000000011111111")));
-  ASSERT_EQ(bitvector("11010010"), tree_mask<8>::encode(std::bitset<8>("00001111")));
-  ASSERT_EQ(bitvector("11010010"), tree_mask<2>::encode(std::bitset<2>("01")));
-  ASSERT_EQ(bitvector("100"), tree_mask<4>::encode(std::bitset<4>("0000")));
-  ASSERT_EQ(bitvector("101"), tree_mask<4>::encode(std::bitset<4>("1111")));
-  ASSERT_EQ(bitvector("1110100100101"), tree_mask<8>::encode(std::bitset<8>("11110011")));
-  ASSERT_EQ(bitvector("1110100100101"), tree_mask<4>::encode(std::bitset<4>("1101")));
-  ASSERT_EQ(bitvector("111010011010001010"), tree_mask<4>::encode(std::bitset<4>("0101")));
-  ASSERT_EQ(bitvector("111010011010001010"), tree_mask<32>::encode(std::bitset<32>("00000000111111110000000011111111")));
-  //ASSERT_EQ(bitvector(""), tree::tree_mask<>::encode(std::bitset<>("")));
+  ASSERT_EQ(bitvector("00"), tree_mask<1>::encode(std::bitset<1>("0")));
+  ASSERT_EQ(bitvector("01"), tree_mask<1>::encode(std::bitset<1>("1")));
+  ASSERT_EQ(bitvector("10010"), tree_mask<2>::encode(std::bitset<2>("01")));
+  ASSERT_EQ(bitvector("10001"), tree_mask<2>::encode(std::bitset<2>("10")));
+  ASSERT_EQ(bitvector("10010"), tree_mask<8>::encode(std::bitset<8>("00001111")));
+  ASSERT_EQ(bitvector("00"), tree_mask<4>::encode(std::bitset<4>("0000")));
+  ASSERT_EQ(bitvector("01"), tree_mask<4>::encode(std::bitset<4>("1111")));
+  ASSERT_EQ(bitvector("11000101"), tree_mask<8>::encode(std::bitset<8>("11110011")));
+  ASSERT_EQ(bitvector("11000101"), tree_mask<4>::encode(std::bitset<4>("1101")));
+  ASSERT_EQ(bitvector("11001001010"), tree_mask<4>::encode(std::bitset<4>("0101")));
+  ASSERT_EQ(bitvector("11001001010"), tree_mask<32>::encode(std::bitset<32>("00000000111111110000000011111111")));
 }
 
 TEST(bitmask, tree_decode) {
-  ASSERT_EQ(std::bitset<16>("0000000011111111"), tree_mask<16>::decode(bitvector("11010010")));
-  ASSERT_EQ(std::bitset<8>("00001111"), tree_mask<8>::decode(bitvector("11010010")));
-  ASSERT_EQ(std::bitset<2>("01"), tree_mask<2>::decode(bitvector("11010010")));
-  ASSERT_EQ(std::bitset<4>("0000"), tree_mask<4>::decode(bitvector("100")));
-  ASSERT_EQ(std::bitset<4>("1111"), tree_mask<4>::decode(bitvector("101")));
-  ASSERT_EQ(std::bitset<8>("11110011"), tree_mask<8>::decode(bitvector("1110100100101")));
-  ASSERT_EQ(std::bitset<4>("1101"), tree_mask<4>::decode(bitvector("1110100100101")));
-  ASSERT_EQ(std::bitset<4>("0101"), tree_mask<4>::decode(bitvector("111010011010001010")));
-  ASSERT_EQ(std::bitset<32>("00000000111111110000000011111111"), tree_mask<32>::decode(bitvector("111010011010001010")));
+  ASSERT_EQ(std::bitset<1>("0"), tree_mask<1>::decode(bitvector("00")));
+  ASSERT_EQ(std::bitset<1>("1"), tree_mask<1>::decode(bitvector("01")));
+  ASSERT_EQ(std::bitset<2>("01"), tree_mask<2>::decode(bitvector("10010")));
+  ASSERT_EQ(std::bitset<2>("10"), tree_mask<2>::decode(bitvector("10001")));
+
+  ASSERT_EQ(std::bitset<8>("00001111"), tree_mask<8>::decode(bitvector("10010")));
+  ASSERT_EQ(std::bitset<4>("0000"), tree_mask<4>::decode(bitvector("00")));
+  ASSERT_EQ(std::bitset<4>("1111"), tree_mask<4>::decode(bitvector("01")));
+  ASSERT_EQ(std::bitset<8>("11110011"), tree_mask<8>::decode(bitvector("11000101")));
+  ASSERT_EQ(std::bitset<4>("1101"), tree_mask<4>::decode(bitvector("11000101")));
+  ASSERT_EQ(std::bitset<4>("0101"), tree_mask<4>::decode(bitvector("11001001010")));
+  ASSERT_EQ(std::bitset<32>("00000000111111110000000011111111"), tree_mask<32>::decode(bitvector("11001001010")));
 }
 
 template<u64 N>

@@ -86,15 +86,15 @@ namespace bitmask {
       std::vector<$u1> labels;
       std::function<void(u64)> encode_recursively = [&](u64 idx) {
         u1 is_inner = is_inner_node[idx];
-        structure.push_back(true);
         if (is_inner) {
+          structure.push_back(true);
           encode_recursively(left_child_of(idx));
           encode_recursively(right_child_of(idx));
         }
         else {
+          structure.push_back(false);
           labels.push_back(bit[idx]);
         }
-        structure.push_back(false);
       };
       encode_recursively(0);
       // append the labels
@@ -175,6 +175,8 @@ namespace bitmask {
       return idx;
     }
 
+    /// finds the position of the matching closing paranthesis.
+    /// if the given index points to a '0', it returns that index.
     template<u64 M>
     static u64 find_close(const std::bitset<M> bitstring, u64 idx) {
       if (!bitstring[idx]) return idx;
@@ -184,6 +186,20 @@ namespace bitmask {
         if (cntr == 0) return i;
       }
       return idx;
+    }
+
+    /// finds the position of the matching closing paranthesis.
+    /// if the given index points to a '0', it returns that index.
+    template<typename bitstring_t>
+    static u64 find_labels_offset(const bitstring_t bitstring) {
+      if (!bitstring[0]) return 0 + 1;
+      $u64 cntr = 2;
+      for ($u64 i = 1; i < bitstring.size(); i++) {
+        u1 is_inner_node = bitstring[i];
+        is_inner_node ? cntr++ : cntr--;
+        if (cntr == 0) return i + 1;
+      }
+      unreachable();
     }
 
     static inline void write(std::bitset<N>& bitmask, u64 offset, u1 bit, u64 cnt) {
@@ -204,16 +220,48 @@ namespace bitmask {
 
     /// Decodes the given 'tree mask'.
     /// @returns a bitmask of fixed size
+    template<typename bitstring_t>
+    static std::bitset<N> decode(const bitstring_t code) {
+      u64 labels_offset = find_labels_offset(code);
+      u64 height = ct::log_2<N>::value;
+
+      std::bitset<N> bitmask;
+      $u64 write_pos = 0;
+      $u64 read_pos = 0;
+      $u64 label_read_pos = 0;
+      std::function<void(u64)> fn = [&](u64 level) {
+        u1 current_bit = code[read_pos];
+        u1 is_leaf = ! current_bit;
+        if (is_leaf) {
+          u64 n = 1 << (height - level);
+          u1 label = code[labels_offset + label_read_pos];
+          write(bitmask, write_pos, label, n);
+          write_pos += n;
+          read_pos++;
+          label_read_pos++;
+        }
+        else {
+          read_pos++;
+          fn(level + 1);
+          fn(level + 1);
+        };
+      };
+      fn(0);
+      return bitmask;
+    }
+
+    /// Decodes the given 'tree mask'.
+    /// @returns a bitmask of fixed size
+    /*
     static std::bitset<N> decode(const std::vector<$u1> code) {
       std::bitset<N> bitmask;
       u64 labels_offset = find_close(code, 0) + 1;
       u64 height = ct::log_2<N>::value;
       $u64 write_pos = 0;
       $u64 level = 0;
-      $u1 previous_bit = code[0];
-      for ($u64 i = 1, j = labels_offset; i < labels_offset; i++) {
+      for ($u64 i = 0, j = labels_offset; i < labels_offset; i++) {
         u1 current_bit = code[i];
-        u1 is_leaf = ! current_bit & previous_bit;
+        u1 is_leaf = ! current_bit;
         if (is_leaf) {
           u64 n = 1 << (height - level);
           u1 label = code[j];
@@ -222,10 +270,10 @@ namespace bitmask {
           j++;
         }
         current_bit ? level++ : level--;
-        previous_bit = current_bit;
       }
       return bitmask;
     }
+     */
 
     /// Encodes and compresses the given bitmask as a full binary tree using balanced parentheses representation.
     /// The length of encoded tree mask is guaranteed to be less or equal to M.
@@ -248,25 +296,7 @@ namespace bitmask {
     /// @returns a bitmask of fixed size
     template<u64 M>
     static std::bitset<N> decode(const std::bitset<M> code) {
-      std::bitset<N> bitmask;
-      u64 labels_offset = find_close(code, 0) + 1;
-      u64 height = ct::log_2<N>::value;
-      $u64 write_pos = 0;
-      $u64 level = 0;
-      $u1 previous_bit = code[0];
-      for ($u64 i = 1, j = labels_offset; i < labels_offset; i++) {
-        u1 current_bit = code[i];
-        u1 is_leaf = ! current_bit & previous_bit;
-        if (is_leaf) {
-          u64 n = 1 << (height - level);
-          u1 label = code[j];
-          write(bitmask, write_pos, label, n);
-          write_pos += n;
-          j++;
-        }
-        current_bit ? level++ : level--;
-        previous_bit = current_bit;
-      }
+      std::bitset<N> bitmask = decode<std::bitset<M>>(code);
       return bitmask;
     }
 
