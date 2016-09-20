@@ -110,7 +110,7 @@ namespace bitmask {
         return node_cnt(left_child_of(node_idx)) + node_cnt(right_child_of(node_idx));
       };
 
-      std::function<u64(u64, u64)> prune_single = [&](u64 node_idx, u64 safe_bits) {
+      std::function<u64(u64)> prune_single = [&](u64 node_idx) {
         assert(is_inner_node[node_idx]);
 
         u64 left_child_idx = left_child_of(node_idx);
@@ -125,11 +125,11 @@ namespace bitmask {
         }
 
         if (left_sub_tree_size == 1) {
-          return prune_single(right_child_idx, safe_bits);
+          return prune_single(right_child_idx);
         }
 
         if (right_sub_tree_size == 1) {
-          return prune_single(left_child_idx, safe_bits);
+          return prune_single(left_child_idx);
         }
 
         u64 left_false_positive_cnt = false_positive_cnt[left_child_idx];
@@ -138,7 +138,7 @@ namespace bitmask {
         f64 left_trade = left_sub_tree_size / (left_false_positive_cnt + 0.01);
         f64 right_trade = right_sub_tree_size / (right_false_positive_cnt + 0.01);
 
-        return prune_single(left_child_idx + (right_trade > left_trade), safe_bits);
+        return prune_single(left_child_idx + (right_trade > left_trade));
       };
 
       std::function<void(u64)> prune_clean = [&](u64 node_idx) {
@@ -161,7 +161,7 @@ namespace bitmask {
         auto enc = encode();
         u64 current_bit_cnt = enc.size();
         if (current_bit_cnt <= target_bit_cnt) break;
-        prune_clean(prune_single(0, current_bit_cnt - target_bit_cnt));
+        prune_clean(prune_single(0));
       }
     }
 
