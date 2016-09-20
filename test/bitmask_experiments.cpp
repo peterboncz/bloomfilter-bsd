@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "../adept.hpp"
 #include "../bitmask.hpp"
+#include "../zone_mask.hpp"
+
 #include <bitset>
 #include <functional>
 #include <iostream>

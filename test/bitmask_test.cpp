@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../adept.hpp"
 #include "../bitmask.hpp"
+#include "../zone_mask.hpp"
 #include <bitset>
 #include <functional>
 #include <iostream>
@@ -35,7 +36,6 @@ TEST(bitmask, tree_decode) {
   ASSERT_EQ(std::bitset<1>("1"), tree_mask<1>::decode(bitvector("01")));
   ASSERT_EQ(std::bitset<2>("01"), tree_mask<2>::decode(bitvector("10010")));
   ASSERT_EQ(std::bitset<2>("10"), tree_mask<2>::decode(bitvector("10001")));
-
   ASSERT_EQ(std::bitset<8>("00001111"), tree_mask<8>::decode(bitvector("10010")));
   ASSERT_EQ(std::bitset<4>("0000"), tree_mask<4>::decode(bitvector("00")));
   ASSERT_EQ(std::bitset<4>("1111"), tree_mask<4>::decode(bitvector("01")));
