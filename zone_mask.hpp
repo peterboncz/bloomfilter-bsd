@@ -4,7 +4,7 @@
 #include "math.hpp"
 #include <bitset>
 
-namespace bitmask {
+namespace dbb {
 
   template<u64 N>
   class zone_mask {

@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../adept.hpp"
 #include "../bitmask.hpp"
+#include "../tree_mask.hpp"
 #include "../zone_mask.hpp"
 
 #include <bitset>
@@ -8,7 +9,7 @@
 #include <iostream>
 #include <random>
 
-using namespace bitmask;
+using namespace dbb;
 
 static std::vector<$u1> bitvector(const std::string bit_string) {
   std::vector<$u1> bv;
