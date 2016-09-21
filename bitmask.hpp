@@ -8,6 +8,8 @@
 #include <vector>
 #include "immintrin.h"
 
+#include "tree.hpp"
+
 namespace bitmask {
 
   template<u64 N>
@@ -15,42 +17,26 @@ namespace bitmask {
   private:
     static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
 
-    static constexpr u64 length = 2 * N - 1;
-    static constexpr u64 height = ct::log_2<N>::value;
-    std::bitset<length> is_inner_node;
+    using tree_t = dbb::full_binary_tree<N>;
+
+    static constexpr u64 length = tree_t::max_node_cnt;
+    static constexpr u64 height = tree_t::height;
+    tree_t tree;
     std::bitset<length> bit;
     std::array<$u32, length> false_positive_cnt {};
 
-
-    static inline u64 parent_of(u64 idx) {
-      return (idx - 1) / 2;
-    }
-    static inline u64 left_child_of(u64 idx) {
-      return 2 * idx + 1;
-    }
-    static inline u64 right_child_of(u64 idx) {
-      return 2 * idx + 2;
-    }
-    static inline u64 level_of(u64 idx) {
-      return log_2(idx + 1);
-    }
-
     explicit tree_mask(const std::bitset<N> bitmask) {
-      false_positive_cnt.fill(0);
       // initialize a complete binary tree
       // ... all the inner nodes have two children
-      for ($u64 i = 0; i < length / 2; i++) {
-        is_inner_node[i] = true;
-      }
+      false_positive_cnt.fill(0);
       // ... the leaf nodes are labelled with the given bitmask
       for ($u64 i = length / 2; i < length; i++) {
-        is_inner_node[i] = false;
         bit[i] = bitmask[i - length / 2];
       }
       // propagate the mask bits along the tree (bottom-up)
       for ($u64 i = 0; i < length - 1; i++) {
         u64 node_idx = length - i - 1;
-        bit[parent_of(node_idx)] = bit[parent_of(node_idx)] | bit[node_idx];
+        bit[tree_t::parent_of(node_idx)] = bit[tree_t::parent_of(node_idx)] | bit[node_idx];
       }
       // bottom-up pruning (loss-less)
       for ($u64 i = 0; i < length - 1; i += 2) {
@@ -60,19 +46,19 @@ namespace bitmask {
         u1 left_bit = bit[left_node_idx];
         u1 right_bit = bit[right_node_idx];
 
-        u64 parent_node_idx = parent_of(left_node_idx);
+        u64 parent_node_idx = tree_t::parent_of(left_node_idx);
         false_positive_cnt[parent_node_idx] = false_positive_cnt[left_node_idx] + false_positive_cnt[right_node_idx];
 
         u1 prune_causes_false_positives = left_bit ^ right_bit;
-        u1 both_nodes_are_leaves = !is_inner_node[left_node_idx] & !is_inner_node[right_node_idx];
+        u1 both_nodes_are_leaves = !tree.is_inner_node(left_node_idx) & !tree.is_inner_node(right_node_idx);
         u1 prune = both_nodes_are_leaves & !prune_causes_false_positives;
         if (prune) {
-          is_inner_node[parent_node_idx] = false;
+          tree.set_leaf(parent_node_idx);
         }
         else {
           if (prune_causes_false_positives) {
-            u64 left_fp = !left_bit * (1 << (height - level_of(left_node_idx)));
-            u64 right_fp = !right_bit * (1 << (height - level_of(right_node_idx)));
+            u64 left_fp = !left_bit * (1 << (height - tree_t::level_of(left_node_idx)));
+            u64 right_fp = !right_bit * (1 << (height - tree_t::level_of(right_node_idx)));
             false_positive_cnt[parent_node_idx] = false_positive_cnt[left_node_idx] + false_positive_cnt[right_node_idx]
                                                   + left_fp + right_fp;
           }
@@ -85,11 +71,11 @@ namespace bitmask {
       std::vector<$u1> structure;
       std::vector<$u1> labels;
       std::function<void(u64)> encode_recursively = [&](u64 idx) {
-        u1 is_inner = is_inner_node[idx];
+        u1 is_inner = tree.is_inner_node(idx);
         if (is_inner) {
           structure.push_back(true);
-          encode_recursively(left_child_of(idx));
-          encode_recursively(right_child_of(idx));
+          encode_recursively(tree_t::left_child_of(idx));
+          encode_recursively(tree_t::right_child_of(idx));
         }
         else {
           structure.push_back(false);
@@ -106,21 +92,21 @@ namespace bitmask {
       assert(target_bit_cnt > 2);
 
       std::function<u64(u64)> node_cnt = [&](u64 node_idx) -> u64 {
-        if (!is_inner_node[node_idx]) return 1;
-        return node_cnt(left_child_of(node_idx)) + node_cnt(right_child_of(node_idx));
+        if (!tree.is_inner_node(node_idx)) return 1;
+        return node_cnt(tree_t::left_child_of(node_idx)) + node_cnt(tree_t::right_child_of(node_idx));
       };
 
       std::function<u64(u64)> prune_single = [&](u64 node_idx) {
-        assert(is_inner_node[node_idx]);
+        assert(tree.is_inner_node(node_idx));
 
-        u64 left_child_idx = left_child_of(node_idx);
-        u64 right_child_idx = right_child_of(node_idx);
+        u64 left_child_idx = tree_t::left_child_of(node_idx);
+        u64 right_child_idx = tree_t::right_child_of(node_idx);
 
         u64 left_sub_tree_size = node_cnt(left_child_idx);
         u64 right_sub_tree_size = node_cnt(right_child_idx);
 
         if (left_sub_tree_size == 1 && right_sub_tree_size == 1) {
-          is_inner_node[node_idx] = false;
+          tree.set_leaf(node_idx);
           return node_idx;
         }
 
@@ -142,14 +128,14 @@ namespace bitmask {
       };
 
       std::function<void(u64)> prune_clean = [&](u64 node_idx) {
-        assert(!is_inner_node[node_idx]);
+        assert(!tree.is_inner_node(node_idx));
         $u64 current_node_idx = node_idx;
         while (current_node_idx != 0) {
-          current_node_idx = parent_of(current_node_idx);
-          u64 left_child_idx = left_child_of(node_idx);
-          u64 right_child_idx = right_child_of(node_idx);
+          current_node_idx = tree_t::parent_of(current_node_idx);
+          u64 left_child_idx = tree_t::left_child_of(node_idx);
+          u64 right_child_idx = tree_t::right_child_of(node_idx);
           if (bit[left_child_idx] == bit[right_child_idx]) {
-            is_inner_node[current_node_idx] = false;
+            tree.set_leaf(current_node_idx);
           }
           else {
             break;
