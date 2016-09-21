@@ -24,7 +24,7 @@ namespace dbb {
     std::bitset<length> bit;
     std::array<$u32, length> false_positive_cnt {};
 
-    explicit tree_mask(const std::bitset<N> bitmask) {
+    explicit tree_mask(const std::bitset<N>& bitmask) {
       // initialize a complete binary tree
       // ... all the inner nodes have two children
       false_positive_cnt.fill(0);
@@ -150,7 +150,7 @@ namespace dbb {
       }
     }
 
-    static u64 find_close(const std::vector<$u1> bitstring, u64 idx) {
+    static u64 find_close(const std::vector<$u1>& bitstring, u64 idx) {
       if (!bitstring[idx]) return idx;
       $u64 cntr = 1;
       for ($u64 i = idx + 1; i < bitstring.size(); i++) {
@@ -163,7 +163,7 @@ namespace dbb {
     /// finds the position of the matching closing paranthesis.
     /// if the given index points to a '0', it returns that index.
     template<u64 M>
-    static u64 find_close(const std::bitset<M> bitstring, u64 idx) {
+    static u64 find_close(const std::bitset<M>& bitstring, u64 idx) {
       if (!bitstring[idx]) return idx;
       $u64 cntr = 1;
       for ($u64 i = idx + 1; i < M; i++) {
@@ -176,7 +176,7 @@ namespace dbb {
     /// finds the position of the matching closing paranthesis.
     /// if the given index points to a '0', it returns that index.
     template<typename bitstring_t>
-    static u64 find_labels_offset(const bitstring_t bitstring) {
+    static u64 find_labels_offset(const bitstring_t& bitstring) {
       if (!bitstring[0]) return 0 + 1;
       $u64 cntr = 2;
       for ($u64 i = 1; i < bitstring.size(); i++) {
@@ -198,7 +198,7 @@ namespace dbb {
 
     /// Encodes the given bitmask as a full binary tree using balanced parentheses representation.
     /// @returns a bit vector of variable size containing the encoded 'tree mask'
-    static std::vector<$u1> encode(const std::bitset<N> bitmask) {
+    static std::vector<$u1> encode(const std::bitset<N>& bitmask) {
       auto t = tree_mask(bitmask);
       return t.encode();
     }
@@ -206,7 +206,7 @@ namespace dbb {
     /// Decodes the given 'tree mask'.
     /// @returns a bitmask of fixed size
     template<typename bitstring_t>
-    static std::bitset<N> decode(const bitstring_t code) {
+    static std::bitset<N> decode(const bitstring_t& code) {
       u64 labels_offset = find_labels_offset(code);
       u64 height = ct::log_2<N>::value;
 
@@ -280,7 +280,7 @@ namespace dbb {
     /// Decodes the given 'tree mask' of length M into a bitmask of length N.
     /// @returns a bitmask of fixed size
     template<u64 M>
-    static std::bitset<N> decode(const std::bitset<M> code) {
+    static std::bitset<N> decode(const std::bitset<M>& code) {
       std::bitset<N> bitmask = decode<std::bitset<M>>(code);
       return bitmask;
     }
