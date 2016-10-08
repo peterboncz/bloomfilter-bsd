@@ -2,8 +2,17 @@
 add_subdirectory(lib/googletest)
 include_directories(lib/googletest/include lib/googletest)
 
-set(TEST_FILES bitmask_test.cpp bitmask_experiments.cpp knl_experiments.cpp)
+set(TEST_FILES
+        bitmask_test.cpp
+        bitmask_experiments.cpp
+        bloomfilter_experiments.cpp
+        knl_experiments.cpp
+        vec_test.cpp
+        )
 
 add_executable(tester ${TEST_FILES})
 
 target_link_libraries(tester gtest gtest_main pthread)
+
+add_executable(bloomfilter bloomfilter_experiments.cpp)
+target_link_libraries(bloomfilter benchmark gtest gtest_main pthread)

@@ -142,9 +142,8 @@ constexpr bool is_power_of_two(size_t x) {
   return x && ((x & (x - 1)) == 0);
 }
 
-template<typename T>
-T next_power_of_two(T value) {
-  return (value - 1) ? 1 << ((sizeof(T) << 3) - __builtin_clzll(value - 1)) : 1;
+constexpr u64 next_power_of_two(u64 value) {
+  return 1ull << ((sizeof(u64) << 3) - __builtin_clzll(value - 1));
 }
 
 struct trunc {
