@@ -7,13 +7,52 @@
 #include <bitset>
 #include <functional>
 
-template<typename T, size_t N>
+
+/// determine the type of elements stored in an (plain old) array
+/// note: see also 'std::tuple_element<std::array>', which is kind of similar
+template<class T>
+struct array_info {
+  static constexpr u1 is_array = false;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = 0;
+  using value_type = void;
+};
+
+template<class T>
+struct array_info<T[]> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = std::extent<T>::value;
+  using value_type = T;
+};
+
+template<typename T, u64 N>
+struct array_info<T[N]> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = N;
+  using value_type = T;
+};
+
+template<typename T, u64 N>
+struct array_info<std::array<T, N>> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = true;
+  static constexpr u64 length = N;
+  using value_type = T;
+};
+
+namespace simd {
+
+
+template<typename T, u64 N, typename R>
 struct vec {
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
+  static_assert(N * sizeof(T) == sizeof(R), "Size of the internal vector representation does not match the size of the vector components.");
 
-  alignas(64) std::array<T, N> data;
+  alignas(64) R data;
 
-  using type = vec<T, N>;
+  using vec_t = vec<T, N, R>;
   using mask_t = std::bitset<N>;
 
   static mask_t make_all_mask() {
@@ -34,7 +73,7 @@ struct vec {
     return data[index];
   }
 
-  vec gather(const vec<$u64, N>& index) const {
+  vec gather(const vec<$u64, N, R>& index) const {
     vec d;
     for (size_t i = 0; i < N; i++) {
       d.data[i] = data[index[i]];
@@ -42,7 +81,27 @@ struct vec {
     return d;
   }
 
-  vec gather(const vec<$u64, N>& index, const mask_t& mask) const {
+  /*
+  template<typename Td>
+  static vec<Td, N, std::array<Td, N>> gather(const Td* const ptr, const vec<$u64, N, std::array<$u64, N>>& index) {
+    vec<Td, N, std::array<Td, N>> d;
+    for (size_t i = 0; i < N; i++) {
+      d.data[i] = ptr[index[i]];
+    }
+    return d;
+  }
+  template<typename Td>
+  static vec<Td, N, std::array<Td, N>> gather(const Td* const ptr, const vec<$u32, N, std::array<$u32, N>>& index) {
+    vec<Td, N, std::array<Td, N>> d;
+    for (size_t i = 0; i < N; i++) {
+      d.data[i] = ptr[index[i]];
+    }
+    return d;
+  }
+  */
+
+
+  vec gather(const vec<$u64, N, R>& index, const mask_t& mask) const {
     vec d;
     for (size_t i = 0; i < N; i++) {
       if (!mask[i]) continue;
@@ -51,21 +110,20 @@ struct vec {
     return d;
   }
 
-  void scatter(const vec<T, N>& what, const vec<$u64, N>& where) {
+  void scatter(const vec& what, const vec<$u64, N, R>& where) {
     for (size_t i = 0; i < N; i++) {
       data[where[i]] = what[i];
     }
   }
 
-  void scatter(const vec<T, N>& what, const vec<$u64, N>& where, const mask_t& mask) {
+  void scatter(const vec& what, const vec<$u64, N, R>& where, const mask_t& mask) {
     for (size_t i = 0; i < N; i++) {
       if (!mask[i]) continue;
       data[where[i]] = what[i];
     }
   }
 
-  // conflict detection
-  vec conflict_detection(const vec<T, N>& a) {
+  vec conflict_detection(const vec& a) {
     // just a naive translation of the '_mm512_conflict_epi32'
     // intrinsic function.
     vec dst;
@@ -126,8 +184,7 @@ struct vec {
     return d;
   }
 
-  vec operator~() const noexcept { return binary_operator(std::bit_not<T>()); }
-
+  vec operator~() const noexcept { return unary_operator(std::bit_not<T>()); }
 
   // comparison operators / relational operators
   mask_t comparison_operator(auto op, const vec& b) const noexcept {
@@ -161,8 +218,8 @@ struct vec {
 
 
   template<typename S>
-  vec<S, N> cast() const noexcept {
-    vec<S, N> d;
+  vec<S, N, R> cast() const noexcept {
+    vec<S, N, R> d;
     for (size_t i = 0; i < N; i++) {
       d.data[i] = data[i];
     }
@@ -170,21 +227,21 @@ struct vec {
   }
 
   template<size_t W>
-  vec<T, W>* begin()  {
-    return reinterpret_cast<vec<T, W>*>(data);
+  vec<T, W, R>* begin()  {
+    return reinterpret_cast<vec<T, W, R>*>(data);
   }
 
   template<size_t W>
-  vec<T, W>* end() const {
+  vec<T, W, R>* end() const {
     return begin() + (N / W);
   }
 
   template<u64... Idxs>
-  static constexpr vec<T, N> make_index_vector(integer_sequence<Idxs...>) {
-    return {{ Idxs...}};
+  static constexpr vec make_index_vector(integer_sequence<Idxs...>) {
+    return {{ Idxs... }};
   }
 
-  static constexpr vec<T, N> make_index_vector() {
+  static constexpr vec make_index_vector() {
     return make_index_vector(make_integer_sequence<N>());
   };
 
@@ -235,3 +292,18 @@ struct vec {
   vec& assignment_bit_and(const T& o, const mask_t& m) noexcept { return compound_assignment_operator(std::bit_and<T>(), o, m); }
 
 };
+
+
+} // namespace simd
+
+template<typename T, u64 N>
+using vec = simd::vec<T, N, std::array<T, N>>;
+
+template<typename Td, typename Ti, u64 N>
+static vec<Td, N> gather(const Td* const ptr, const vec<Ti, N>& indices) {
+  vec<Td, N> d;
+  for (size_t i = 0; i < N; i++) {
+    d.data[i] = ptr[indices[i]];
+  }
+  return d;
+}

@@ -2,6 +2,7 @@
 #include "../adept.hpp"
 #include "../bloomfilter.hpp"
 #include "../hash.hpp"
+#include "../vec.hpp"
 #include <chrono>
 
 #include "benchmark/benchmark_api.h"
@@ -16,6 +17,14 @@ struct xorshift32 {
     x32 ^= x32 << 5;
     return x32;
   }
+
+  template<typename T>
+  static inline void next(T& x32) {
+    x32 ^= x32 << 13;
+    x32 ^= x32 >> 17;
+    x32 ^= x32 << 5;
+  }
+
 };
 
 inline auto timing(std::function<void()> fn) {
@@ -53,7 +62,7 @@ TEST(bloom, hash_performance) {
 }
 
 
-using bf_t = dtl::bloomfilter<$u32, typename dtl::hash::xorshift_64<$u32>>;
+using bf_t = dtl::bloomfilter<$u32, dtl::hash::xorshift_64>;
 
 TEST(bloom, performance) {
   u64 repeat_cnt = 1u << 25;
@@ -114,5 +123,47 @@ static void benchmark_bloomfilter_probe(benchmark::State& state) {
 
 }
 
+static void benchmark_bloomfilter_probe_vectorized(benchmark::State& state) {
+  u64 vector_len = 8;
+  using bf_t = dtl::bloomfilter<$u32, dtl::hash::xorshift_64>;
+  u64 element_cnt = 1 << (state.range(0) / 8);
+  std::unique_ptr<bf_t> bf;
+
+  // setup
+  if (state.thread_index == 0) {
+    bf = std::make_unique<bf_t>(1ull << state.range(0));
+    xorshift32 prng;
+    for ($u64 i = 0; i < element_cnt; i++) {
+      prng();
+      bf->insert(prng.x32);
+    }
+  }
+
+
+  vec<$u32,vector_len> found;
+  vec<$u32,vector_len> rnd_keys;
+  xorshift32 prng(state.thread_index);
+  for ($u64 i = 0; i < vector_len; i++) {
+    found[i] = 0;
+    rnd_keys[i] = prng.x32;
+    prng();
+  }
+
+  while (state.KeepRunning()) {
+    xorshift32::next(rnd_keys);
+
+    //found +=
+        bf->contains(rnd_keys);
+  }
+  state.SetItemsProcessed(state.iterations() * vector_len);
+
+  // teardown
+  if (state.thread_index == 0) {
+
+  }
+
+}
+
 BENCHMARK(benchmark_bloomfilter_probe)->DenseRange(8, 32)->ThreadPerCpu()->UseRealTime();
+BENCHMARK(benchmark_bloomfilter_probe_vectorized)->DenseRange(8, 32)->ThreadPerCpu()->UseRealTime();
 BENCHMARK_MAIN();

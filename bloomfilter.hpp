@@ -5,10 +5,11 @@
 #include <functional>
 #include "immintrin.h"
 #include "math.hpp"
+#include "vec.hpp"
 
 namespace dtl {
 
-template<typename Tk, typename hash_fn>
+template<typename Tk, template<typename Ty> class hash_fn>
 struct bloomfilter {
 
   using word_t = $u32;
@@ -23,17 +24,27 @@ struct bloomfilter {
         bitarray(next_power_of_two(length) / word_bitlength, 0) { }
 
   void insert(const Tk& key) {
-    u64 bit_idx = hash_fn::hash(key) & length_mask;
+    u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
     u64 word_idx = bit_idx >> word_bitlength_log2;
     u64 in_word_idx = bit_idx & word_bitlength_mask;
     bitarray[word_idx] |= 1 << in_word_idx;
   }
 
-  u1 contains(const Tk& key) {
-    u64 bit_idx = hash_fn::hash(key) & length_mask;
+  u1 contains(const Tk& key) const {
+    u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
     u64 word_idx = bit_idx >> word_bitlength_log2;
     u64 in_word_idx = bit_idx & word_bitlength_mask;
     return (bitarray[word_idx] & (1 << in_word_idx)) != 0;
+  }
+
+  template<u64 vector_len>
+  void contains(const vec<Tk, vector_len>& keys) const {
+    using vec_t = vec<Tk, vector_len>;
+    vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
+    vec_t word_idxs = bit_idxs >> word_bitlength_log2;
+    vec_t in_word_idxs = bit_idxs & word_bitlength_mask;
+    vec_t words = gather(bitarray.data(), word_idxs);
+    //return (bitarray[word_idxs] & (1 << in_word_idxs)) != 0;
   }
 
   u64 popcnt() {
