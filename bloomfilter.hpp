@@ -38,13 +38,13 @@ struct bloomfilter {
   }
 
   template<u64 vector_len>
-  void contains(const vec<Tk, vector_len>& keys) const {
+  typename vec<Tk, vector_len>::mask_t contains(const vec<Tk, vector_len>& keys) const {
     using vec_t = vec<Tk, vector_len>;
-    vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
-    vec_t word_idxs = bit_idxs >> word_bitlength_log2;
-    vec_t in_word_idxs = bit_idxs & word_bitlength_mask;
-    vec_t words = gather(bitarray.data(), word_idxs);
-    //return (bitarray[word_idxs] & (1 << in_word_idxs)) != 0;
+    const vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
+    const vec_t word_idxs = bit_idxs >> word_bitlength_log2;
+    const vec_t in_word_idxs = bit_idxs & word_bitlength_mask;
+    const vec_t words = gather(bitarray.data(), word_idxs);
+    return (words & (Tk(1) << in_word_idxs)) != 0;
   }
 
   u64 popcnt() {

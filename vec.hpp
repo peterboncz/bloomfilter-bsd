@@ -291,8 +291,9 @@ struct vec {
   vec& operator&=(const T& o) noexcept { return compound_assignment_operator(std::bit_and<T>(), o); }
   vec& assignment_bit_and(const T& o, const mask_t& m) noexcept { return compound_assignment_operator(std::bit_and<T>(), o, m); }
 
-};
 
+
+};
 
 } // namespace simd
 
@@ -306,4 +307,24 @@ static vec<Td, N> gather(const Td* const ptr, const vec<Ti, N>& indices) {
     d.data[i] = ptr[indices[i]];
   }
   return d;
+}
+
+
+template<typename T, u64 N>
+vec<T, N> operator<<(const T& lhs, const vec<T, N>& rhs) {
+  vec<T, N> r;
+  for ($u64 i = 0; i < N; i++) {
+    r[i] = lhs << rhs[i];
+  }
+  return r;
+}
+
+/// not sure if this is causing problems...
+template<typename Tl, typename T, u64 N>
+vec<T, N> operator<<(const Tl& lhs, const vec<T, N>& rhs) {
+  vec<T, N> r;
+  for ($u64 i = 0; i < N; i++) {
+    r[i] = lhs << rhs[i];
+  }
+  return r;
 }
