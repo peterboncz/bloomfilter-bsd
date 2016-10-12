@@ -118,7 +118,6 @@ static void benchmark_bloomfilter_probe(benchmark::State& state) {
 
   // teardown
   if (state.thread_index == 0) {
-
   }
 
 }
@@ -140,8 +139,8 @@ static void benchmark_bloomfilter_probe_vectorized(benchmark::State& state) {
   }
 
 
-  vec<$u32,vector_len> found;
-  vec<$u32,vector_len> rnd_keys;
+  vec<$u32, vector_len> found;
+  vec<$u32, vector_len> rnd_keys;
   xorshift32 prng(state.thread_index);
   for ($u64 i = 0; i < vector_len; i++) {
     found[i] = 0;

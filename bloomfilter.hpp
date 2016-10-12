@@ -13,9 +13,9 @@ template<typename Tk, template<typename Ty> class hash_fn>
 struct bloomfilter {
 
   using word_t = $u32;
-  const u64 word_bitlength = sizeof(word_t) * 8;
-  const u64 word_bitlength_log2 = log_2(word_bitlength);
-  const u64 word_bitlength_mask = word_bitlength - 1;
+  u64 word_bitlength = sizeof(word_t) * 8;
+  u64 word_bitlength_log2 = log_2(word_bitlength);
+  u64 word_bitlength_mask = word_bitlength - 1;
   u64 length_mask;
   std::vector<word_t> bitarray;
 
