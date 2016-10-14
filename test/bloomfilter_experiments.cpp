@@ -2,10 +2,12 @@
 #include "../adept.hpp"
 #include "../bloomfilter.hpp"
 #include "../hash.hpp"
-#include "../vec.hpp"
+#include "../simd.hpp"
 #include <chrono>
 
-#include "benchmark/benchmark_api.h"
+//#include "benchmark/benchmark_api.h"
+
+using namespace dtl;
 
 struct xorshift32 {
   $u32 x32;
@@ -94,6 +96,7 @@ TEST(bloom, performance) {
 
 }
 
+/*
 static void benchmark_bloomfilter_probe(benchmark::State& state) {
   u64 element_cnt = 1 << (state.range(0) / 8);
   std::unique_ptr<bf_t> bf;
@@ -124,7 +127,7 @@ static void benchmark_bloomfilter_probe(benchmark::State& state) {
 
 static void benchmark_bloomfilter_probe_vectorized(benchmark::State& state) {
   u64 vector_len = 8;
-  using bf_t = dtl::bloomfilter<$u32, dtl::hash::xorshift_64>;
+  using bf_t = dtl::bloomfilter<$i32, dtl::hash::xorshift_64>;
   u64 element_cnt = 1 << (state.range(0) / 8);
   std::unique_ptr<bf_t> bf;
 
@@ -139,12 +142,14 @@ static void benchmark_bloomfilter_probe_vectorized(benchmark::State& state) {
   }
 
 
-  vec<$u32, vector_len> found;
-  vec<$u32, vector_len> rnd_keys;
+//  vec<$u32, vector_len> found;
+//  vec<$u32, vector_len> rnd_keys;
+  vec<$i32, vector_len> found;
+  vec<$i32, vector_len> rnd_keys;
   xorshift32 prng(state.thread_index);
   for ($u64 i = 0; i < vector_len; i++) {
-    found[i] = 0;
-    rnd_keys[i] = prng.x32;
+    found.insert(i, 0);
+    rnd_keys.insert(i, prng.x32);
     prng();
   }
 
@@ -166,3 +171,4 @@ static void benchmark_bloomfilter_probe_vectorized(benchmark::State& state) {
 BENCHMARK(benchmark_bloomfilter_probe)->DenseRange(8, 32)->ThreadPerCpu()->UseRealTime();
 BENCHMARK(benchmark_bloomfilter_probe_vectorized)->DenseRange(8, 32)->ThreadPerCpu()->UseRealTime();
 BENCHMARK_MAIN();
+ */

@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <numa.h>
 
 namespace mem {
 

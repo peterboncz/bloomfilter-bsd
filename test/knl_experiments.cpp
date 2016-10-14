@@ -2,7 +2,7 @@
 #include "../adept.hpp"
 #include "../mem.hpp"
 #include "../simd.hpp"
-#include "../vec.hpp"
+//#include "../old/vec.hpp"
 
 #include "immintrin.h"
 
@@ -13,13 +13,14 @@
 #include <iostream>
 #include <random>
 
+using namespace dtl;
+
 // using xorshift as hash function
 template<typename T>
 static T xorshift64(T x64) {
   x64 ^= x64 << 13;
   x64 ^= x64 >> 7;
   x64 ^= x64 << 17;
-  x64 |= 1ull << 63;
   return x64;
 }
 
@@ -27,7 +28,7 @@ static u64 rnd(u64 min, u64 max) {
   static std::random_device rd;
   static std::mt19937 rng(rd());
   std::uniform_int_distribution<u64> uni(min,max);
-  return uni(rng);;
+  return uni(rng);
 }
 
 TEST(knl, ht) {
@@ -36,9 +37,12 @@ TEST(knl, ht) {
   u64 bucket_cnt = 1ull << bucket_cnt_bits;
   u64 bucket_mask = bucket_cnt - 1;
 
-  using hash_t = $u64;
-  using key_t = $u64;
-  using value_t = $u64;
+//  using hash_t = $u64;
+//  using key_t = $u64;
+//  using value_t = $u64;
+  using hash_t = $i32;
+  using key_t = $i32;
+  using value_t = $i32;
 
   // prepare the hash table
   // each bucket consists of L elements, where L is the number of SIMD lanes
@@ -56,10 +60,10 @@ TEST(knl, ht) {
     input_values[i] = rnd(0, 1000);
   }
 
-  using key_vec_t = vec<key_t, simd::lane_count<key_t>>;
+  using key_vec_t = vec<key_t, simd::lane_count<key_t>>; // TODO: simplify
   using hash_vec_t = vec<hash_t, simd::lane_count<hash_t>>;
   using value_vec_t = vec<value_t, simd::lane_count<value_t>>;
-  key_vec_t* ht_keys_vec = reinterpret_cast<key_vec_t*>(ht_keys);
+  key_vec_t* ht_keys_vec = reinterpret_cast<key_vec_t*>(ht_keys); // TODO: simplify
   hash_vec_t* ht_hash_values_vec = reinterpret_cast<hash_vec_t*>(ht_hash_values);
   value_vec_t* ht_values_vec = reinterpret_cast<value_vec_t*>(ht_values);
 
@@ -84,7 +88,7 @@ TEST(knl, ht) {
       ht_index = (ht_bucket_index * simd::lane<hash_t>::count) + lane_offset;
 
       // compare hash values
-      auto h = ht_hash_values_vec->gather(ht_index);
+      auto h = ht_index.load(ht_hash_values);
       op_mask = h == hash_value;
 
       // check for empty buckets
@@ -92,15 +96,18 @@ TEST(knl, ht) {
         auto empty_mask = h == 0;
         if (empty_mask.any()) {
           // write hash values and keys to the empty buckets
-          ht_hash_values_vec->scatter(hash_value, ht_index, empty_mask);
-          ht_keys_vec->scatter(input_keys, ht_index, empty_mask);
+          //ht_hash_values_vec->scatter(hash_value, ht_index, empty_mask);
+          ht_index.store(ht_hash_values, hash_value, empty_mask);
+          //ht_keys_vec->scatter(input_keys, ht_index, empty_mask);
+          ht_index.store(ht_keys, input_keys, empty_mask);
         }
         op_mask |= empty_mask;
       }
 
       // compare keys
       if (op_mask.all()) {
-        auto k = ht_keys_vec->gather(ht_index);
+        //auto k = ht_keys_vec->load(ht_index);
+        auto k = ht_index.load(ht_keys);
         auto equal_mask = k == input_keys;
         op_mask &= equal_mask;
       }

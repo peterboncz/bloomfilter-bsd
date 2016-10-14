@@ -1,9 +1,30 @@
 cmake_minimum_required(VERSION 3.5)
-project(adept)
+project(dtl)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
 
-set(SOURCE_FILES main.cpp)
-add_executable(adept ${SOURCE_FILES})
+add_subdirectory(simd)
+set(SOURCE_FILES ${SOURCE_FILES}
+        main.cpp
+        adept.hpp
+        bloomfilter.hpp
+        bitmask.hpp
+        dict.hpp
+        hash.hpp
+        index.hpp
+        math.hpp
+        mem.hpp
+        psma.hpp
+        simd.hpp
+        sma.hpp
+        #old/vec.hpp
+        tree.hpp
+        tree_mask.hpp
+        zone_mask.hpp
+        )
 
-add_subdirectory(test)
+add_library(dtl ${SOURCE_FILES})
+
+target_include_directories(dtl PUBLIC . )
+
+#add_subdirectory(test)

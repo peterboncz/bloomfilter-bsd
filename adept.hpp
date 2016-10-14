@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cstdint>
+#include <array>
 
 using i1 = const bool;
 using u1 = const bool;
@@ -41,6 +42,41 @@ struct make_integer_sequence : make_integer_sequence<N - 1, N - 1, Ints...> {};
 
 template<u64... Ints>
 struct make_integer_sequence<0, Ints...> : integer_sequence<Ints...> {};
+
+
+/// determine the type of elements stored in an (plain old) array
+/// note: see also 'std::tuple_element<std::array>', which is kind of similar
+template<class T>
+struct array_info {
+  static constexpr u1 is_array = false;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = 0;
+  using value_type = void;
+};
+
+template<class T>
+struct array_info<T[]> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = std::extent<T>::value;
+  using value_type = T;
+};
+
+template<typename T, u64 N>
+struct array_info<T[N]> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = false;
+  static constexpr u64 length = N;
+  using value_type = T;
+};
+
+template<typename T, u64 N>
+struct array_info<std::array<T, N>> {
+  static constexpr u1 is_array = true;
+  static constexpr u1 is_std_array = true;
+  static constexpr u64 length = N;
+  using value_type = T;
+};
 
 
 // Compiler hints
@@ -83,6 +119,12 @@ namespace std {
 
 #include <bitset>
 #include <vector>
+
+template<class T>
+auto operator<<(std::ostream& os, const T& t) -> decltype(t.print(os), os) {
+  t.print(os);
+  return os;
+}
 
 template<size_t n>
 void print(const std::bitset<n>& b) {

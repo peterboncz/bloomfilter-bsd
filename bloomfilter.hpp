@@ -5,14 +5,14 @@
 #include <functional>
 #include "immintrin.h"
 #include "math.hpp"
-#include "vec.hpp"
+#include "simd.hpp"
 
 namespace dtl {
 
 template<typename Tk, template<typename Ty> class hash_fn>
 struct bloomfilter {
 
-  using word_t = $u32;
+  using word_t = $i32;
   u64 word_bitlength = sizeof(word_t) * 8;
   u64 word_bitlength_log2 = log_2(word_bitlength);
   u64 word_bitlength_mask = word_bitlength - 1;
@@ -43,7 +43,7 @@ struct bloomfilter {
     const vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
     const vec_t word_idxs = bit_idxs >> word_bitlength_log2;
     const vec_t in_word_idxs = bit_idxs & word_bitlength_mask;
-    const vec_t words = gather(bitarray.data(), word_idxs);
+    const vec_t words = word_idxs.load(bitarray.data());
     return (words & (Tk(1) << in_word_idxs)) != 0;
   }
 
