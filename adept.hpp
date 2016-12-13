@@ -44,7 +44,7 @@ struct make_integer_sequence<0, Ints...> : integer_sequence<Ints...> {};
 
 
 // Compiler hints
-#define aligned(address, byte) __builtin_assume_aligned(address, byte)
+#define assume_aligned(address, byte) __builtin_assume_aligned(address, byte)
 #define unreachable() __builtin_unreachable();
 
 
