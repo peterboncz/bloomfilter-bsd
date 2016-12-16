@@ -52,7 +52,10 @@ struct super {
 };
 
 
-template<typename T, u64 N>
+template<typename T, std::size_t N>
 using vec = dtl::simd::v<T, N>;
+
+template<typename T, std::size_t N>
+using vector = dtl::simd::v<T, N>;
 
 } // namespace dtl

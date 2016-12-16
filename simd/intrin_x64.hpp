@@ -38,6 +38,7 @@ struct mask {
   inline mask bit_and(const mask& o) const { return mask { data & o.data }; };
   inline mask bit_or(const mask& o) const { return mask { data | o.data }; };
   inline mask bit_xor(const mask& o) const { return mask { data ^ o.data }; };
+  inline mask bit_not() const { return mask { !data }; };
 };
 
 } // anonymous namespace
