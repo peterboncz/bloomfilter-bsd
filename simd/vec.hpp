@@ -812,6 +812,12 @@ struct v {
     using result_t = v<T, N>;
     return result_t { load<is_compound>(base_address, data) };
   }
+
+  template<typename T>
+  v<T, N> load() const {
+    using result_t = v<T, N>;
+    return result_t { load<is_compound>(nullptr, data) };
+  }
   // ---
 
 
