@@ -224,32 +224,38 @@ struct v {
     }
 
     /// Sets the mask at position 'idx' to 'true'. Use with caution as this operation might be very expensive.
-    void set(u64 idx, u1 value) { set<is_compound>(data, idx, value); }
+    inline void
+    set(u64 idx, u1 value) { set<is_compound>(data, idx, value); }
 
     /// Gets the boolean value from the mask at position 'idx'. Use with caution as this operation might be very expensive.
-    u1 get(u64 idx) const { return get<is_compound>(data, idx); }
+    inline u1
+    get(u64 idx) const { return get<is_compound>(data, idx); }
 
 
     struct bit_and_fn {
-      constexpr nested_mask_type operator()(const nested_mask_type& a, const nested_mask_type& b) const {
+      constexpr nested_mask_type
+      operator()(const nested_mask_type& a, const nested_mask_type& b) const {
         return a.bit_and(b);
       }
     };
 
     struct bit_or_fn {
-      constexpr nested_mask_type operator()(const nested_mask_type& a, const nested_mask_type& b) const {
+      constexpr nested_mask_type
+      operator()(const nested_mask_type& a, const nested_mask_type& b) const {
         return a.bit_or(b);
       }
     };
 
     struct bit_xor_fn {
-      constexpr nested_mask_type operator()(const nested_mask_type& a, const nested_mask_type& b) const {
+      constexpr nested_mask_type
+      operator()(const nested_mask_type& a, const nested_mask_type& b) const {
         return a.bit_xor(b);
       }
     };
 
     struct bit_not_fn {
-      constexpr nested_mask_type operator()(const nested_mask_type& a) const {
+      constexpr nested_mask_type
+      operator()(const nested_mask_type& a) const {
         return a.bit_not();
       }
     };
@@ -290,34 +296,61 @@ struct v {
 
 
     /// Performs a bitwise AND.
-    m operator&(const m& o) const { return m { bit_op<is_compound>(bit_and_fn(), data, o.data) }; }
-    m& operator&=(const m& o) { data = bit_op<is_compound>(bit_and_fn(), data, o.data); return (*this); }
+    inline m operator&(const m& o) const { return m { bit_op<is_compound>(bit_and_fn(), data, o.data) }; }
+    inline m& operator&=(const m& o) { data = bit_op<is_compound>(bit_and_fn(), data, o.data); return (*this); }
 
     /// Performs a bitwise OR.
-    m operator|(const m& o) const { return m { bit_op<is_compound>(bit_or_fn(), data, o.data) }; }
-    m& operator|=(const m& o) { data = bit_op<is_compound>(bit_or_fn(), data, o.data); return (*this); }
+    inline m operator|(const m& o) const { return m { bit_op<is_compound>(bit_or_fn(), data, o.data) }; }
+    inline m& operator|=(const m& o) { data = bit_op<is_compound>(bit_or_fn(), data, o.data); return (*this); }
 
     /// Performs a bitwise XOR.
-    m operator^(const m& o) const { return m { bit_op<is_compound>(bit_xor_fn(), data, o.data) }; }
-    m& operator^=(const m& o) { data = bit_op<is_compound>(bit_xor_fn(), data, o.data); return (*this); }
+    inline m operator^(const m& o) const { return m { bit_op<is_compound>(bit_xor_fn(), data, o.data) }; }
+    inline m& operator^=(const m& o) { data = bit_op<is_compound>(bit_xor_fn(), data, o.data); return (*this); }
 
     /// Performs a bitwise negation.
-    m operator!() const { return m { bit_op<is_compound>(bit_not_fn(), data) }; }
+    inline m operator!() const { return m { bit_op<is_compound>(bit_not_fn(), data) }; }
 
 
     /// Returns a mask instance where all components are set to 'true'.
-    static m make_all_mask() {
+    static inline m
+    make_all_mask() {
       m result;
       set<is_compound>(result.data, true);
       return result;
     };
 
     /// Returns a mask instance where all components are set to 'false'.
-    static m make_none_mask() {
+    static inline m
+    make_none_mask() {
       m result;
       set<is_compound>(result.data, false);
       return result;
     };
+
+//    // Creates a mask instance from a bitset
+//    template<std::size_t Nb>
+//    static inline m
+//    make_from_bitset(const dtl::simd::bitset<Nb> bs) {
+//      static_assert(Nb >= N, "The size of the bitset must greater or equal than the vector length.");
+//      return from_bitset(bs);
+//    }
+//    template<u1 Compound = false, std::size_t Nb>
+//    static inline nested_mask_type
+//    from_bitset(const dtl::simd::bitset<Nb>& bs, u64 offset) {
+//      nested_mask_type mask;
+//      mask.set(bs.get(offset, nested_vector_length));
+//      return mask;
+//    }
+//    template<u1 Compound, std::size_t Nb, typename = std::enable_if_t<Compound>>
+//    static inline compound_mask_type
+//    from_bitset(const dtl::simd::bitset<Nb>& bs, u64 offset = 0ull) {
+//      compound_mask_type result;
+//      for ($u64 i = 0; i < length; i += nested_vector_length) {
+//        result[i] = from_bitset<!Compound>(bs, i);
+//      }
+//      return result;
+//    }
+
 
   };
 
@@ -763,8 +796,18 @@ struct v {
   }
 
   inline m
+  operator<(const Tp& s) const noexcept {
+    return m { binary_op<is_compound>(typename op::less(), data, make_nested(s)) };
+  }
+
+  inline m
   operator>(const v& o) const noexcept {
     return m { binary_op<is_compound>(typename op::less(), o.data, data) };
+  }
+
+  inline m
+  operator>(const Tp& s) const noexcept {
+    return m { binary_op<is_compound>(typename op::less(), make_nested(s), data) };
   }
 
   inline m
@@ -792,31 +835,31 @@ struct v {
   // load
   template<u1 Compound = false, typename T>
   static inline typename v<T, N>::nested_type
-  load(const T* const base_addr, const nested_type& idxs) {
-    return gather<Tp, nested_type, T>()(base_addr, idxs);
+  load(u8* const base_addr, const nested_type& idxs) {
+    return gather<T, typename v<T, N>::nested_type, nested_type>()(base_addr, idxs);
   }
 
   template<u1 Compound, typename T, typename = std::enable_if_t<Compound>>
   static inline typename v<T, N>::compound_type
-  load(const T* const base_addr, const compound_type& idxs) {
+  load(u8* const base_addr, const compound_type& idxs) {
     using result_t = typename v<T, N>::compound_type;
     result_t result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = load<is_compound>(base_addr, idxs[i]);
+      result[i] = load<is_compound, T>(base_addr, idxs[i]);
     }
     return result;
   }
 
   template<typename T>
-  v<T, N> load(const T* const base_address) const {
+  v<T, N> load(u8* const base_addr) const {
     using result_t = v<T, N>;
-    return result_t { load<is_compound>(base_address, data) };
+    return result_t { load<is_compound, T>(base_addr, data) };
   }
 
   template<typename T>
   v<T, N> load() const {
     using result_t = v<T, N>;
-    return result_t { load<is_compound>(nullptr, data) };
+    return result_t { load<is_compound, T>(nullptr, data) };
   }
   // ---
 

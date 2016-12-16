@@ -32,6 +32,9 @@ struct mask {
   inline void set(u64 /* idx */, u1 value) {
     data = value;
   };
+  inline void set(u64 bits) {
+    data = bits != 0;
+  };
   inline u1 get(u64 /* idx */) const {
     return data;
   };
@@ -93,9 +96,9 @@ template<typename Tp, typename Ta>
 struct gather<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
   inline typename fn::vector_type
-  operator()(const typename fn::value_type* const base_addr,
+  operator()(u8* const base_addr,
              const typename fn::argument_type& idxs) const noexcept {
-    return base_addr[idxs];
+    return *reinterpret_cast<typename fn::vector_type*>(idxs);
   }
 };
 
@@ -104,7 +107,7 @@ template<typename Tp, typename Ti>
 struct scatter<Tp, Tp, Ti> : vector_fn<Tp, Tp, Ti> {
   using fn = vector_fn<Tp, Tp, Ti>;
   inline typename fn::vector_type
-  operator()(typename fn::value_type* const base_addr,
+  operator()(u8* const base_addr,
              const typename fn::argument_type& idxs,
              const typename fn::vector_type& what) const noexcept {
     base_addr[idxs] = what;

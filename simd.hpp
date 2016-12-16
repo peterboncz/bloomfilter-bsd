@@ -58,4 +58,7 @@ using vec = dtl::simd::v<T, N>;
 template<typename T, std::size_t N>
 using vector = dtl::simd::v<T, N>;
 
+//template<std::size_t Nb>
+//using bitset = dtl::simd::bitset<Nb>;
+
 } // namespace dtl
