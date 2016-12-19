@@ -40,6 +40,20 @@ struct mask16 {
 // --- vector types
 
 template<>
+struct vs<$i32, 8> : base<$i32, 8> {
+  using type = __m256i;
+  using mask_type = mask16;
+  type data;
+};
+
+template<>
+struct vs<$u32, 8> : base<$u32, 8> {
+  using type = __m256i;
+  using mask_type = mask16;
+  type data;
+};
+
+template<>
 struct vs<$i32, 16> : base<$i32, 16> {
   using type = __m512i;
   using mask_type = mask16;
@@ -116,14 +130,14 @@ __GENERATE_BLEND($u64, __m512i, __m512i, _mm512_mask_blend_epi64)
 
 #define __GENERATE(Tp, Tv, Ta, IntrinFn, IntrinFnMask) \
 template<>                                             \
-struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
-  using fn = vector_fn<Tp, Tv, Ta>;                    \
+struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> { \
+  using fn = vector_fn<Tp, Tv, Ta, Tv>;                \
   inline typename fn::vector_type                      \
-  operator()(const typename fn::vector_type& idx) const noexcept { \
+  operator()(const typename fn::argument_type& idx) const noexcept { \
     return IntrinFn(idx, 0, 1);                        \
   }                                                    \
   inline typename fn::vector_type                      \
-  operator()(const typename fn::vector_type& idx,      \
+  operator()(const typename fn::argument_type& idx,    \
              const typename fn::vector_type& src,      \
              const mask16 mask) const noexcept {       \
     return IntrinFnMask(src, mask.data, idx, 0, 1);    \
@@ -131,10 +145,10 @@ struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
 };
 
 // TODO ???
-//__GENERATE($i32, __m512i, $i32, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
-//__GENERATE($u32, __m512i, $u32, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
-__GENERATE($i64, __m512i, $i64, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
-__GENERATE($u64, __m512i, $u64, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
+__GENERATE($i32, __m256i, __m512i, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
+__GENERATE($u32, __m256i, __m512i, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
+__GENERATE($i64, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
+__GENERATE($u64, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
 #undef __GENERATE
 
 

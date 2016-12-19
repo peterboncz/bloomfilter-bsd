@@ -55,6 +55,8 @@ struct vs<T, 32> {
 };
 */
 
+
+
 /// The general vector class with N components of the (primitive) type T.
 ///
 /// If there exists a native vector type that can hold N values of type T, e.g. __m256i,
@@ -72,13 +74,13 @@ struct v {
 
   /// The native vector wrapper that is used under the hood.
   /// Note: The wrapper determines the largest available native vector type.
-  using nested_vector = vs<Tp, N>; // TODO make it a template parameter. give the user the possibility to specify the native vector type
+  using nested_vector = vs<Tp, N>; // TODO (maybe) make it a template parameter. give the user the possibility to specify the native vector type
 
   /// The length of the native vector, in terms of number of elements.
   static constexpr u64 nested_vector_length = nested_vector::value;
 
   /// The number of nested native vectors, if the vector is a composition of multiple smaller vectors, 1 otherwise.
-  static constexpr u64 nested_vector_cnt = N / nested_vector::value;
+  static constexpr u64 nested_vector_cnt = N / nested_vector_length;
 
   /// True, if the vector is a composition of multiple native vectors, false otherwise.
   static constexpr u1 is_compound = (nested_vector_cnt != 1);
@@ -855,7 +857,7 @@ struct v {
   template<u1 Compound = false, typename T>
   static inline typename v<T, N>::nested_type
   load(u8* const base_addr, const nested_type& idxs) {
-    return gather<T, typename v<T, N>::nested_type, nested_type>()(base_addr, idxs);
+    return gather<T, typename v<T, N>::nested_type, nested_type>()(/* base_addr,*/ idxs); // TODO fix
   }
 
   template<u1 Compound, typename T, typename = std::enable_if_t<Compound>>
@@ -864,20 +866,25 @@ struct v {
     using result_t = typename v<T, N>::compound_type;
     result_t result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = load<is_compound, T>(base_addr, idxs[i]);
+      result[i] = load<!Compound, T>(base_addr, idxs[i]);
     }
     return result;
   }
 
   template<typename T>
-  v<T, N> load(u8* const base_addr) const {
+  auto load(u8* const base_addr) const {
     using result_t = v<T, N>;
+    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
+    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
     return result_t { load<is_compound, T>(base_addr, data) };
   }
 
   template<typename T>
-  v<T, N> load() const {
+//  v<T, N, vs<T, nested_vector_length>>
+  auto load() const {
     using result_t = v<T, N>;
+    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
+    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
     return result_t { load<is_compound, T>(nullptr, data) };
   }
   // ---
@@ -1036,7 +1043,9 @@ struct v {
 
   // ---
 
+
 };
+
 
 /// left shift of form: scalar << vector
 template<typename T, u64 N>
