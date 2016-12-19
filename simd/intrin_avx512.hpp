@@ -197,6 +197,19 @@ _mm512_mul_epi64(const __m512i& lhs, const __m512i& rhs) {
   return t5;
 }
 
+inline __m512i
+_mm512_mask_mul_epi64(const __m512i& src, const __mmask16 k,
+                      const __m512i& lhs, const __m512i& rhs) {
+  const __m512i hi_lhs = _mm512_srli_epi64(lhs, 32);
+  const __m512i hi_rhs = _mm512_srli_epi64(rhs, 32);
+  const __m512i t1 = _mm512_mul_epu32(lhs, hi_rhs);
+  const __m512i t2 = _mm512_mul_epu32(lhs, rhs);
+  const __m512i t3 = _mm512_mul_epu32(hi_lhs, rhs);
+  const __m512i t4 = _mm512_add_epi64(_mm512_slli_epi64(t3, 32), t2);
+  const __m512i t5 = _mm512_add_epi64(_mm512_slli_epi64(t1, 32), t4);
+  return _mm512_mask_blend_epi64(k, src, t5);
+}
+
 
 __GENERATE_ARITH(plus, $i32, __m512i, $i32, _mm512_add_epi32, _mm512_mask_add_epi32)
 __GENERATE_ARITH(plus, $u32, __m512i, $u32, _mm512_add_epi32, _mm512_mask_add_epi32)
