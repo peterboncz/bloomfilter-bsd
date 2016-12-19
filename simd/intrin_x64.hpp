@@ -15,7 +15,7 @@ namespace simd {
 /// for the underlying hardware.  The fall back can also be useful for debugging
 /// algorithms.
 ///
-/// Note: primitve type Tp =  vector type Tv
+/// Note: primitive type Tp =  vector type Tv
 /// ---
 
 namespace {

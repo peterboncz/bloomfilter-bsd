@@ -33,7 +33,7 @@ struct vector_fn {
   using argument_type = Ta; // TODO
   using result_type = Tr; // the return type (defaults to the vector type) // TODO: remove?
   // Note: the mask is of type bool, iff the vector type is a fundamental type
-  using mask_type = typename deduce_mask<Tv>::type;
+  //using mask_type = typename deduce_mask<Tv>::type;
 };
 
 
@@ -45,6 +45,8 @@ struct broadcast : vector_fn<primitive_t, vector_t, argument_t> {};
 template<typename primitive_t, typename vector_t = primitive_t, typename argument_t = vector_t>
 struct set : vector_fn<primitive_t, vector_t, argument_t> {};
 
+template<typename primitive_t, typename vector_t, typename argument_t = vector_t>
+struct blend : vector_fn<primitive_t, vector_t, argument_t> {};
 
 // Load
 template<typename primitive_t, typename vector_t, typename argument_t>
@@ -101,7 +103,13 @@ template<typename primitive_t, typename vector_t, typename argument_t, typename 
 struct less : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
 
 template<typename primitive_t, typename vector_t, typename argument_t, typename return_t>
+struct less_equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
+
+template<typename primitive_t, typename vector_t, typename argument_t, typename return_t>
 struct greater : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
+
+template<typename primitive_t, typename vector_t, typename argument_t, typename return_t>
+struct greater_equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
 
 template<typename primitive_t, typename vector_t, typename argument_t, typename return_t>
 struct equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
@@ -124,4 +132,5 @@ struct not_equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
 //#include "intrin_sse.hpp"
 //#endif
 
-#include "intrin_x64.hpp"
+//#include "intrin_x64.hpp"
+#include "intrin_avx512.hpp"

@@ -382,6 +382,7 @@ struct v {
 
     using broadcast = dtl::simd::broadcast<Tp, nested_type, Tp>;
     using set = dtl::simd::set<Tp, nested_type, nested_type>;
+    using blend = dtl::simd::blend<Tp, nested_type, nested_type>;
 
     using plus = dtl::simd::plus<Tp, nested_type>;
     using minus = dtl::simd::minus<Tp, nested_type>;
@@ -437,20 +438,20 @@ struct v {
   /// Assigns the given scalar value to all vector components.
   inline v&
   operator=(const Tp& scalar_value) noexcept {
-    data = unary_op<is_compound>(typename op::set(), data, make_nested(scalar_value));
+    data = unary_op<is_compound>(typename op::broadcast(), data, scalar_value);
     return *this;
   }
 
   /// Assigns the given scalar value to the vector components specified by the mask.
   inline v&
   mask_assign(const Tp& scalar_value, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::set(), data, make_nested(scalar_value), data, mask);
+    data = unary_op<is_compound>(typename op::blend(), data, make(scalar_value).data, data, mask);
     return *this;
   }
 
   inline v&
   mask_assign(const v& other, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::set(), data, other.data, data, mask);
+    data = unary_op<is_compound>(typename op::blend(), data, other.data, data, mask);
     return *this;
   }
 
@@ -482,10 +483,28 @@ struct v {
 
   // --- Unary functions ---
 
+  template<u1 Compound = false, typename Fn>
+  static inline nested_type
+  unary_op(Fn op, const nested_type& type_selector,
+           const typename Fn::argument_type& a) noexcept {
+    return op(a);
+  }
+
+  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+  static inline compound_type
+  unary_op(Fn op, const compound_type& type_selector,
+           const typename Fn::argument_type& a) noexcept {
+    compound_type result;
+    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+      result[i] = unary_op(op, result[i], a);
+    }
+    return result;
+  }
+
   /// Unary operation: op(native vector)
   template<u1 Compound = false, typename Fn>
   static inline nested_type
-  unary_op(Fn op, const nested_type& /* type_selector */,
+  unary_op(Fn op, const nested_type& type_selector,
            const nested_type& a) noexcept {
     return op(a);
   }
@@ -493,7 +512,7 @@ struct v {
   /// Unary operation (merge masked): op(native vector)
   template<u1 Compound = false, typename Fn>
   static inline nested_type
-  unary_op(Fn op, const nested_type& /* type_selector */,
+  unary_op(Fn op, const nested_type& type_selector,
            const nested_type& a,
            // merge masking
            const nested_type& src,
@@ -504,7 +523,7 @@ struct v {
   /// Unary operation: op(compound vector)
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& /* type_selector */,
+  unary_op(Fn op, const compound_type& type_selector,
            const compound_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
@@ -516,7 +535,7 @@ struct v {
   /// Unary operation (merge masked): op(compound vector)
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& /* type_selector */,
+  unary_op(Fn op, const compound_type& type_selector,
            const compound_type& a,
            // merge masking
            const compound_type& src,
@@ -530,7 +549,7 @@ struct v {
 
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& /* type_selector */,
+  unary_op(Fn op, const compound_type& type_selector,
            const nested_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
@@ -541,7 +560,7 @@ struct v {
 
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& /* type_selector */,
+  unary_op(Fn op, const compound_type& type_selector,
            const nested_type& a,
            // merge masking
            const compound_type& src,
@@ -704,7 +723,7 @@ struct v {
   inline v& mask_assign_multiplies(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::multiplies(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator<<(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data) }; }
-  inline v operator<<(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_left(), data, s) }; }
+  inline v operator<<(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)) }; } // TODO optimize
   inline v& operator<<=(const v& o) noexcept { data = binary_op<is_compound>(typename op::shift_left_var(), data, o.data); return (*this); }
   inline v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left(), s); return (*this); }
 
@@ -714,7 +733,7 @@ struct v {
   inline v& mask_assign_shift_left(const i32& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::shift_left(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator>>(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::shift_right_var(), data, o.data) }; }
-  inline v operator>>(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_right(), data, s) }; }
+  inline v operator>>(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_right_var(), data, make_nested(s)) }; } // TODO optimize
   inline v& operator>>=(const v& o) noexcept { data = binary_op<is_compound>(typename op::shift_right_var(), data, o.data); return (*this); }
   inline v& operator>>=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_right(), make_nested(s)); return (*this); }
 
