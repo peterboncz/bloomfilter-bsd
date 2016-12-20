@@ -447,13 +447,13 @@ struct v {
   /// Assigns the given scalar value to the vector components specified by the mask.
   inline v&
   mask_assign(const Tp& scalar_value, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::blend(), data, make(scalar_value).data, data, mask);
+    data = unary_op<is_compound>(typename op::blend(), data, make(scalar_value).data, data, !mask);
     return *this;
   }
 
   inline v&
   mask_assign(const v& other, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::blend(), data, other.data, data, mask);
+    data = unary_op<is_compound>(typename op::blend(), data, other.data, data, !mask);
     return *this;
   }
 
