@@ -90,6 +90,17 @@ struct set<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
   }
 };
 
+template<typename Tp>
+struct blend<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
+  using fn = vector_fn<Tp, Tp, Tp>;
+  inline typename fn::vector_type
+  operator()(const typename fn::vector_type& a,
+             const typename fn::vector_type& b,
+             const native_mask_t mask) const noexcept {
+    return mask.data ? b : a;
+  }
+};
+
 
 // Load
 template<typename Tp, typename Ta>
