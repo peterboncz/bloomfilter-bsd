@@ -107,7 +107,7 @@ template<typename Tp, typename Ta>
 struct gather<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
   inline typename fn::vector_type
-  operator()(u8* const base_addr,
+  operator()(/*u8* const base_addr,*/
              const typename fn::argument_type& idxs) const noexcept {
     return *reinterpret_cast<typename fn::vector_type*>(idxs);
   }

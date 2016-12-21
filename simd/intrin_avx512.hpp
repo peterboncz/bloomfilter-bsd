@@ -107,9 +107,9 @@ __GENERATE($u64, __m512i, $u64, _mm512_set1_epi64, _mm512_mask_set1_epi64)
 #undef __GENERATE
 
 
-#define __GENERATE_BLEND(Tp, Tv, Ta, IntrinFnMask) \
+#define __GENERATE_BLEND(Tp, Tv, Ta, IntrinFnMask)     \
 template<>                                             \
-struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
+struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {     \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
   inline typename fn::vector_type                      \
   operator()(const typename fn::vector_type& a,        \
