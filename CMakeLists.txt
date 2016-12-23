@@ -18,6 +18,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         simd.hpp
         sma.hpp
         #old/vec.hpp
+        thread.hpp
         tree.hpp
         tree_mask.hpp
         zone_mask.hpp
