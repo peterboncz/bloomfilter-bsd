@@ -80,8 +80,21 @@ struct array_info<std::array<T, N>> {
 
 
 // Compiler hints
+#ifndef assume_aligned
 #define assume_aligned(address, byte) __builtin_assume_aligned(address, byte)
+#endif
+
+#ifndef unreachable
 #define unreachable() __builtin_unreachable();
+#endif
+
+#ifndef likely
+#define likely(expr) __builtin_expect(!!(expr), 1)
+#endif
+
+#ifndef unlikely
+#define unlikely(x) __builtin_expect((x),0)
+#endif
 
 
 // add missing operator function objects
