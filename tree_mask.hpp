@@ -9,14 +9,14 @@
 
 #include "tree.hpp"
 
-namespace dbb {
+namespace dtl {
 
   template<u64 N>
   class tree_mask {
   private:
     static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
 
-    using tree_t = dbb::full_binary_tree<N>;
+    using tree_t = dtl::full_binary_tree<N>;
 
     static constexpr u64 length = tree_t::max_node_cnt;
     static constexpr u64 height = tree_t::height;

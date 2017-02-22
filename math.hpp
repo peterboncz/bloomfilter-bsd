@@ -4,6 +4,8 @@
 #include <bitset>
 #include <type_traits>
 
+namespace dtl {
+
 /// Ranks a permutation of order N to an integer in the range of [0, N!).
 /// The mapping is bijective, see unrank() function.
 /// Both, the rank as well as the unrank functions are based on the algorithm of
@@ -244,3 +246,6 @@ namespace ct {
   };
 
 }
+
+
+} // namespace dtl

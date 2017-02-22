@@ -10,7 +10,7 @@
 
 #include "tree.hpp"
 
-namespace dbb {
+namespace dtl {
 
   template<u64 LEN>
   struct match_vector {
@@ -47,4 +47,4 @@ namespace dbb {
     matches.match_cnt = writer - matches.match_positions;
   }
 
-}
+} // namespace dtl

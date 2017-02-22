@@ -2,7 +2,8 @@
 
 #include "adept.hpp"
 
-namespace dtl { namespace hash {
+namespace dtl {
+namespace hash {
 
 template<typename T>
 struct xorshift_64 {

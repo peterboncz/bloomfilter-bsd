@@ -8,7 +8,7 @@
 #include <iostream>
 #include <random>
 
-using namespace dbb;
+using namespace dtl;
 
 static std::vector<$u1> bitvector(const std::string bit_string) {
   std::vector<$u1> bv;

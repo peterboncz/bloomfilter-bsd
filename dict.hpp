@@ -4,6 +4,9 @@
 #include <set>
 #include <vector>
 
+namespace dtl {
+
+/// a naively implemented string dictionary
 template<typename T>
 class dict {
 public:
@@ -33,3 +36,5 @@ public:
   }
   
 };
+
+} // namespace dtl

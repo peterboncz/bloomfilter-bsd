@@ -38,7 +38,8 @@ struct bloomfilter {
   }
 
   template<u64 vector_len>
-  typename vec<Tk, vector_len>::mask_t contains(const vec<Tk, vector_len>& keys) const {
+  typename vec<Tk, vector_len>::mask_t
+  contains(const vec<Tk, vector_len>& keys) const {
     using vec_t = vec<Tk, vector_len>;
     const vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
     const vec_t word_idxs = bit_idxs >> word_bitlength_log2;

@@ -1,5 +1,7 @@
 #pragma once
 
+namespace dtl {
+
 enum class pred {
   GE, GT, EQ, LT, LE,
   BETWEEN, BETWEEN_LO, BETWEEN_RO, BETWEEN_O
@@ -27,3 +29,5 @@ struct range {
     return r;
   }
 };
+
+} // namespace dtl

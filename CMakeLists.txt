@@ -9,6 +9,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         bloomfilter.hpp
         bitmask.hpp
+        color.hpp
         dict.hpp
         hash.hpp
         index.hpp

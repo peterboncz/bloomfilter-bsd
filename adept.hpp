@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <array>
 
+
+// type aliases for more concise code
 using i1 = const bool;
 using u1 = const bool;
 using i8 = const int8_t;

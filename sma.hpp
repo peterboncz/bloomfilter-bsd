@@ -4,6 +4,8 @@
 #include "index.hpp"
 #include <limits>
 
+namespace dtl {
+
 template<typename T>
 class sma {
 
@@ -61,3 +63,5 @@ public:
   }
 
 };
+
+} // namespace dtl

@@ -8,6 +8,11 @@
 
 #include <immintrin.h>
 
+namespace dtl {
+
+
+/// PSMA implementation based on the paper of Lang et al. 'Data Blocks: Hybrid OLTP and OLAP on Compressed Storage
+/// using both Vectorization and Compilation'
 template<typename T>
 class psma {
 public:
@@ -36,7 +41,7 @@ public:
   }
 
   // update ranges
-  inline void update(const T *const values, const size_t n) noexcept {
+  inline void update(const T* const values, const size_t n) noexcept {
     for (uint32_t i = 0; i != n; i++) {
       auto &range = table[get_slot(values[i])];
       if (range.is_empty()) {
@@ -87,3 +92,5 @@ public:
   }
 
 };
+
+} // namespace dtl
