@@ -2,14 +2,25 @@
 
 namespace dtl {
 
-enum class pred {
+enum class op {
   GE, GT, EQ, LT, LE,
+  IS_NULL, IS_NOT_NULL,
+  IN,
   BETWEEN, BETWEEN_LO, BETWEEN_RO, BETWEEN_O
 };
 
+
+/// a monadic predicate (e.g., attr OP const)
+struct predicate {
+  op comparision_operator;
+  void* value_ptr;
+  void* second_value_ptr = nullptr; // in case of BETWEEN
+};
+
+
 struct range {
-  uint32_t begin;
-  uint32_t end;
+  $u32 begin;
+  $u32 end;
 
   inline bool is_empty() const {
     return begin == end;

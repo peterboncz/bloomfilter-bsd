@@ -33,9 +33,9 @@ public:
   }
 
   // query: x between value_lower and value_upper
-  inline bool lookup(const pred p, const T value_lower, const T value_upper) const noexcept {
-    const bool left_inclusive = p == pred::BETWEEN_LO || p == pred::BETWEEN_O;
-    const bool right_inclusive = p == pred::BETWEEN_RO || p == pred::BETWEEN_O;
+  inline bool lookup(const op p, const T value_lower, const T value_upper) const noexcept {
+    const bool left_inclusive = p == op::BETWEEN_LO || p == op::BETWEEN_O;
+    const bool right_inclusive = p == op::BETWEEN_RO || p == op::BETWEEN_O;
 
     const T lo = value_lower + !left_inclusive;
     const T hi = value_upper - !right_inclusive;
@@ -43,21 +43,21 @@ public:
     return lo >= min_value && hi <= max_value && lo <= hi;
   }
 
-  // query: x pred value
-  inline bool lookup(const pred p, const T value) const noexcept {
+  // query: x op value
+  inline bool lookup(const op p, const T value) const noexcept {
     uint32_t b = 0;
     uint32_t e = 0;
     switch (p) {
-      case pred::EQ:
-        return lookup(pred::BETWEEN_O, value, value);
-      case pred::LT:
-        return lookup(pred::BETWEEN_LO, std::numeric_limits<T>::min(), value);
-      case pred::LE:
-        return lookup(pred::BETWEEN_O, std::numeric_limits<T>::min(), value);
-      case pred::GT:
-        return lookup(pred::BETWEEN_RO, value, std::numeric_limits<T>::max());
-      case pred::GE:
-        return lookup(pred::BETWEEN_O, value, std::numeric_limits<T>::max());
+      case op::EQ:
+        return lookup(op::BETWEEN_O, value, value);
+      case op::LT:
+        return lookup(op::BETWEEN_LO, std::numeric_limits<T>::min(), value);
+      case op::LE:
+        return lookup(op::BETWEEN_O, std::numeric_limits<T>::min(), value);
+      case op::GT:
+        return lookup(op::BETWEEN_RO, value, std::numeric_limits<T>::max());
+      case op::GE:
+        return lookup(op::BETWEEN_O, value, std::numeric_limits<T>::max());
     }
     return true;
   }

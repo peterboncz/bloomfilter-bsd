@@ -53,22 +53,22 @@ public:
     }
   }
 
-  // query: x pred value
-  inline range lookup(const pred p, const T value) const noexcept {
+  // query: x op value
+  inline range lookup(const op p, const T value) const noexcept {
     const uint32_t s = get_slot(value);
     range r = table[s];
-    if (p == pred::EQ) return r;
+    if (p == op::EQ) return r;
 
     uint32_t b = 0;
     uint32_t e = 0;
     switch (p) {
-      case pred::LT:
-      case pred::LE:
+      case op::LT:
+      case op::LE:
         b = 0;
         e = s;
         break;
-      case pred::GT:
-      case pred::GE:
+      case op::GT:
+      case op::GE:
         b = s + 1;
         e = size;
         break;
@@ -80,7 +80,7 @@ public:
   }
 
   // query: x between value_lower and value_upper
-  inline range lookup(const pred /*p*/, const T value_lower, const T value_upper) const noexcept {
+  inline range lookup(const op /*p*/, const T value_lower, const T value_upper) const noexcept {
     // note: the between predicate type is ignored here
     const uint32_t b = get_slot(value_lower);
     const uint32_t e = get_slot(value_upper);
