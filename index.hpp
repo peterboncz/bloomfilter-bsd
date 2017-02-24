@@ -9,6 +9,53 @@ enum class op {
   BETWEEN, BETWEEN_LO, BETWEEN_RO, BETWEEN_O
 };
 
+template<typename T>
+struct between {
+  bool
+  operator()(const T& lower, const T& value, const T& upper) const noexcept {
+    return std::logical_and<u1>()(
+        std::greater_equal<T>()(value, lower),
+        std::less_equal<T>()(value, upper)
+    );
+  }
+};
+
+
+template<typename T>
+struct between_left_open {
+  bool
+  operator()(const T& lower, const T& value, const T& upper) const noexcept {
+    return std::logical_and<u1>()(
+        std::greater<T>()(value, lower),
+        std::less_equal<T>()(value, upper)
+    );
+  }
+};
+
+
+template<typename T>
+struct between_right_open {
+  bool
+  operator()(const T& lower, const T& value, const T& upper) const noexcept {
+    return std::logical_and<u1>()(
+        std::greater_equal<T>()(value, lower),
+        std::less<T>()(value, upper)
+    );
+  }
+};
+
+
+template<typename T>
+struct between_open {
+  bool
+  operator()(const T& lower, const T& value, const T& upper) const noexcept {
+    return std::logical_and<u1>()(
+        std::greater<T>()(value, lower),
+        std::less<T>()(value, upper)
+    );
+  }
+};
+
 
 /// a monadic predicate (e.g., attr OP const)
 struct predicate {
