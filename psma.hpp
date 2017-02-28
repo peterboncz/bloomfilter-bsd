@@ -1,6 +1,7 @@
 #pragma once
 
 #include "index.hpp"
+#include "tree_mask.hpp"
 #include "zone_mask.hpp"
 #include <algorithm>
 #include <cstring>
@@ -243,5 +244,109 @@ public:
   }
 
 };
+
+template<typename T, u64 N>
+using psma_bitmask = psma_zone_mask<T, N, N>;
+
+
+/// A combination of a PSMA lookup table and a Zone Mask.
+/// M = the number of bits per table entry.
+template<typename T, u64 N, u64 M>
+class psma_tree_mask {
+public:
+
+  using mask_t = tree_mask<N, M>;
+  using table_t = psma_table<T, mask_t>;
+  static constexpr uint32_t size = table_t::size;
+
+  table_t table;
+
+  inline void
+  update(const psma_bitmask<T, N>& src) noexcept {
+    for (uint32_t i = 0; i != table_t::size; i++) {
+      table.entries[i].set(src.table.entries[i].data);
+    }
+  }
+
+  // query: x op value
+  inline std::bitset<N>
+  lookup(const op p, const T value) const noexcept {
+    const uint32_t s = table.get_slot(value);
+    auto r = table.entries[s].get();
+    if (p == op::EQ) return r;
+
+    uint32_t b = 0;
+    uint32_t e = 0;
+    switch (p) {
+      case op::LT:
+      case op::LE:
+        b = 0;
+        e = s;
+        break;
+      case op::GT:
+      case op::GE:
+        b = s + 1;
+        e = size;
+        break;
+    }
+    for (size_t i = b; i < e; i++) {
+      r = r | table.entries[i].get();
+    }
+    return r;
+  }
+
+  // query: x between value_lower and value_upper
+  inline std::bitset<N>
+  lookup(const op /*p*/, const T value_lower, const T value_upper) const noexcept {
+    // note: the between predicate type is ignored here
+    const uint32_t b = table.get_slot(value_lower);
+    const uint32_t e = table.get_slot(value_upper);
+    auto r = table.entries[b].get();
+    for (size_t i = b + 1; i <= e; i++) {
+      r = r | table.entries[i].get();
+    }
+    return r;
+  }
+
+  // query: x op value
+  inline std::bitset<N>
+  lookup(const predicate& p) const noexcept {
+    T value = *reinterpret_cast<T*>(p.value_ptr);
+    T second_value; // in case of between predicates
+
+    const uint32_t s = table.get_slot(value);
+    auto r = table.entries[s].get();
+    if (p.comparison_operator == op::EQ) return r;
+
+    uint32_t b = 0;
+    uint32_t e = 0;
+    switch (p.comparison_operator) {
+      case op::LT:
+      case op::LE:
+        b = 0;
+        e = s;
+        break;
+      case op::GT:
+      case op::GE:
+        b = s + 1;
+        e = size;
+        break;
+      case op::BETWEEN:
+      case op::BETWEEN_LO:
+      case op::BETWEEN_RO:
+      case op::BETWEEN_O:
+        second_value = *reinterpret_cast<T*>(p.second_value_ptr);
+        b = table.get_slot(value);
+        e = table.get_slot(second_value);
+        break;
+    }
+    for (size_t i = b; i < e; i++) {
+      r = r | table.entries[i].get();
+    }
+    return r;
+  }
+
+};
+
 
 } // namespace dtl

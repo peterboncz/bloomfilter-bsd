@@ -64,17 +64,6 @@ namespace dtl {
       return bitmask;
     }
 
-//    template<u64 V>
-//    struct it {
-//    private:
-//      friend zone_mask;
-//      zone_mask& zm;
-//      $u64 i;
-//    public:
-//
-//
-//    };
-
   };
 
 }
