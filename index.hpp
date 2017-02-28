@@ -1,5 +1,7 @@
 #pragma once
 
+#include "adept.hpp"
+
 namespace dtl {
 
 enum class op {
@@ -7,6 +9,10 @@ enum class op {
   IS_NULL, IS_NOT_NULL,
   IN,
   BETWEEN, BETWEEN_LO, BETWEEN_RO, BETWEEN_O
+};
+
+enum class logical_op {
+  AND, OR
 };
 
 template<typename T>
@@ -59,7 +65,7 @@ struct between_open {
 
 /// a monadic predicate (e.g., attr OP const)
 struct predicate {
-  op comparision_operator;
+  op comparison_operator;
   void* value_ptr;
   void* second_value_ptr = nullptr; // in case of BETWEEN
 };
