@@ -91,6 +91,43 @@ public:
     return r;
   }
 
+  // query: x op value
+  inline range lookup(const predicate& p) const noexcept {
+    T value = *reinterpret_cast<T*>(p.value_ptr);
+    T second_value; // in case of between predicates
+
+    const uint32_t s = get_slot(value);
+    range r = table[s];
+    if (p.comparison_operator == op::EQ) return r;
+
+    uint32_t b = 0;
+    uint32_t e = 0;
+    switch (p.comparison_operator) {
+      case op::LT:
+      case op::LE:
+        b = 0;
+        e = s;
+        break;
+      case op::GT:
+      case op::GE:
+        b = s + 1;
+        e = size;
+        break;
+      case op::BETWEEN:
+      case op::BETWEEN_LO:
+      case op::BETWEEN_RO:
+      case op::BETWEEN_O:
+        second_value = *reinterpret_cast<T*>(p.second_value_ptr);
+        b = get_slot(value);
+        e = get_slot(second_value);
+        break;
+    }
+    for (size_t i = b; i < e; i++) {
+      r = r | table[i];
+    }
+    return r;
+  }
+
 };
 
 } // namespace dtl
