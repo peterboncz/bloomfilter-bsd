@@ -218,7 +218,7 @@ namespace dtl {
         u1 current_bit = code[read_pos];
         u1 is_leaf = ! current_bit;
         if (is_leaf) {
-          u64 n = 1 << (height - level);
+          u64 n = 1ull << (height - level);
           u1 label = code[labels_offset + label_read_pos];
           write(bitmask, write_pos, label, n);
           write_pos += n;
@@ -261,7 +261,7 @@ namespace dtl {
      */
 
     /// Encodes and compresses the given bitmask as a full binary tree using balanced parentheses representation.
-    /// The length of encoded tree mask is guaranteed to be less or equal to M.
+    /// The length of the encoded tree mask is guaranteed to be less or equal to M.
     /// Note, that the compression can lead to an information loss. However, the following holds: m == m & d(e(m))
     /// @returns a bit set of size M containing the encoded 'tree mask'
     template<u64 M>
