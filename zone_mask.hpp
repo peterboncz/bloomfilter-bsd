@@ -33,7 +33,8 @@ namespace dtl {
     }
 
 
-    static std::bitset<M> compress(const std::bitset<N>& bitmask) {
+    static std::bitset<M>
+    compress(const std::bitset<N>& bitmask) {
       static_assert(is_power_of_two(M), "Template parameter 'M' must be a power of two.");
       u64 zone_size = N / M;
       u64 zone_cnt = N / zone_size;
@@ -50,7 +51,8 @@ namespace dtl {
       return zone_mask;
     }
 
-    static std::bitset<N> decode(const std::bitset<M>& compressed_bitmask) {
+    static std::bitset<N>
+    decode(const std::bitset<M>& compressed_bitmask) {
       static_assert(is_power_of_two(M), "Template parameter 'M' must be a power of two.");
       u64 zone_size = N / M;
       u64 zone_cnt = N / zone_size;
