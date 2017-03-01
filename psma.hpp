@@ -56,7 +56,8 @@ public:
   }
 
   // update ranges
-  inline void update(const T* const values, const size_t n) noexcept {
+  inline void
+  update(const T* const values, const size_t n) noexcept {
     for (uint32_t i = 0; i != n; i++) {
       auto &range = table.entries[table.get_slot(values[i])];
       if (range.is_empty()) {
@@ -68,46 +69,8 @@ public:
     }
   }
 
-  // query: x op value
-  inline range lookup(const op p, const T value) const noexcept {
-    const uint32_t s = table.get_slot(value);
-    range r = table.entries[s];
-    if (p == op::EQ) return r;
-
-    uint32_t b = 0;
-    uint32_t e = 0;
-    switch (p) {
-      case op::LT:
-      case op::LE:
-        b = 0;
-        e = s;
-        break;
-      case op::GT:
-      case op::GE:
-        b = s + 1;
-        e = size;
-        break;
-    }
-    for (size_t i = b; i < e; i++) {
-      r = r | table.entries[i];
-    }
-    return r;
-  }
-
-  // query: x between value_lower and value_upper
-  inline range lookup(const op /*p*/, const T value_lower, const T value_upper) const noexcept {
-    // note: the between predicate type is ignored here
-    const uint32_t b = table.get_slot(value_lower);
-    const uint32_t e = table.get_slot(value_upper);
-    range r = table.entries[b];
-    for (size_t i = b + 1; i <= e; i++) {
-      r = r | table.entries[i];
-    }
-    return r;
-  }
-
-  // query: x op value
-  inline range lookup(const predicate& p) const noexcept {
+  inline range
+  lookup(const predicate& p) const noexcept {
     T value = *reinterpret_cast<T*>(p.value_ptr);
     T second_value; // in case of between predicates
 
@@ -165,47 +128,6 @@ public:
     }
   }
 
-//  // query: x op value
-//  inline mask_t
-//  lookup(const op p, const T value) const noexcept {
-//    const uint32_t s = table.get_slot(value);
-//    auto r = table.entries[s];
-//    if (p == op::EQ) return r;
-//
-//    uint32_t b = 0;
-//    uint32_t e = 0;
-//    switch (p) {
-//      case op::LT:
-//      case op::LE:
-//        b = 0;
-//        e = s;
-//        break;
-//      case op::GT:
-//      case op::GE:
-//        b = s + 1;
-//        e = size;
-//        break;
-//    }
-//    for (size_t i = b; i < e; i++) {
-//      r = r | table.entries[i];
-//    }
-//    return r;
-//  }
-
-//  // query: x between value_lower and value_upper
-//  inline mask_t
-//  lookup(const op /*p*/, const T value_lower, const T value_upper) const noexcept {
-//    // note: the between predicate type is ignored here
-//    const uint32_t b = table.get_slot(value_lower);
-//    const uint32_t e = table.get_slot(value_upper);
-//    auto r = table.entries[b];
-//    for (size_t i = b + 1; i <= e; i++) {
-//      r = r | table.entries[i];
-//    }
-//    return r;
-//  }
-
-  // query: x op value
   inline mask_t
   lookup(const predicate& p) const noexcept {
     T value = *reinterpret_cast<T*>(p.value_ptr);
@@ -245,6 +167,7 @@ public:
 
 };
 
+
 template<typename T, u64 N>
 using psma_bitmask = psma_zone_mask<T, N, N>;
 
@@ -268,47 +191,6 @@ public:
     }
   }
 
-  // query: x op value
-  inline std::bitset<N>
-  lookup(const op p, const T value) const noexcept {
-    const uint32_t s = table.get_slot(value);
-    auto r = table.entries[s].get();
-    if (p == op::EQ) return r;
-
-    uint32_t b = 0;
-    uint32_t e = 0;
-    switch (p) {
-      case op::LT:
-      case op::LE:
-        b = 0;
-        e = s;
-        break;
-      case op::GT:
-      case op::GE:
-        b = s + 1;
-        e = size;
-        break;
-    }
-    for (size_t i = b; i < e; i++) {
-      r = r | table.entries[i].get();
-    }
-    return r;
-  }
-
-  // query: x between value_lower and value_upper
-  inline std::bitset<N>
-  lookup(const op /*p*/, const T value_lower, const T value_upper) const noexcept {
-    // note: the between predicate type is ignored here
-    const uint32_t b = table.get_slot(value_lower);
-    const uint32_t e = table.get_slot(value_upper);
-    auto r = table.entries[b].get();
-    for (size_t i = b + 1; i <= e; i++) {
-      r = r | table.entries[i].get();
-    }
-    return r;
-  }
-
-  // query: x op value
   inline std::bitset<N>
   lookup(const predicate& p) const noexcept {
     T value = *reinterpret_cast<T*>(p.value_ptr);
@@ -340,7 +222,7 @@ public:
         e = table.get_slot(second_value);
         break;
     }
-    for (size_t i = b; i < e; i++) {
+    for (size_t i = b; i <= e; i++) {
       r = r | table.entries[i].get();
     }
     return r;
