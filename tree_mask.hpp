@@ -13,8 +13,8 @@
 namespace dtl {
 
   template<u64 N, u64 M>
-  class tree_mask {
-  private:
+  struct tree_mask {
+//  private:
     static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
     static_assert(is_power_of_two(M), "Template parameter 'M' must be a power of two.");
 
@@ -278,7 +278,6 @@ namespace dtl {
     /// The length of the encoded tree mask is guaranteed to be less or equal to M.
     /// Note, that the compression can lead to an information loss. However, the following holds: m == m & d(e(m))
     /// @returns a bit set of size M containing the encoded 'tree mask'
-//    template<u64 M>
     static inline std::bitset<M>
     compress(const std::bitset<N>& bitmask) {
       auto tree = match_tree(bitmask);
@@ -311,6 +310,21 @@ namespace dtl {
       return decode(data);
     }
 
+
+    void
+    print(std::ostream& os) const {
+      u64 labels_offset = find_labels_offset(data);
+      // print tree structure
+      for ($u64 i = 0; i < labels_offset; i++) {
+        os << (data[i] ? "1" : "0");
+      }
+      os << "|";
+      for ($u64 i = labels_offset; i < M; i++) {
+        os << (data[i] ? "1" : "0");
+      }
+    }
+
   };
 
-}
+} // namespace dtl
+
