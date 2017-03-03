@@ -12,7 +12,7 @@
 
 namespace dtl {
 
-  template<u64 N, u64 M>
+  template<u64 N, u64 M = 64>
   struct tree_mask {
 //  private:
     static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
@@ -153,7 +153,7 @@ namespace dtl {
 
         while (true) {
           auto enc = encode();
-          u64 current_bit_cnt = enc.size();
+          u64 current_bit_cnt = enc.size(); // TODO improve
           if (current_bit_cnt <= target_bit_cnt) break;
           prune_clean(prune_single(0));
         }

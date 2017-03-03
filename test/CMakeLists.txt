@@ -15,7 +15,7 @@ set(TEST_FILES
         bloomfilter_experiments.cpp
         #knl_experiments.cpp
         mem_test.cpp
-        vec_test.cpp
+        #vec_test.cpp
         )
 
 set(STORAGE_TEST_FILES

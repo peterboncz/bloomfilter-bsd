@@ -26,29 +26,42 @@ static u64 rnd(u64 min, u64 max) {
   return uni(rng);;
 }
 
+//template<u64 size>
+//static std::bitset<size> make_bitmask(u64 match_cnt) {
+//  std::bitset<size> bitmask;
+//  for ($u64 i = 0; i < match_cnt; i++) {
+//    bitmask.set(i);
+//  }
+//  for ($u64 i = size - 1; i != 1; i--) {
+//    u64 j = rnd(0, i);
+//    u1 t = bitmask[i];
+//    bitmask[i] = bitmask[j];
+//    bitmask[j] = t;
+//  }
+//  return bitmask;
+//}
+
 template<u64 size>
 static std::bitset<size> make_bitmask(u64 match_cnt) {
+  static std::random_device rd;
+  static std::mt19937 rng(rd());
+  std::bernoulli_distribution d((match_cnt * 1.0) / size);
+
   std::bitset<size> bitmask;
-  for ($u64 i = 0; i < match_cnt; i++) {
-    bitmask.set(i);
-  }
-  for ($u64 i = size - 1; i != 1; i--) {
-    u64 j = rnd(0, i);
-    u1 t = bitmask[i];
-    bitmask[i] = bitmask[j];
-    bitmask[j] = t;
+  for ($u64 i = 0; i < size; i++) {
+    bitmask[i] = d(rng);
   }
   return bitmask;
 }
 
-template<u64 size, u64 compressed_size, template<u64> class mask_impl>
+template<u64 size, u64 compressed_size, template<u64, u64> class mask_impl>
 static u64 match_cnt_after_compression(const std::bitset<size> bitmask){
-  std::bitset<compressed_size> compressed_bitmask = mask_impl<size>::template compress<compressed_size>(bitmask);
-  std::bitset<size> decompressed_bitmask = mask_impl<size>::decode(compressed_bitmask);
+  std::bitset<compressed_size> compressed_bitmask = mask_impl<size, compressed_size>::compress(bitmask);
+  std::bitset<size> decompressed_bitmask = mask_impl<size, compressed_size>::decode(compressed_bitmask);
   return decompressed_bitmask.count();
 };
 
-template<u64 size, u64 max_match_cnt, template<u64> class mask_impl>
+template<u64 size, u64 max_match_cnt, template<u64, u64> class mask_impl>
 static void run() {
   u64 repeat_cnt = 10;
 
@@ -77,7 +90,7 @@ TEST(bitmask_experiment, zone_mask_uniform_match_distribution) {
 
 
 
-template<u64 size, u64 max_match_cnt, u64 size_limit, template<u64> class mask_impl>
+template<u64 size, u64 max_match_cnt, u64 size_limit, template<u64, u64> class mask_impl>
 static void run_tree_mask_metrics() {
   u64 repeat_cnt = 10;
   std::cout << "bitmask_size|compressed_size_limit"
@@ -124,9 +137,9 @@ static void run_tree_mask_metrics() {
 
 TEST(bitmask_experiment, tree_mask_metrics) {
   run_tree_mask_metrics<2048, 2048, 64, tree_mask>();
-  run_tree_mask_metrics<2048, 2048, 128, tree_mask>();
-  run_tree_mask_metrics<2048, 2048, 256, tree_mask>();
-  run_tree_mask_metrics<2048, 2048, 512, tree_mask>();
-  run_tree_mask_metrics<2048, 2048, 1024, tree_mask>();
-  run_tree_mask_metrics<2048, 2048, 2048, tree_mask>();
+//  run_tree_mask_metrics<2048, 2048, 128, tree_mask>();
+//  run_tree_mask_metrics<2048, 2048, 256, tree_mask>();
+//  run_tree_mask_metrics<2048, 2048, 512, tree_mask>();
+//  run_tree_mask_metrics<2048, 2048, 1024, tree_mask>();
+//  run_tree_mask_metrics<2048, 2048, 2048, tree_mask>();
 }
