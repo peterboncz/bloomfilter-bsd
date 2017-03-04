@@ -23,6 +23,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
         tree.hpp
         tree_mask.hpp
         zone_mask.hpp
+#        compression/lz4.h
+#        compression/lz4.c
+#        compression/lz4hc.h
+#        compression/lz4hc.c
         )
 
 add_library(dtl ${SOURCE_FILES})

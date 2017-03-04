@@ -73,6 +73,27 @@ namespace dtl {
         assert(bitmask.count() == 0 || false_positive_cnt[0] == N - bitmask.count());
       }
 
+      void dot() {
+        std::function<void(u64)> dot_recursively = [&](u64 idx) {
+          u1 is_inner = tree.is_inner_node(idx);
+          if (is_inner) {
+            std::cout << "n" << idx << std::endl;
+            u64 left_child_idx = tree_t::left_child_of(idx);
+            u64 right_child_idx = tree_t::right_child_of(idx);
+            std::cout << "n" << idx << " -- n" << left_child_idx << std::endl;
+            std::cout << "n" << idx << " -- n" << right_child_idx << std::endl;
+            dot_recursively(left_child_idx);
+            dot_recursively(right_child_idx);
+          }
+          else {
+            std::cout << "n" << idx << "[label=\"" << bit[idx] << "\",style=filled,color=\"" << (bit[idx] ? "#abd600" : "#b50000") << "\",shape=point,width=0.2]" <<std::endl;
+            return;
+          }
+        };
+        std::cout << "graph \"\" {" << std::endl;
+        dot_recursively(0);
+        std::cout << "}" << std::endl;
+      }
 
       std::vector<$u1> encode() {
         std::vector<$u1> structure;
@@ -281,7 +302,9 @@ namespace dtl {
     static inline std::bitset<M>
     compress(const std::bitset<N>& bitmask) {
       auto tree = match_tree(bitmask);
+      tree.dot();
       tree.compress(M);
+      tree.dot();
       auto compressed_bitvector = tree.encode();
       std::bitset<M> compressed_bitmask;
       for ($u64 i = 0; i < compressed_bitvector.size(); i++) {
