@@ -10,7 +10,8 @@
 
 using namespace dtl;
 
-static std::vector<$u1> bitvector(const std::string bit_string) {
+static std::vector<$u1>
+bitvector(const std::string bit_string) {
   std::vector<$u1> bv;
   for ($u64 i = 0; i < bit_string.size(); i++) {
     bv.push_back(bit_string[i] != '0');

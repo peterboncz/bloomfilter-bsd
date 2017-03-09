@@ -22,7 +22,7 @@ namespace dtl {
 
     struct match_tree {
 
-      using tree_t = dtl::full_binary_tree<N>;
+      using tree_t = dtl::binary_tree_structure<N>;
 
       static constexpr u64 length = tree_t::max_node_cnt;
       static constexpr u64 height = tree_t::height;
@@ -30,6 +30,7 @@ namespace dtl {
       tree_t tree;
       std::bitset<length> bit;
       std::array<$u32, length> false_positive_cnt {};
+
 
       explicit match_tree(const std::bitset<N>& bitmask) {
         // initialize a complete binary tree
@@ -73,29 +74,9 @@ namespace dtl {
         assert(bitmask.count() == 0 || false_positive_cnt[0] == N - bitmask.count());
       }
 
-      void dot() {
-        std::function<void(u64)> dot_recursively = [&](u64 idx) {
-          u1 is_inner = tree.is_inner_node(idx);
-          if (is_inner) {
-            std::cout << "n" << idx << std::endl;
-            u64 left_child_idx = tree_t::left_child_of(idx);
-            u64 right_child_idx = tree_t::right_child_of(idx);
-            std::cout << "n" << idx << " -- n" << left_child_idx << std::endl;
-            std::cout << "n" << idx << " -- n" << right_child_idx << std::endl;
-            dot_recursively(left_child_idx);
-            dot_recursively(right_child_idx);
-          }
-          else {
-            std::cout << "n" << idx << "[label=\"" << bit[idx] << "\",style=filled,color=\"" << (bit[idx] ? "#abd600" : "#b50000") << "\",shape=point,width=0.2]" <<std::endl;
-            return;
-          }
-        };
-        std::cout << "graph \"\" {" << std::endl;
-        dot_recursively(0);
-        std::cout << "}" << std::endl;
-      }
 
-      std::vector<$u1> encode() {
+      std::vector<$u1>
+      encode() {
         std::vector<$u1> structure;
         std::vector<$u1> labels;
         std::function<void(u64)> encode_recursively = [&](u64 idx) {
@@ -183,29 +164,29 @@ namespace dtl {
     };
 
 
-    static u64 find_close(const std::vector<$u1>& bitstring, u64 idx) {
-      if (!bitstring[idx]) return idx;
-      $u64 cntr = 1;
-      for ($u64 i = idx + 1; i < bitstring.size(); i++) {
-        bitstring[i] ? cntr++ : cntr--;
-        if (cntr == 0) return i;
-      }
-      return idx;
-    }
+//    static u64 find_close(const std::vector<$u1>& bitstring, u64 idx) {
+//      if (!bitstring[idx]) return idx;
+//      $u64 cntr = 1;
+//      for ($u64 i = idx + 1; i < bitstring.size(); i++) {
+//        bitstring[i] ? cntr++ : cntr--;
+//        if (cntr == 0) return i;
+//      }
+//      return idx;
+//    }
 
-    /// finds the position of the matching closing paranthesis.
+    /// finds the position of the matching closing parantheses.
     /// if the given index points to a '0', it returns that index.
-    static u64 find_close(const std::bitset<M>& bitstring, u64 idx) {
-      if (!bitstring[idx]) return idx;
-      $u64 cntr = 1;
-      for ($u64 i = idx + 1; i < M; i++) {
-        bitstring[i] ? cntr++ : cntr--;
-        if (cntr == 0) return i;
-      }
-      return idx;
-    }
+//    static u64 find_close(const std::bitset<M>& bitstring, u64 idx) {
+//      if (!bitstring[idx]) return idx;
+//      $u64 cntr = 1;
+//      for ($u64 i = idx + 1; i < M; i++) {
+//        bitstring[i] ? cntr++ : cntr--;
+//        if (cntr == 0) return i;
+//      }
+//      return idx;
+//    }
 
-    /// finds the position of the matching closing paranthesis.
+    /// finds the position of the matching closing parantheses.
     /// if the given index points to a '0', it returns that index.
     template<typename bitstring_t>
     static u64 find_labels_offset(const bitstring_t& bitstring) {
@@ -302,9 +283,7 @@ namespace dtl {
     static inline std::bitset<M>
     compress(const std::bitset<N>& bitmask) {
       auto tree = match_tree(bitmask);
-      tree.dot();
       tree.compress(M);
-      tree.dot();
       auto compressed_bitvector = tree.encode();
       std::bitset<M> compressed_bitmask;
       for ($u64 i = 0; i < compressed_bitvector.size(); i++) {
@@ -323,11 +302,14 @@ namespace dtl {
       return bitmask;
     }
 
+
+    /// Updates the tree mask accordingly.
     inline void
     set(const std::bitset<N>& bitmask) {
       data = compress(bitmask);
     }
 
+    /// Decodes the tree mask and returns a bitmask.
     inline std::bitset<N>
     get() const {
       return decode(data);
