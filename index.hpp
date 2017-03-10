@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adept.hpp"
+#include "dtl.hpp"
 
 namespace dtl {
 
@@ -75,17 +75,26 @@ struct range {
   $u32 begin;
   $u32 end;
 
-  inline bool is_empty() const {
+  inline void
+  reset() {
+    begin = 0;
+    end = 0;
+  }
+
+  inline bool
+  is_empty() const {
     return begin == end;
   }
 
-  inline range operator|(const range &other) {
+  inline range
+  operator|(const range &other) {
     if (is_empty()) return other;
     if (other.is_empty()) return range{begin, end};
     return range{std::min(begin, other.begin), std::max(end, other.end)};
   }
 
-  inline range operator&(const range &other) {
+  inline range
+  operator&(const range &other) {
     if (is_empty()) return range{0, 0};
     if (other.is_empty()) return range{0, 0};
     range r{std::max(begin, other.begin), std::min(end, other.end)};

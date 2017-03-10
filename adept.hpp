@@ -190,3 +190,14 @@ static void print(const std::vector<bool>& v, const size_t l) {
   }
   std::cout << std::endl;
 }
+
+
+static void
+print(const std::vector<bool>& v) {
+  if (v.size() == 0) return;
+  std::cout << (v[0] ? "1" : "0");
+  for (size_t i = 1; i < v.size(); i++) {
+    std::cout << "" << (v[i] ? "1" : "0");
+  }
+  std::cout << std::endl;
+}

@@ -10,12 +10,18 @@ namespace dtl {
   class zone_mask {
     static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
     static_assert(is_power_of_two(M), "Template parameter 'M' must be a power of two.");
+    static_assert(M <= N, "Template parameter 'M' must be less or equal to 'N'.");
 
   public:
 
     static constexpr u64 zone_size = N / M;
 
     std::bitset<M> data;
+
+    inline void
+    reset() {
+      data.reset();
+    }
 
     inline void
     set(u64 i) {
