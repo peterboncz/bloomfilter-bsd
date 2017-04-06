@@ -8,15 +8,18 @@ namespace hash {
 
 template<typename T, u32 seed = 1337>
 struct crc32 {
-  static inline constexpr T hash(const T& key) {
+  using Ty = typename std::remove_cv<T>::type;
+  static inline constexpr Ty hash(const Ty& key) {
     return _mm_crc32_u32(key, seed);
   }
 };
 
+
 template<typename T>
 struct xorshift_64 {
-  static inline constexpr T hash(const T& key) {
-    T h = key;
+  using Ty = typename std::remove_cv<T>::type;
+  static inline constexpr Ty hash(const Ty& key) {
+    Ty h = key;
     h ^= h << 13;
     h ^= h >> 7;
     h ^= h << 17;
@@ -24,13 +27,36 @@ struct xorshift_64 {
   }
 };
 
+/// Knuth multiplicative hashing taken from TAOCP volume 3 (2nd edition), section 6.4, page 516.
+/// see: http://stackoverflow.com/questions/11871245/knuth-multiplicative-hash
+/// 0 <= p <= 32
+template<typename T, u32 p = 32>
+struct knuth_32 {
+  using Ty = typename std::remove_cv<T>::type;
+  static inline constexpr Ty hash(const Ty& key) {
+    Ty knuth = 2654435769;
+    return (key * knuth) >> (32 - p);
+  }
+};
+
+
+template<typename T>
+struct knuth {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = knuth_32<T, 32>;
+  static inline constexpr Ty hash(const Ty& key) {
+    return F::hash(key);
+  }
+};
+
 
 template<typename T, u32 seed = 0xc6a4a793u>
 struct murmur1_32 {
-  static inline constexpr T hash(const T& key) {
-    const T m = seed;
-    const T hi = 0x4e774912u ^(4 * m);
-    T h = hi;
+  using Ty = typename std::remove_cv<T>::type;
+  static inline constexpr Ty hash(const Ty& key) {
+    const Ty m = seed;
+    const Ty hi = 0x4e774912u ^(4 * m);
+    Ty h = hi;
     h += key;
     h *= m;
     h ^= h >> 16;
@@ -45,12 +71,13 @@ struct murmur1_32 {
 
 template<typename T, u64 seed = 0xc6a4a7935bd1e995ull>
 struct murmur64a_64 {
-  static inline constexpr T hash(const T& key) {
-    const T m = seed;
-    const T r = 47u;
-    const T hi = 0x8445d61a4e774912ull ^ (8 * m);
-    T h = hi;
-    T k = key;
+  using Ty = typename std::remove_cv<T>::type;
+  static inline constexpr Ty hash(const Ty& key) {
+    const Ty m = seed;
+    const Ty r = 47u;
+    const Ty hi = 0x8445d61a4e774912ull ^ (8 * m);
+    Ty h = hi;
+    Ty k = key;
     k *= m;
     k ^= k >> r;
     k *= m;
@@ -62,5 +89,6 @@ struct murmur64a_64 {
     return h;
   }
 };
+
 
 }}

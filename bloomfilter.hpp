@@ -9,10 +9,10 @@
 
 namespace dtl {
 
-template<typename Tk, template<typename Ty> class hash_fn>
+template<typename Tk, template<typename Ty> class hash_fn, template<typename Ty> class second_hash_fn>
 struct bloomfilter {
 
-  using word_t = $i32;
+  using word_t = $i64;
   u64 word_bitlength = sizeof(word_t) * 8;
   u64 word_bitlength_log2 = log_2(word_bitlength);
   u64 word_bitlength_mask = word_bitlength - 1;
@@ -23,19 +23,29 @@ struct bloomfilter {
       : length_mask(next_power_of_two(length) - 1),
         word_array(next_power_of_two(length) / word_bitlength, 0) { }
 
-  void insert(const Tk& key) {
+  inline void
+  insert(const Tk& key) {
     u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
     u64 word_idx = bit_idx >> word_bitlength_log2;
     u64 in_word_idx = bit_idx & word_bitlength_mask;
-    word_array[word_idx] |= 1 << in_word_idx;
+    u64 second_in_word_idx = second_hash_fn<Tk>::hash(key) & word_bitlength_mask;
+    word_t word = word_array[word_idx];
+    word |= 1 << in_word_idx;
+    word |= 1 << second_in_word_idx;
+    word_array[word_idx] = word;
   }
 
-  u1 contains(const Tk& key) const {
+
+  inline u1
+  contains(const Tk& key) const {
     u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
     u64 word_idx = bit_idx >> word_bitlength_log2;
     u64 in_word_idx = bit_idx & word_bitlength_mask;
-    return (word_array[word_idx] & (1 << in_word_idx)) != 0;
+    u64 second_in_word_idx = second_hash_fn<Tk>::hash(key) & word_bitlength_mask;
+    word_t search_mask = (1 << in_word_idx) | (1 << second_in_word_idx);
+    return (word_array[word_idx] & search_mask) == search_mask;
   }
+
 
   template<u64 vector_len>
   typename vec<Tk, vector_len>::mask_t
@@ -47,6 +57,7 @@ struct bloomfilter {
     const vec_t words = word_idxs.load(word_array.data());
     return (words & (Tk(1) << in_word_idxs)) != 0;
   }
+
 
   u64 popcnt() {
     $u64 pc = 0;
