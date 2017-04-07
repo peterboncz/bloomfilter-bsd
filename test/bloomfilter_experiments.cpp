@@ -5,6 +5,8 @@
 #include "../simd.hpp"
 #include <chrono>
 
+#include "../thread.hpp"
+
 using namespace dtl;
 
 struct xorshift32 {
@@ -121,40 +123,42 @@ TEST(bloom, hash_performance) {
 }
 
 
-//using bf_t = dtl::bloomfilter<$u32, dtl::hash::xorshift_64>;
-template<typename T>
-using murmur = dtl::hash::murmur1_32<T>;
-using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth, murmur>;
+using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth>;
 
-TEST(bloom, filter_performance) {
+//template<typename hash_fn_t>
+void run_filter_benchmark(u64 bf_size) {
+  dtl::thread_affinitize(0);
   u64 repeat_cnt = 1u << 28;
-  bf_t bf((1ull << 24) -1);
+  bf_t bf(bf_size);
   {
-//    xorshift32 prng;
-
     double duration = timing([&] {
       for ($u64 i = 0; i < repeat_cnt; i++) {
-//        prng();
-//        bf.insert(prng.x32);
         bf.insert(i);
       }
     });
-    double perf = (repeat_cnt) / (duration / 1000.0);
-//    std::cout << perf << " [inserts/sec]    (" << prng.x32 << ")" << std::endl;
+    u64 perf = (repeat_cnt) / (duration / 1000.0);
     std::cout << perf << " [inserts/sec]" << std::endl;
   }
   {
-//    xorshift32 prng;
     $u64 found = 0;
     double duration = timing([&] {
       for ($u64 i = 0; i < repeat_cnt; i++) {
-//        prng();
-//        found += bf.contains(prng.x32);
         found += bf.contains(i);
       }
     });
-    double perf = (repeat_cnt) / (duration / 1000.0);
-    std::cout << perf << " [probes/sec]    (" << found << ")" << std::endl;
+    u64 perf = (repeat_cnt) / (duration / 1000.0);
+    std::cout << perf << " [probes/sec]    (matchcnt: " << found << ")" << std::endl;
+  }
+
+}
+
+
+TEST(bloom, filter_performance) {
+  u64 bf_size_lo = 1ull << 11;
+  u64 bf_size_hi = 1ull << 31;
+  for ($u64 bf_size = bf_size_lo; bf_size <= bf_size_hi; bf_size <<= 2) {
+    std::cout << "size " << (bf_size / 8) << " [bytes]" << std::endl;
+    run_filter_benchmark(bf_size);
   }
 
 }

@@ -9,26 +9,27 @@
 
 namespace dtl {
 
-template<typename Tk, template<typename Ty> class hash_fn, template<typename Ty> class second_hash_fn>
+template<typename Tk, template<typename Ty> class hash_fn>
 struct bloomfilter {
 
   using word_t = $i64;
-  u64 word_bitlength = sizeof(word_t) * 8;
-  u64 word_bitlength_log2 = log_2(word_bitlength);
-  u64 word_bitlength_mask = word_bitlength - 1;
-  u64 length_mask;
+  u32 word_bitlength = sizeof(word_t) * 8;
+  u32 word_bitlength_log2 = dtl::log_2(word_bitlength);
+  u32 word_bitlength_mask = word_bitlength - 1;
+  u32 length_mask;
   std::vector<word_t> word_array;
 
-  bloomfilter(u64 length)
+  bloomfilter(u32 length)
       : length_mask(next_power_of_two(length) - 1),
         word_array(next_power_of_two(length) / word_bitlength, 0) { }
 
   inline void
   insert(const Tk& key) {
-    u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
-    u64 word_idx = bit_idx >> word_bitlength_log2;
-    u64 in_word_idx = bit_idx & word_bitlength_mask;
-    u64 second_in_word_idx = second_hash_fn<Tk>::hash(key) & word_bitlength_mask;
+    u32 hash_val = hash_fn<Tk>::hash(key);
+    u32 bit_idx = hash_val & length_mask;
+    u32 word_idx = bit_idx >> word_bitlength_log2;
+    u32 in_word_idx = bit_idx & word_bitlength_mask;
+    u32 second_in_word_idx = hash_val >> (word_bitlength - word_bitlength_log2);
     word_t word = word_array[word_idx];
     word |= 1 << in_word_idx;
     word |= 1 << second_in_word_idx;
@@ -38,10 +39,11 @@ struct bloomfilter {
 
   inline u1
   contains(const Tk& key) const {
-    u64 bit_idx = hash_fn<Tk>::hash(key) & length_mask;
-    u64 word_idx = bit_idx >> word_bitlength_log2;
-    u64 in_word_idx = bit_idx & word_bitlength_mask;
-    u64 second_in_word_idx = second_hash_fn<Tk>::hash(key) & word_bitlength_mask;
+    u32 hash_val = hash_fn<Tk>::hash(key);
+    u32 bit_idx = hash_val & length_mask;
+    u32 word_idx = bit_idx >> word_bitlength_log2;
+    u32 in_word_idx = bit_idx & word_bitlength_mask;
+    u32 second_in_word_idx = hash_val >> (word_bitlength - word_bitlength_log2);
     word_t search_mask = (1 << in_word_idx) | (1 << second_in_word_idx);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
