@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adept.hpp"
+#include "dtl.hpp"
 #include "nmmintrin.h"
 
 namespace dtl {
@@ -9,7 +9,9 @@ namespace hash {
 template<typename T, u32 seed = 1337>
 struct crc32 {
   using Ty = typename std::remove_cv<T>::type;
-  static inline constexpr Ty hash(const Ty& key) {
+
+  static inline Ty
+  hash(const Ty& key) {
     return _mm_crc32_u32(key, seed);
   }
 };
@@ -18,7 +20,10 @@ struct crc32 {
 template<typename T>
 struct xorshift_64 {
   using Ty = typename std::remove_cv<T>::type;
-  static inline constexpr Ty hash(const Ty& key) {
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
     Ty h = key;
     h ^= h << 13;
     h ^= h >> 7;
@@ -33,8 +38,11 @@ struct xorshift_64 {
 template<typename T, u32 p = 32>
 struct knuth_32 {
   using Ty = typename std::remove_cv<T>::type;
-  static inline constexpr Ty hash(const Ty& key) {
-    Ty knuth = 2654435769;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    Ty knuth = 2654435769u;
     return (key * knuth) >> (32 - p);
   }
 };
@@ -44,8 +52,23 @@ template<typename T>
 struct knuth {
   using Ty = typename std::remove_cv<T>::type;
   using F = knuth_32<T, 32>;
-  static inline constexpr Ty hash(const Ty& key) {
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
     return F::hash(key);
+  }
+};
+
+
+template<typename T>
+struct identity {
+  using Ty = typename std::remove_cv<T>::type;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return key;
   }
 };
 
@@ -53,7 +76,10 @@ struct knuth {
 template<typename T, u32 seed = 0xc6a4a793u>
 struct murmur1_32 {
   using Ty = typename std::remove_cv<T>::type;
-  static inline constexpr Ty hash(const Ty& key) {
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
     const Ty m = seed;
     const Ty hi = 0x4e774912u ^(4 * m);
     Ty h = hi;
@@ -72,7 +98,10 @@ struct murmur1_32 {
 template<typename T, u64 seed = 0xc6a4a7935bd1e995ull>
 struct murmur64a_64 {
   using Ty = typename std::remove_cv<T>::type;
-  static inline constexpr Ty hash(const Ty& key) {
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
     const Ty m = seed;
     const Ty r = 47u;
     const Ty hi = 0x8445d61a4e774912ull ^ (8 * m);

@@ -201,3 +201,18 @@ print(const std::vector<bool>& v) {
   }
   std::cout << std::endl;
 }
+
+
+// for CUDA portability
+#if !defined(__host__)
+#define __host__
+#endif
+
+#if !defined(__device__)
+#define __device__
+#endif
+
+#if !defined(__restrict__)
+#define __restrict__
+#endif
+// ---

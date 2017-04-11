@@ -36,18 +36,21 @@ inline auto timing(std::function<void()> fn) {
   auto start = std::chrono::high_resolution_clock::now();
   fn();
   auto end = std::chrono::high_resolution_clock::now();
-  return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
+
+static constexpr std::chrono::seconds sec(1);
+static constexpr double nano_to_sec = std::chrono::duration_cast<std::chrono::nanoseconds>(sec).count();
 
 TEST(bloom, prng_performance) {
   u64 repeat_cnt = 1u << 20;
   xorshift32 prng;
-  double duration = timing([&] {
+  f64 duration = timing([&] {
     for ($u64 i = 0; i < repeat_cnt; i++) {
       prng();
     }
   });
-  double perf = (repeat_cnt) / (duration / 1000.0);
+  u64 perf = (repeat_cnt) / (duration / nano_to_sec);
   std::cout << perf << " [prn/sec]    (" << prng.x32 << ")" << std::endl;
 }
 
@@ -65,15 +68,15 @@ void run_hash_benchmark(hash_fn_t hash_fn,
   // run benchmark
   u64 repeat_cnt = 100000;
   $u64 chksum = 0;
-  double duration = timing([&] {
+  f64 duration = timing([&] {
     for ($u64 r = 0; r != repeat_cnt; r++) {
       for ($u64 i = 0; i != input_size; i++) {
         chksum += hash_fn.hash(input[i]);
       }
     }
   });
-  u64 perf = (input_size * repeat_cnt) / (duration / 1000.0);
-  std::cout << perf << " [hashes/sec]    (chksum: " << chksum << ")" << std::endl;
+  u64 perf = (input_size * repeat_cnt) / (duration / nano_to_sec);
+  std::cout << "scalar:    " << perf << " [hashes/sec]    (chksum: " << chksum << ")" << std::endl;
 }
 
 
@@ -97,8 +100,8 @@ void run_hash_benchmark_autovec(hash_fn_t hash_fn) {
       }
     }
   });
-  u64 perf = (input_size * repeat_cnt) / (duration / 1000.0);
-  std::cout << perf << " [hashes/sec]    (chksum: " << chksum << ")" << std::endl;
+  u64 perf = (input_size * repeat_cnt) / (duration / nano_to_sec);
+  std::cout << "auto-vec.: " << perf << " [hashes/sec]    (chksum: " << chksum << ")" << std::endl;
 }
 
 
@@ -125,28 +128,27 @@ TEST(bloom, hash_performance) {
 
 using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth>;
 
-//template<typename hash_fn_t>
 void run_filter_benchmark(u64 bf_size) {
   dtl::thread_affinitize(0);
   u64 repeat_cnt = 1u << 28;
   bf_t bf(bf_size);
   {
-    double duration = timing([&] {
+    f64 duration = timing([&] {
       for ($u64 i = 0; i < repeat_cnt; i++) {
         bf.insert(i);
       }
     });
-    u64 perf = (repeat_cnt) / (duration / 1000.0);
+    u64 perf = (repeat_cnt) / (duration / nano_to_sec);
     std::cout << perf << " [inserts/sec]" << std::endl;
   }
   {
     $u64 found = 0;
-    double duration = timing([&] {
+    f64 duration = timing([&] {
       for ($u64 i = 0; i < repeat_cnt; i++) {
         found += bf.contains(i);
       }
     });
-    u64 perf = (repeat_cnt) / (duration / 1000.0);
+    u64 perf = (repeat_cnt) / (duration / nano_to_sec);
     std::cout << perf << " [probes/sec]    (matchcnt: " << found << ")" << std::endl;
   }
 
