@@ -38,6 +38,26 @@ run_in_parallel(std::function<void()> fn,
 }
 
 void
+run_in_parallel(std::function<void(u32 thread_id)> fn,
+                u32 thread_cnt = std::thread::hardware_concurrency()) {
+
+  auto thread_fn = [](u32 thread_id, std::function<void(u32 thread_id)> fn) {
+    thread_affinitize(thread_id);
+    fn(thread_id);
+  };
+
+  std::vector<std::thread> workers;
+  for (std::size_t i = 0; i < thread_cnt - 1; i++) {
+    workers.push_back(std::move(std::thread(thread_fn, i, fn)));
+  }
+  std::thread(thread_fn, thread_cnt - 1, fn).join();
+  for (auto& worker : workers) {
+    worker.join();
+  }
+}
+
+
+void
 run_in_parallel_async(std::function<void()> fn,
                       std::vector<std::thread>& workers,
                       u32 thread_cnt = std::thread::hardware_concurrency()) {

@@ -9,6 +9,7 @@ add_subdirectory(lib/googletest)
 include_directories(lib/googletest/include lib/googletest)
 
 add_subdirectory(../ dtl)
+include_directories(SYTEM ../../)
 
 set(TEST_FILES
         bitmask_test.cpp
@@ -16,7 +17,7 @@ set(TEST_FILES
         bloomfilter_experiments.cpp
         #knl_experiments.cpp
         mem_test.cpp
-        #vec_test.cpp
+#        vec_test.cpp
         )
 
 set(STORAGE_TEST_FILES

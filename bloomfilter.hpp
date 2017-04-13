@@ -1,11 +1,13 @@
 #pragma once
 
-#include "adept.hpp"
-#include <vector>
 #include <functional>
+#include <vector>
+
+#include <dtl/dtl.hpp>
+#include <dtl/math.hpp>
+//#include <dtl/simd.hpp>
+
 #include "immintrin.h"
-#include "math.hpp"
-//#include "simd.hpp"
 
 namespace dtl {
 
@@ -15,6 +17,7 @@ struct bloomfilter {
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = $u64;
 
+  /// the length in bits. guaranteed to be a power of two
   u32 length;
   u32 length_mask;
   u32 word_bitlength = sizeof(word_t) * 8;
@@ -27,8 +30,8 @@ struct bloomfilter {
         word_array(next_power_of_two(length) / word_bitlength, 0) { }
 
   inline void
-  insert(const Tk& key) {
-    u32 hash_val = hash_fn<Tk>::hash(key);
+  insert(const key_t& key) {
+    u32 hash_val = hash_fn<key_t>::hash(key);
     u32 bit_idx = hash_val & length_mask;
     u32 word_idx = bit_idx >> word_bitlength_log2;
     u32 in_word_idx = bit_idx & word_bitlength_mask;
@@ -41,8 +44,8 @@ struct bloomfilter {
 
 
   inline u1
-  contains(const Tk& key) const {
-    u32 hash_val = hash_fn<Tk>::hash(key);
+  contains(const key_t& key) const {
+    u32 hash_val = hash_fn<key_t>::hash(key);
     u32 bit_idx = hash_val & length_mask;
     u32 word_idx = bit_idx >> word_bitlength_log2;
     u32 in_word_idx = bit_idx & word_bitlength_mask;
@@ -53,15 +56,21 @@ struct bloomfilter {
 
 
 //  template<u64 vector_len>
-//  typename vec<Tk, vector_len>::mask_t
-//  contains(const vec<Tk, vector_len>& keys) const {
-//    using vec_t = vec<Tk, vector_len>;
-//    const vec_t bit_idxs = hash_fn<vec_t>::hash(keys) & length_mask;
-//    const vec_t word_idxs = bit_idxs >> word_bitlength_log2;
-//    const vec_t in_word_idxs = bit_idxs & word_bitlength_mask;
-//    const vec_t words = word_idxs.load(word_array.data());
-//    return (words & (Tk(1) << in_word_idxs)) != 0;
+//  typename vec<key_t, vector_len>::mask_t
+//  contains(const vec<key_t, vector_len>& keys) const {
+//    using key_vt = vec<key_t, vector_len>;
+//    using word_vt = vec<word_t, vector_len>;
+//    const key_vt hash_vals = hash_fn<key_vt>::hash(keys);
+//    const key_vt bit_idxs = hash_vals & length_mask;
+//    const key_vt word_idxs = bit_idxs >> word_bitlength_log2;
+//    const key_vt in_word_idxs = bit_idxs & word_bitlength_mask;
+//    const key_vt second_in_word_idxs = hash_vals >> (32 - word_bitlength_log2);
+//    const word_vt search_masks = (word_vt::make(1) << in_word_idxs) | (word_vt::make(1) << second_in_word_idxs);
+//    const word_vt words = word_idxs.load(word_array.data());
+//    return (words & search_masks) == search_masks;
 //  }
+
+
 
 
   u64 popcnt() {
