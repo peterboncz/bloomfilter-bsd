@@ -11,11 +11,11 @@
 
 namespace dtl {
 
-template<typename Tk, template<typename Ty> class hash_fn>
+template<typename Tk, template<typename Ty> class hash_fn, typename Tw = u64>
 struct bloomfilter {
 
   using key_t = typename std::remove_cv<Tk>::type;
-  using word_t = $u64;
+  using word_t = typename std::remove_cv<Tw>::type;
 
   /// the length in bits. guaranteed to be a power of two
   u32 length;
