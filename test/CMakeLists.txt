@@ -17,29 +17,33 @@ set(TEST_FILES
         bloomfilter_experiments.cpp
         #knl_experiments.cpp
         mem_test.cpp
-#        vec_test.cpp
+        #vec_test.cpp
         )
+
+add_executable(dtl_tester ${TEST_FILES})
+target_link_libraries(dtl_tester gtest gtest_main pthread numa)
+
 
 set(STORAGE_TEST_FILES
         bitmask_test.cpp
         bitmask_experiments.cpp
+        )
+
+add_executable(storage_tester ${STORAGE_TEST_FILES})
+target_link_libraries(storage_tester gtest gtest_main pthread numa)
+
+
+set(BLOOMFILTER_EXPERIMENTS_FILES
         bloomfilter_experiments.cpp
         )
 
-add_executable(dtl_tester ${TEST_FILES})
-add_executable(dtl_storage_tester ${STORAGE_TEST_FILES})
-
-target_link_libraries(dtl_tester gtest gtest_main pthread numa)
-target_link_libraries(dtl_storage_tester gtest gtest_main pthread numa)
-
-add_executable(bloomfilter bloomfilter_experiments.cpp)
-target_link_libraries(bloomfilter benchmark gtest gtest_main pthread numa)
+add_executable(bloomfilter_experiments ${BLOOMFILTER_EXPERIMENTS_FILES})
+target_link_libraries(bloomfilter_experiments benchmark gtest gtest_main pthread numa)
 
 
-set(COMPRESSION_FILES
+set(COMPRESSION_TEST_FILES
         bitpack_test.cpp
-
         )
 
-add_executable(bitpack_test ${COMPRESSION_FILES})
-target_link_libraries(bitpack_test gtest gtest_main pthread numa)
+add_executable(bitpack_tester ${COMPRESSION_TEST_FILES})
+target_link_libraries(bitpack_tester gtest gtest_main pthread numa)
