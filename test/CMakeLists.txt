@@ -34,3 +34,12 @@ target_link_libraries(dtl_storage_tester gtest gtest_main pthread numa)
 
 add_executable(bloomfilter bloomfilter_experiments.cpp)
 target_link_libraries(bloomfilter benchmark gtest gtest_main pthread numa)
+
+
+set(COMPRESSION_FILES
+        bitpack_test.cpp
+
+        )
+
+add_executable(bitpack_test ${COMPRESSION_FILES})
+target_link_libraries(bitpack_test gtest gtest_main pthread numa)

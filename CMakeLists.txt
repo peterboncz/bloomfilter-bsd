@@ -11,6 +11,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         bloomfilter.hpp
         bitmask.hpp
+        bitpack.hpp
         color.hpp
         dict.hpp
         hash.hpp
