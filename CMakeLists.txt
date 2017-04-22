@@ -14,10 +14,13 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bitpack.hpp
         color.hpp
         dict.hpp
+        dtl.hpp
+        env.hpp
         hash.hpp
         index.hpp
         math.hpp
         mem.hpp
+        polyfill.hpp
         psma.hpp
         simd.hpp
         sma.hpp
@@ -33,7 +36,4 @@ set(SOURCE_FILES ${SOURCE_FILES}
         )
 
 add_library(dtl ${SOURCE_FILES})
-
 target_include_directories(dtl PUBLIC . )
-
-#add_subdirectory(test)
