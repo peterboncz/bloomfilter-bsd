@@ -48,6 +48,7 @@ struct set : vector_fn<primitive_t, vector_t, argument_t> {};
 template<typename primitive_t, typename vector_t, typename argument_t = vector_t>
 struct blend : vector_fn<primitive_t, vector_t, argument_t> {};
 
+
 // Load
 template<typename primitive_t, typename vector_t, typename argument_t>
 struct gather : vector_fn<primitive_t, vector_t, argument_t> {};
@@ -81,7 +82,6 @@ struct shift_right : vector_fn<primitive_t, vector_t, i32> {};
 
 template<typename primitive_t, typename vector_t, typename argument_t>
 struct shift_right_var : vector_fn<primitive_t, vector_t, vector_t> {};
-
 
 
 // Bitwise
@@ -120,20 +120,21 @@ struct not_equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
 } // namespace simd
 } // namespace dtl
 
-//#if defined(__AVX512F__)
-//#include "intrin_avx512.hpp"
-//#endif
-//
-//#if defined(__AVX2__) && !defined(__AVX512F__)
-//#include "intrin_avx2.hpp"
-//#endif
-//
-//#if defined(__SSE2__) && !defined(__AVX512F__)
+#if defined(__AVX512F__)
+#include "intrin_avx512.hpp"
+#endif
+
+#if defined(__AVX2__) && !defined(__AVX512F__)
+#include "intrin_avx2.hpp"
+#endif
+
+// SSE not yet supported
+//#if defined(__SSE2__) && !defined(__AVX2__) && !defined(__AVX512F__)
 //#include "intrin_sse.hpp"
 //#endif
 
-#if defined(__AVX512F__)
-#include "intrin_avx512.hpp"
-#else
-#include "intrin_x64.hpp"
-#endif
+//#if defined(__AVX512F__)
+//#include "intrin_avx512.hpp"
+//#else
+//#include "intrin_x64.hpp"
+//#endif

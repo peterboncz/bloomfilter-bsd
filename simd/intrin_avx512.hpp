@@ -126,56 +126,61 @@ __GENERATE_BLEND($u64, __m512i, __m512i, _mm512_mask_blend_epi64)
 #undef __GENERATE
 
 
-// --- Load
+// --- Gather
 
-#define __GENERATE(Tp, Tv, Ta, IntrinFn, IntrinFnMask) \
+#define __GENERATE(Tp, Scale, Tv, Ta, IntrinFn, IntrinFnMask) \
 template<>                                             \
 struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> { \
   using fn = vector_fn<Tp, Tv, Ta, Tv>;                \
+  using ptr = std::conditional<sizeof(Tp) == 8, long long int, std::make_signed<Tp>::type>::type; \
   inline typename fn::vector_type                      \
-  operator()(const typename fn::argument_type& idx) const noexcept { \
-    return IntrinFn(idx, 0, 1);                        \
+  operator()(const Tp* const base_addr, const typename fn::argument_type& idx) const noexcept { \
+    return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), Scale);            \
   }                                                    \
   inline typename fn::vector_type                      \
-  operator()(const typename fn::argument_type& idx,    \
+  operator()(const Tp* const base_addr,                \
+             const typename fn::argument_type& idx,    \
              const typename fn::vector_type& src,      \
              const mask16 mask) const noexcept {       \
-    return IntrinFnMask(src, mask.data, idx, 0, 1);    \
+    return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), Scale); \
   }                                                    \
 };
 
-// TODO ???
-__GENERATE($i32, __m256i, __m512i, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
-__GENERATE($u32, __m256i, __m512i, _mm512_i64gather_epi32, _mm512_mask_i64gather_epi32)
-__GENERATE($i64, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
-__GENERATE($u64, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
+// TODO implement type-extending and type-narrowing gathers. E.g. gather i32 values from i64 indices and vice versa
+__GENERATE($i32, 4, __m512i, __m512i, _mm512_i32gather_epi32, _mm512_mask_i32gather_epi32)
+__GENERATE($u32, 4, __m512i, __m512i, _mm512_i32gather_epi32, _mm512_mask_i32gather_epi32)
+__GENERATE($i64, 8, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
+__GENERATE($u64, 8, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gather_epi64)
 #undef __GENERATE
 
 
 // --- Store
 
-#define __GENERATE(Tp, Tv, Ta, IntrinFn, IntrinFnMask) \
+#define __GENERATE(Tp, Scale, Tv, Ta, IntrinFn, IntrinFnMask) \
 template<>                                             \
 struct scatter<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {   \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
+  using ptr = std::conditional<sizeof(Tp) == 8, long long int, std::make_signed<Tp>::type>::type; \
   inline void                                          \
-  operator()(const typename fn::vector_type& idx,      \
+  operator()(Tp* base_addr,                            \
+             const typename fn::vector_type& idx,      \
              const typename fn::vector_type& a) const noexcept { \
-    IntrinFn(0, idx, a, 1);                            \
+    IntrinFn(reinterpret_cast<ptr*>(base_addr), idx, a, Scale); \
   }                                                    \
   inline void                                          \
-  operator()(const typename fn::vector_type& idx,      \
+  operator()(Tp* base_addr,                            \
+             const typename fn::vector_type& idx,      \
              const typename fn::vector_type& a,        \
              const mask16 mask) const noexcept {       \
-    IntrinFnMask(0, mask.data, idx, a, 1);             \
+    IntrinFnMask(reinterpret_cast<ptr*>(base_addr), mask.data, idx, a, Scale); \
   }                                                    \
 };
 
 // TODO ???
-//__GENERATE($i32, __m512i, $i32, _mm512_i64scatter_epi32, _mm512_mask_i64scatter_epi32)
-//__GENERATE($u32, __m512i, $u32, _mm512_i64scatter_epi32, _mm512_mask_i64scatter_epi32)
-__GENERATE($i64, __m512i, $i64, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
-__GENERATE($u64, __m512i, $u64, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
+__GENERATE($i32, 4, __m512i, __m512i, _mm512_i32scatter_epi32, _mm512_mask_i32scatter_epi32)
+__GENERATE($u32, 4, __m512i, __m512i, _mm512_i32scatter_epi32, _mm512_mask_i32scatter_epi32)
+__GENERATE($i64, 8, __m512i, __m512i, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
+__GENERATE($u64, 8, __m512i, __m512i, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
 #undef __GENERATE
 
 

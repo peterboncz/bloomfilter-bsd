@@ -9,7 +9,9 @@ using v = typename simd::v<T, N>;
 
 TEST(vec, ensure_native_implementation) {
   using vec_t = v<$i32, simd::lane_count<$i32>>;
-  ASSERT_FALSE(vec_t::is_compound) << "Missing implementation of native vector type.";
+  if (simd::lane_count<$i32> > 1) {
+    ASSERT_FALSE(vec_t::is_compound) << "Missing implementation of native vector type.";
+  }
 }
 
 TEST(vec, make_from_scalar_value) {
@@ -129,13 +131,14 @@ TEST(vec, gather) {
   }
 
   vec_t exp = vec_t::make_index_vector() * 4;
-  vec_t act = exp.load(&arr[0]);
+  vec_t act = dtl::gather(&arr[0], exp);
   for ($u64 i = 0; i < vec_len; i++) {
     ASSERT_EQ(exp[i], act[i]);
   }
 
   act = act + 1;
-  exp.store(&arr[0], act);
+//  exp.store(&arr[0], act);
+  dtl::scatter(act, &arr[0], exp);
   for ($u64 i = 0; i < vec_len; i++) {
     ASSERT_EQ(exp[i] + 1, act[i]);
   }

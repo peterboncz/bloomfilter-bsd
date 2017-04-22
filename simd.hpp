@@ -17,7 +17,7 @@ namespace simd {
 #elif __AVX2__
       value = 256;
 #elif __SSE2__
-      value = 256; // TODO reset to 128
+      value = 128; // TODO reset to 128
 #else
       value = 256; // emulated
 #endif
@@ -52,10 +52,11 @@ struct super {
 };
 
 
-template<typename T, std::size_t N>
+template<typename T, std::size_t N = simd::lane<T>::count>
 using vec = dtl::simd::v<T, N>;
 
-template<typename T, std::size_t N>
+/// @deprecated use `dtl::vec` instead
+template<typename T, std::size_t N = simd::lane<T>::count>
 using vector = dtl::simd::v<T, N>;
 
 //template<std::size_t Nb>

@@ -10,6 +10,7 @@
 #include <array>
 #include <bitset>
 #include <functional>
+#include <type_traits>
 
 namespace dtl {
 namespace simd {
@@ -19,6 +20,7 @@ template<typename Tp, u64 N>
 struct base {
   using type = Tp;
   static constexpr u64 value = N;
+  static constexpr u64 length = N;
 };
 
 /// Recursive template to find the largest possible implementation.
@@ -66,8 +68,12 @@ struct vs<T, 32> {
 template<typename Tp, u64 N>
 struct v {
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
-  static_assert(!std::is_const<Tp>::value, "Template parameter 'Tp' must not be const.");
+  static_assert(!std::is_const<Tp>::value, "Template parameter 'Tp' must not be const."); // TODO remove restriction
   // TODO assert fundamental type
+  // TODO unroll loops in compound types - __attribute__((optimize("unroll-loops")))
+
+  /// The scalar type
+  using scalar_type = Tp;
 
   /// The overall length of the vector, in terms of number of elements.
   static constexpr u64 length = N;
@@ -410,7 +416,11 @@ struct v {
 
   // --- C'tors
 
-//  v() = default;
+  v() = default;
+
+  v(Tp scalar_value) {
+    *this = scalar_value;
+  }
 
 //  template<typename Tp_other>
 //  explicit
@@ -418,10 +428,10 @@ struct v {
 //    for (auto )
 //  }
 
-    // brace-initializer list c'tor
-//  template<typename ...T>
-//  explicit
-//  v(T&&... t) : data{ std::forward<T>(t)... } { }
+  // brace-initializer list c'tor
+  template<typename ...T>
+  explicit
+  v(T&&... t) : data{ std::forward<T>(t)... } { }
 
 //  explicit
 //  v(v&& other) : data(std::move(other.data)) { }
@@ -447,13 +457,13 @@ struct v {
   /// Assigns the given scalar value to the vector components specified by the mask.
   inline v&
   mask_assign(const Tp& scalar_value, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::blend(), data, make(scalar_value).data, data, !mask);
+    data = unary_op<is_compound>(typename op::blend(), /*data,*/ make(scalar_value).data, data, (!mask).data);
     return *this;
   }
 
   inline v&
   mask_assign(const v& other, const m& mask) noexcept {
-    data = unary_op<is_compound>(typename op::blend(), data, other.data, data, !mask);
+    data = unary_op<is_compound>(typename op::blend(), /*data,*/ other.data, data, (!mask).data);
     return *this;
   }
 
@@ -498,7 +508,7 @@ struct v {
            const typename Fn::argument_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = unary_op(op, result[i], a);
+      result[i] = unary_op<!Compound>(op, result[i], a);
     }
     return result;
   }
@@ -506,7 +516,7 @@ struct v {
   /// Unary operation: op(native vector)
   template<u1 Compound = false, typename Fn>
   static inline nested_type
-  unary_op(Fn op, const nested_type& type_selector,
+  unary_op(Fn op, // const nested_type& type_selector,
            const nested_type& a) noexcept {
     return op(a);
   }
@@ -514,22 +524,22 @@ struct v {
   /// Unary operation (merge masked): op(native vector)
   template<u1 Compound = false, typename Fn>
   static inline nested_type
-  unary_op(Fn op, const nested_type& type_selector,
+  unary_op(Fn op, // const nested_type& type_selector,
            const nested_type& a,
            // merge masking
            const nested_type& src,
-           const m& mask) noexcept {
-    return op(a, mask);
+           const nested_mask_type& mask) noexcept {
+    return op(a, src, mask);
   }
 
   /// Unary operation: op(compound vector)
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& type_selector,
+  unary_op(Fn op, // const compound_type& type_selector,
            const compound_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = op(a);
+      result[i] = unary_op<!Compound>(op, a);
     }
     return result;
   }
@@ -537,42 +547,46 @@ struct v {
   /// Unary operation (merge masked): op(compound vector)
   template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
   static inline compound_type
-  unary_op(Fn op, const compound_type& type_selector,
+  unary_op(Fn op, // const compound_type& type_selector,
            const compound_type& a,
            // merge masking
            const compound_type& src,
-           const m& mask) noexcept {
+           const compound_mask_type& mask) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = op(a[i], src[i], mask.data[i]);
+      result[i] = unary_op<!Compound>(op, a[i], src[i], mask[i]);
     }
     return result;
   }
 
-  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
-  static inline compound_type
-  unary_op(Fn op, const compound_type& type_selector,
-           const nested_type& a) noexcept {
-    compound_type result;
-    for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = op(a);
-    }
-    return result;
-  }
 
-  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
-  static inline compound_type
-  unary_op(Fn op, const compound_type& type_selector,
-           const nested_type& a,
-           // merge masking
-           const compound_type& src,
-           const m& mask) noexcept {
-    compound_type result;
-    for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = op(a, src[i], mask.data[i]);
-    }
-    return result;
-  }
+//  // optimization
+//  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+//  static inline compound_type
+//  unary_op(Fn op, // const compound_type& type_selector,
+//           const nested_type& a) noexcept {
+//    compound_type result;
+//    result[0] = op(a);
+//    for ($u64 i = 1; i < nested_vector_cnt; i++) {
+//      result[i] = result[0];
+//    }
+//    return result;
+//  }
+
+//  // optimization
+//  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+//  static inline compound_type
+//  unary_op(Fn op, // const compound_type& type_selector,
+//           const nested_type& a,
+//           // merge masking
+//           const compound_type& src,
+//           const m& mask) noexcept {
+//    compound_type result;
+//    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+//      result[i] = op(a, src[i], mask.data[i]);
+//    }
+//    return result;
+//  }
 
 
   // --- Binary functions ---
@@ -602,7 +616,7 @@ struct v {
                    const compound_type& rhs) noexcept {
     make_compound<typename Fn::result_type, nested_vector_cnt> result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = binary_op(op, lhs[i], rhs[i]);
+      result[i] = binary_op<!Compound>(op, lhs[i], rhs[i]);
     }
     return result;
   }
@@ -615,34 +629,35 @@ struct v {
                    const compound_mask_type& mask) noexcept {
     make_compound<typename Fn::result_type, nested_vector_cnt> result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = binary_op(op, lhs[i], rhs[i], src[i], mask[i]);
+      result[i] = binary_op<!Compound>(op, lhs[i], rhs[i], src[i], mask[i]);
     }
     return result;
   }
 
-  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
-  static inline make_compound<typename Fn::result_type, nested_vector_cnt>
-  binary_op(Fn op, const nested_type& lhs,
-                   const compound_type& rhs) noexcept {
-    make_compound<typename Fn::result_type, nested_vector_cnt> result;
-    for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = binary_op(op, lhs, rhs[i]);
-    }
-    return result;
-  }
-  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
-  static inline make_compound<typename Fn::result_type, nested_vector_cnt>
-  binary_op(Fn op, const nested_type& lhs,
-                   const compound_type& rhs,
-                   // merge masking
-                   const compound_type& src,
-                   const compound_mask_type& mask) noexcept {
-    make_compound<typename Fn::result_type, nested_vector_cnt> result;
-    for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = binary_op(op, lhs, rhs[i], src[i], mask[i]);
-    }
-    return result;
-  }
+//  // optimization
+//  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+//  static inline make_compound<typename Fn::result_type, nested_vector_cnt>
+//  binary_op(Fn op, const nested_type& lhs,
+//                   const compound_type& rhs) noexcept {
+//    make_compound<typename Fn::result_type, nested_vector_cnt> result;
+//    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+//      result[i] = binary_op(op, lhs, rhs[i]);
+//    }
+//    return result;
+//  }
+//  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+//  static inline make_compound<typename Fn::result_type, nested_vector_cnt>
+//  binary_op(Fn op, const nested_type& lhs,
+//                   const compound_type& rhs,
+//                   // merge masking
+//                   const compound_type& src,
+//                   const compound_mask_type& mask) noexcept {
+//    make_compound<typename Fn::result_type, nested_vector_cnt> result;
+//    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+//      result[i] = binary_op(op, lhs, rhs[i], src[i], mask[i]);
+//    }
+//    return result;
+//  }
 
   /// Applies an operation of type: vector op scalar
   /// The scalar value needs to be broadcasted to all SIMD lanes first.
@@ -710,7 +725,8 @@ struct v {
 
   inline v mask_minus(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, o.data, data, op_mask.data) }; }
   inline v mask_minus(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data) }; }
-  inline v mask_minus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), make_nested(0), data, data, op_mask.data) }; }
+//  inline v mask_minus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), make_nested(0), data, data, op_mask.data) }; }
+  inline v mask_minus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), make(0).data, data, data, op_mask.data) }; }
   inline v& mask_assign_minus(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::minus(), data, o.data, data, op_mask.data ); return *this; }
   inline v& mask_assign_minus(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data ); return *this; }
 
@@ -854,39 +870,50 @@ struct v {
 
 
   // load
-  template<u1 Compound = false, typename T>
-  static inline typename v<T, N>::nested_type
-  load(u8* const base_addr, const nested_type& idxs) {
-    return gather<T, typename v<T, N>::nested_type, nested_type>()(/* base_addr,*/ idxs); // TODO fix
-  }
+  // TODO rename to gather
 
-  template<u1 Compound, typename T, typename = std::enable_if_t<Compound>>
-  static inline typename v<T, N>::compound_type
-  load(u8* const base_addr, const compound_type& idxs) {
-    using result_t = typename v<T, N>::compound_type;
-    result_t result;
-    for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = load<!Compound, T>(base_addr, idxs[i]);
-    }
-    return result;
-  }
-
-  template<typename T>
-  auto load(u8* const base_addr) const {
-    using result_t = v<T, N>;
-    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
-    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
-    return result_t { load<is_compound, T>(base_addr, data) };
-  }
-
-  template<typename T>
-//  v<T, N, vs<T, nested_vector_length>>
-  auto load() const {
-    using result_t = v<T, N>;
-    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
-    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
-    return result_t { load<is_compound, T>(nullptr, data) };
-  }
+//  template<u1 Compound, typename Tp>
+//  static inline nested_type
+//  __gather__(const Tp* const base_addr,
+//             const typename Tiv& idxs) {
+//    return gather<scalar_type, typename Tiv::nested_type, typename Tiv::nested_type>()(base_addr, idxs.data);
+//  }
+//
+//  template<u1 Compound, typename Tiv, typename = std::enable_if_t<Compound>>
+//  static inline compound_type
+//  __gather__(const scalar_type* const base_addr,
+//             const typename Tiv::compound_type& idxs) {
+//    compound_type result;
+//    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+//      result[i] = __gather<!Compound, Tiv>(base_addr, idxs.data[i]);
+//    }
+//    return result;
+//  }
+//
+//  template<typename Trv, typename Tiv> // result vector type, index vector type
+//  static inline Trv
+//  __gather(const typename Trv::scalar_type* const base_addr,
+//           const typename Tiv& idxs) {
+//    return Trv { Trv::__gather__<Tiv::is_compound, Trv::scalar_type>(base_addr, idxs.data) };
+//  }
+//
+//
+//  template<typename T>
+//  v<T, N> load(const T* const base_addr) const {
+//    using result_t = v<T, N>;
+//    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
+//    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
+//    return result_t { load<is_compound, T>(base_addr, data) };
+//  }
+//
+//  template<typename T>
+////  v<T, N, vs<T, nested_vector_length>>
+//  v<T, N> load() const {
+//    using result_t = v<T, N>;
+//    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
+//    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
+//    return result_t { load<is_compound, T>(nullptr, data) };
+//  }
   // ---
 
 
@@ -980,7 +1007,7 @@ struct v {
       result.data[i] = data[i];
     }
     return result;
-  };
+  }
 
 
 
@@ -1029,16 +1056,21 @@ struct v {
   };
 
   inline masked_reference
-  operator[](const typename v<$u32, N>::m op_mask) noexcept {
-    //static_assert(std::is_same<typename v<$u32, N>::m::type, m::type>::value, "Mask is not compatible with this vector.");
+  operator[](const m& op_mask) noexcept {
     return masked_reference{ *this, m{op_mask.data} };
   }
 
-  inline masked_reference
-  operator[](const typename v<$u64, N>::m op_mask) noexcept {
-    //static_assert(std::is_same<typename v<$u32, N>::m::type, m::type>::value, "Mask is not compatible with this vector.");
-    return masked_reference{ *this, m{op_mask.data} };
-  }
+//  inline masked_reference
+//  operator[](const typename v<$u32, N>::m op_mask) noexcept {
+//    //static_assert(std::is_same<typename v<$u32, N>::m::type, m::type>::value, "Mask is not compatible with this vector.");
+//    return masked_reference{ *this, m{op_mask.data} };
+//  }
+//
+//  inline masked_reference
+//  operator[](const typename v<$u64, N>::m op_mask) noexcept {
+//    //static_assert(std::is_same<typename v<$u32, N>::m::type, m::type>::value, "Mask is not compatible with this vector.");
+//    return masked_reference{ *this, m{op_mask.data} };
+//  }
   // TODO specialize for all valid primitive types
 
   // ---
@@ -1047,18 +1079,105 @@ struct v {
 };
 
 
-/// left shift of form: scalar << vector
+/// left shift of the form of: scalar << vector
 template<typename T, u64 N>
 v<T, N> operator<<(const T& lhs, const v<T, N>& rhs) {
   v<T, N> lhs_vec = v<T, N>::make(lhs);
   return lhs_vec << rhs;
 }
-/// not sure if this is causing problems...
+// not sure if this is causing problems...
 template<typename Tl, typename T, u64 N>
 v<T, N> operator<<(const Tl& lhs, const v<T, N>& rhs) {
   v<T, N> lhs_vec = v<T, N>::make(Tl(lhs));
   return lhs_vec << rhs;
 }
 
+
 } // namespace simd
+
+// --- Gather ---
+
+namespace {
+template<u1 Compound = false,
+    typename Tp,       // the primitive data type
+    typename Trv,      // the return vector type
+    typename Tiv>      // the index vector type
+static inline typename Trv::nested_type
+__gather(const Tp* const base_addr,
+         const typename Tiv::nested_type& idxs) {
+  return simd::gather<Tp, typename Tiv::nested_type, typename Tiv::nested_type>()(base_addr, idxs);
+}
+
+template<u1 Compound,
+    typename Tp,       // the primitive data type
+    typename Trv,      // the return vector type
+    typename Tiv,      // the index vector type
+    typename = std::enable_if_t<Compound>>
+static inline typename Trv::compound_type
+__gather(const Tp* const base_addr,
+         const typename Tiv::compound_type& idxs) {
+  typename Tiv::compound_type result;
+  for ($u64 i = 0; i < Tiv::nested_vector_cnt; i++) {
+    result[i] = __gather<!Compound, Tp, Trv, Tiv>(base_addr, idxs[i]);
+  }
+  return result;
+}
+} // anonymous namespace
+
+/// Gathers values of primitive type Tp from the
+/// base address + offsets stored in vector Tiv
+template<typename Tp,  // primitive value type
+         typename Tiv> // index vector
+static inline simd::v<Tp, Tiv::length>
+gather(const Tp* const base_addr, const Tiv& idxs) {
+  using return_vec_t = simd::v<Tp, Tiv::length>;
+  using index_vec_t = Tiv;
+
+  auto data = __gather<index_vec_t::is_compound, Tp, return_vec_t, index_vec_t>(base_addr, idxs.data);
+  return return_vec_t { data };
+}
+
+
+// --- Scatter ---
+
+namespace {
+template<u1 Compound = false,
+    typename Tp,       // the primitive data type
+    typename Tiv,      // the index vector type
+    typename Tvv>      // the value vector type
+static inline void
+__scatter(Tp* base_addr,
+          const typename Tiv::nested_type& idxs,
+          const typename Tvv::nested_type& vals) {
+  simd::scatter<Tp, typename Tiv::nested_type, typename Tvv::nested_type>()(base_addr, idxs, vals);
+}
+
+template<u1 Compound,
+    typename Tp,       // the primitive data type
+    typename Tiv,      // the index vector type
+    typename Tvv,      // the value vector type
+    typename = std::enable_if_t<Compound>>
+static inline void
+__scatter(Tp* base_addr,
+          const typename Tiv::compound_type& idxs,
+          const typename Tvv::compound_type& vals) {
+  for ($u64 i = 0; i < Tiv::nested_vector_cnt; i++) {
+    __scatter<!Compound, Tp, Tiv, Tvv>(base_addr, idxs[i], vals[i]);
+  }
+}
+} // anonymous namespace
+
+/// Scatters values of primitive type Tp to
+/// base address + offsets stored in vector Tiv
+template<typename Tp,  // primitive value type
+         typename Tiv, // index vector
+         typename Tvv> // value vector
+static inline void
+scatter(const Tvv& vals, Tp* base_addr, const Tiv& idxs) {
+  using index_vec_t = Tiv;
+  using value_vec_t = Tvv;
+  __scatter<index_vec_t::is_compound, Tp, index_vec_t, value_vec_t>(base_addr, idxs.data, vals.data);
+}
+
+
 } // namespace dtl

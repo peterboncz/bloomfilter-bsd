@@ -3,13 +3,21 @@
 #include "../bloomfilter.hpp"
 #include "../hash.hpp"
 #include "../simd.hpp"
+#include "../env.hpp"
 
 #include <atomic>
 #include <chrono>
 
+#include <boost/align/aligned_allocator.hpp>
+
 #include "../thread.hpp"
 
+
 using namespace dtl;
+
+template<typename T, std::size_t A = 64>
+using aligned_vector = std::vector<T, boost::alignment::aligned_allocator<T, A>>;
+
 
 struct xorshift32 {
   $u32 x32;
@@ -127,8 +135,42 @@ TEST(bloom, hash_performance) {
   run_hash_benchmark_autovec(knuth);
 }
 
+// --- compiletime settings ---
 
-using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth>;
+using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth, $u32>;
+
+static const u64 vec_unroll_factor = 4;
+
+// --- runtime settings ---
+
+// the grain size for parallel experiments
+static u64 preferred_grain_size = 1ull << dtl::env<$i32>::get("GRAIN_SIZE", 16);
+
+// set the bloomfilter size: m in [2^lo, 2^hi]
+static i32 bf_size_lo_exp = dtl::env<$i32>::get("BF_SIZE_LO", 11);
+static i32 bf_size_hi_exp = dtl::env<$i32>::get("BF_SIZE_HI", 31);
+
+// repeats the benchmark with different concurrency settings
+static i32 thread_cnt_lo = dtl::env<$i32>::get("THREAD_CNT_LO", 1);
+static i32 thread_cnt_hi = dtl::env<$i32>::get("THREAD_CNT_HI", std::thread::hardware_concurrency());
+
+// 1 = linear, 2 = exponential
+static i32 thread_step_mode = dtl::env<$i32>::get("THREAD_STEP_MODE", 1);
+static i32 thread_step = dtl::env<$i32>::get("THREAD_STEP", 1);
+
+static auto inc_thread_cnt = [&](u64 i) {
+  if (thread_step_mode == 1) {
+    // linear
+    return i + thread_step;
+  }
+  else {
+    // exponential
+    auto step = thread_step > 1 ? thread_step : 2;
+    return i * step;
+  }
+};
+
+static u64 key_cnt_per_thread = 1ull << dtl::env<$i32>::get("KEY_CNT", 24);
 
 void run_filter_benchmark(u64 bf_size) {
   dtl::thread_affinitize(0);
@@ -158,8 +200,8 @@ void run_filter_benchmark(u64 bf_size) {
 
 
 TEST(bloom, filter_performance) {
-  u64 bf_size_lo = 1ull << 11;
-  u64 bf_size_hi = 1ull << 31;
+  u64 bf_size_lo = 1ull << bf_size_lo_exp;
+  u64 bf_size_hi = 1ull << bf_size_hi_exp;
   for ($u64 bf_size = bf_size_lo; bf_size <= bf_size_hi; bf_size <<= 2) {
     std::cout << "size " << (bf_size / 8) << " [bytes]" << std::endl;
     run_filter_benchmark(bf_size);
@@ -169,7 +211,7 @@ TEST(bloom, filter_performance) {
 
 void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
-  u64 key_cnt = (1ull << 28) * thread_cnt;
+  u64 key_cnt = key_cnt_per_thread * thread_cnt;
   bf_t bf(bf_size);
   {
     f64 duration = timing([&] {
@@ -182,7 +224,7 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   }
 
   // prepare the input
-  std::vector<$u32> keys;
+  aligned_vector<$u32> keys;
   keys.resize(key_cnt);
   for ($u64 i = 0; i < key_cnt; i++) {
     keys[i] = dtl::hash::crc32<u32, 7331>::hash(i);
@@ -228,15 +270,95 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
 
 
 TEST(bloom, filter_performance_parallel) {
-//  u64 bf_size_lo = 1ull << 11;
-//  u64 bf_size_hi = 1ull << 31;
-  u64 bf_size_lo = 1ull << 30;
-  u64 bf_size_hi = 1ull << 30;
+  u64 bf_size_lo = 1ull << bf_size_lo_exp;
+  u64 bf_size_hi = 1ull << bf_size_hi_exp;
 
   for ($u64 bf_size = bf_size_lo; bf_size <= bf_size_hi; bf_size <<= 2) {
-//    std::cout << "size " << (bf_size / 8) << " [bytes]" << std::endl;
-    for ($u64 t = 1; t <= std::thread::hardware_concurrency(); t++) {
+    for ($u64 t = thread_cnt_lo; t <= thread_cnt_hi; t = inc_thread_cnt(t)) {
       run_filter_benchmark_in_parallel(bf_size, t);
+    }
+  }
+}
+
+
+void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
+  dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
+  u64 key_cnt = key_cnt_per_thread * thread_cnt;
+  bf_t bf(bf_size);
+  {
+    f64 duration = timing([&] {
+      for ($u64 i = 0; i < bf_size >> 4; i++) {
+        bf.insert(dtl::hash::crc32<u32>::hash(i));
+      }
+    });
+    u64 perf = (key_cnt) / (duration / nano_to_sec);
+//    std::cout << perf << " [inserts/sec]" << std::endl;
+  }
+
+  // prepare the input
+  using key_t = $u32;
+  aligned_vector<key_t> keys;
+  keys.resize(key_cnt);
+  for ($u64 i = 0; i < key_cnt; i++) {
+    keys[i] = dtl::hash::crc32<u32, 7331>::hash(i);
+  }
+
+  // size of a work item (dispatched to a thread)
+  u64 grain_size = std::min(preferred_grain_size, key_cnt);
+
+  std::vector<$u64> matches_found;
+  matches_found.resize(thread_cnt, 0);
+  std::atomic<$u64> grain_cntr(0);
+
+  auto worker_fn = [&](u32 thread_id) {
+    u64 vlen = dtl::simd::lane_count<key_t> * vec_unroll_factor;
+    using key_vt = dtl::vec<key_t, vlen>;
+
+//    dtl::vec<$u64, vlen> found_vec = 0;
+    key_vt found_vec = 0;
+    while (true) {
+      u64 read_from = grain_cntr.fetch_add(grain_size);
+      u64 read_to = std::min(key_cnt, read_from + grain_size);
+      if (read_from >= key_cnt) break;
+      for ($u64 i = read_from; i < read_to; i += vlen) {
+        const key_vt* k = reinterpret_cast<const key_vt*>(&keys[i]);
+        auto mask = bf.contains<vlen>(*k);
+        found_vec[mask] += 1;
+//        found += bf.contains();
+      }
+    }
+    $u64 found = 0;
+    for (std::size_t i = 0; i < vlen; i++) {
+      found += found_vec[i];
+    }
+    matches_found[thread_id] = found;
+  };
+
+
+  f64 duration = timing([&] {
+    dtl::run_in_parallel(worker_fn, thread_cnt);
+  });
+
+  $u64 found = 0;
+  for ($u64 i = 0; i < thread_cnt; i++) {
+    found += matches_found[i];
+  }
+  u64 perf = (key_cnt) / (duration / nano_to_sec);
+  std::cout << "bf_size: " << (bf_size / 8) << " [bytes], "
+            << "thread_cnt: " << thread_cnt << ", "
+            << "key_cnt: " << key_cnt << ", "
+            << "grain_size: " << grain_size << ", "
+            << "performance: " << perf << " [1/s]  (matchcnt: " << found << ")" << std::endl;
+}
+
+
+TEST(bloom, filter_performance_parallel_vec) {
+  u64 bf_size_lo = 1ull << bf_size_lo_exp;
+  u64 bf_size_hi = 1ull << bf_size_hi_exp;
+
+  for ($u64 bf_size = bf_size_lo; bf_size <= bf_size_hi; bf_size <<= 2) {
+    for ($u64 t = thread_cnt_lo; t <= thread_cnt_hi; t = inc_thread_cnt(t)) {
+      run_filter_benchmark_in_parallel_vec(bf_size, t);
     }
   }
 }

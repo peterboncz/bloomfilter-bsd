@@ -12,10 +12,10 @@ namespace simd {
 
 /// ---
 /// Implements a scalar fall back if no SIMD implementation is available
-/// for the underlying hardware.  The fall back can also be useful for debugging
-/// algorithms.
+/// for the underlying hardware. The fall back can also be useful for
+/// debugging algorithms.
 ///
-/// Note: primitive type Tp =  vector type Tv
+/// Note: primitive type Tp == vector type Tv
 /// ---
 
 namespace {
@@ -107,9 +107,10 @@ template<typename Tp, typename Ta>
 struct gather<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
   inline typename fn::vector_type
-  operator()(/*u8* const base_addr,*/
+  operator()(const Tp* const base_addr,
              const typename fn::argument_type& idxs) const noexcept {
-    return *reinterpret_cast<typename fn::vector_type*>(idxs);
+//    return *reinterpret_cast<typename fn::vector_type*>(idxs);
+    return base_addr[idxs];
   }
 };
 
@@ -118,7 +119,7 @@ template<typename Tp, typename Ti>
 struct scatter<Tp, Tp, Ti> : vector_fn<Tp, Tp, Ti> {
   using fn = vector_fn<Tp, Tp, Ti>;
   inline typename fn::vector_type
-  operator()(u8* const base_addr,
+  operator()(Tp* base_addr,
              const typename fn::argument_type& idxs,
              const typename fn::vector_type& what) const noexcept {
     base_addr[idxs] = what;
