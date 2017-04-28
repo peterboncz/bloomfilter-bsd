@@ -13,6 +13,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         bits.hpp
         bloomfilter.hpp
+        bloomfilter_vec.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp

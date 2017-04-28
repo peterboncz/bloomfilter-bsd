@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
+
 #include "../adept.hpp"
 #include "../bloomfilter.hpp"
+#include "../bloomfilter_vec.hpp"
 #include "../hash.hpp"
 #include "../simd.hpp"
 #include "../env.hpp"
@@ -8,15 +10,10 @@
 #include <atomic>
 #include <chrono>
 
-#include <boost/align/aligned_allocator.hpp>
-
 #include "../thread.hpp"
 
 
 using namespace dtl;
-
-template<typename T, std::size_t A = 64>
-using aligned_vector = std::vector<T, boost::alignment::aligned_allocator<T, A>>;
 
 
 struct xorshift32 {
@@ -138,6 +135,7 @@ TEST(bloom, hash_performance) {
 // --- compiletime settings ---
 
 using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth, $u32>;
+using bf_vt = dtl::bloomfilter_vec<$u32, dtl::hash::knuth, $u32>;
 
 static const u64 vec_unroll_factor = 4;
 
@@ -285,6 +283,7 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
   u64 key_cnt = key_cnt_per_thread * thread_cnt;
   bf_t bf(bf_size);
+  bf_vt bf_vec { bf };
   {
     f64 duration = timing([&] {
       for ($u64 i = 0; i < bf_size >> 4; i++) {
@@ -322,7 +321,7 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
       if (read_from >= key_cnt) break;
       for ($u64 i = read_from; i < read_to; i += vlen) {
         const key_vt* k = reinterpret_cast<const key_vt*>(&keys[i]);
-        auto mask = bf.contains<vlen>(*k);
+        auto mask = bf_vec.contains<vlen>(*k);
         found_vec[mask] += 1;
 //        found += bf.contains();
       }

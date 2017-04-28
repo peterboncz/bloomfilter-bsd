@@ -5,7 +5,6 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/math.hpp>
-#include <dtl/simd.hpp>
 
 #include "immintrin.h"
 
@@ -53,25 +52,6 @@ struct bloomfilter {
     word_t search_mask = (word_t(1) << in_word_idx) | (word_t(1) << second_in_word_idx);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
-
-
-  template<u64 vector_len>
-  typename vec<key_t, vector_len>::mask_t
-  contains(const vec<key_t, vector_len>& keys) const {
-    using key_vt = vec<key_t, vector_len>;
-    using word_vt = vec<word_t, vector_len>;
-    const key_vt hash_vals = hash_fn<key_vt>::hash(keys);
-    const key_vt bit_idxs = hash_vals & length_mask;
-    const key_vt word_idxs = bit_idxs >> word_bitlength_log2;
-    const key_vt in_word_idxs = bit_idxs & word_bitlength_mask;
-    const key_vt second_in_word_idxs = hash_vals >> (32 - word_bitlength_log2);
-    const word_vt search_masks = (word_vt::make(1) << in_word_idxs) | (word_vt::make(1) << second_in_word_idxs);
-//    const word_vt words = word_idxs.load(word_array.data());
-    const word_vt words = dtl::gather(word_array.data(), word_idxs);
-    return (words & search_masks) == search_masks;
-  }
-
-
 
 
   u64 popcnt() {
