@@ -16,6 +16,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bitmask.hpp
         bitpack.hpp
         bitset.hpp
+        bitset_util.hpp
         color.hpp
         dict.hpp
         dtl.hpp

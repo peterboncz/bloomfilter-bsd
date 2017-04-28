@@ -11,8 +11,10 @@
 
 namespace dtl {
 
+
 template<u64 N>
 struct bitset {
+
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two."); // TODO remove restriction
   static_assert(N > 0, "Template parameter 'N' must be greater than zero.");
 
@@ -609,6 +611,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const dtl::bitset<N>& x) {
   const std::ctype<CharT>& char_type = std::use_facet<std::ctype<CharT>>(os.getloc());
   auto str = x.to_string(char_type.widen('0'), char_type.widen('1'));
   os << str;
+  return os;
 };
 
 template<class CharT, class Traits, u64 N>
@@ -616,3 +619,13 @@ std::basic_istream<CharT, Traits>&
 operator>>(std::basic_istream<CharT, Traits>& is, dtl::bitset<N>& x) {
   // TODO implement
 };
+
+
+// --- include utility functions for bitsets ---
+
+// used generate compiler errors if util headers are included directly
+#ifndef _DTL_BITSET_INCLUDED
+#define _DTL_BITSET_INCLUDED
+#endif
+
+#include <dtl/bitset_util.hpp>
