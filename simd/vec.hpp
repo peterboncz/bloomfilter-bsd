@@ -1137,6 +1137,19 @@ gather(const Tp* const base_addr, const Tiv& idxs) {
   return return_vec_t { data };
 }
 
+/// Gathers values of primitive type Tp from the
+/// absolute addresses stored in vector Tiv
+template<typename Tp,  // primitive value type
+         typename Tiv> // index vector
+static inline simd::v<Tp, Tiv::length>
+gather(const Tiv& idxs) {
+  using return_vec_t = simd::v<Tp, Tiv::length>;
+  using index_vec_t = Tiv;
+
+  auto data = __gather<index_vec_t::is_compound, Tp, return_vec_t, index_vec_t>(0, idxs.data);
+  return return_vec_t { data };
+}
+
 
 // --- Scatter ---
 

@@ -130,19 +130,21 @@ __GENERATE_BLEND($u64, __m512i, __m512i, _mm512_mask_blend_epi64)
 
 #define __GENERATE(Tp, Scale, Tv, Ta, IntrinFn, IntrinFnMask) \
 template<>                                             \
-struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> { \
+struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> {\
   using fn = vector_fn<Tp, Tv, Ta, Tv>;                \
   using ptr = std::conditional<sizeof(Tp) == 8, long long int, std::make_signed<Tp>::type>::type; \
   inline typename fn::vector_type                      \
   operator()(const Tp* const base_addr, const typename fn::argument_type& idx) const noexcept { \
-    return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), Scale);            \
+    int scale = base_addr ? Scale : 1;                 \
+    return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), scale); \
   }                                                    \
   inline typename fn::vector_type                      \
   operator()(const Tp* const base_addr,                \
              const typename fn::argument_type& idx,    \
              const typename fn::vector_type& src,      \
              const mask16 mask) const noexcept {       \
-    return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), Scale); \
+    int scale = base_addr ? Scale : 1;                 \
+    return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), scale); \
   }                                                    \
 };
 

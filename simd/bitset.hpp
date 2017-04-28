@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include <dtl/adept.hpp>
+#include <dtl/dtl.hpp>
 #include <dtl/bitset.hpp>
 #include <dtl/simd.hpp>
 
@@ -10,7 +10,7 @@ namespace dtl {
 namespace simd {
 
 template<std::size_t Nb>
-struct bitset : public dtl::bitset<Nb> { // TODO re-implement bitset
+struct bitset : public dtl::bitset<Nb> {
 
   /// Returns the value of the bit at the position pos.
   template<std::size_t N>
@@ -19,9 +19,9 @@ struct bitset : public dtl::bitset<Nb> { // TODO re-implement bitset
     const auto word_idx = pos >> 6;
     const auto bit_idx = pos & 0b111111ull;
     const auto word_addr = bitset_addr + offsetof(bitset, _M_w) + (word_idx << 3);
-    const auto word = word_addr.template load<$u64>();
-    word.print(std::cout);
-    std::cout << std::endl;
+    const auto word = dtl::gather<$u64>(word_addr);
+//    word.print(std::cout);
+//    std::cout << std::endl;
     const auto test_mask = v<$u64, N>::make(1) << bit_idx;
     return (word & test_mask) != 0;
   }
