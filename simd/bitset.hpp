@@ -1,18 +1,16 @@
 #pragma once
 
-#include <bitset>
 #include <cstddef>
 
 #include <dtl/adept.hpp>
+#include <dtl/bitset.hpp>
 #include <dtl/simd.hpp>
-
-#include "bitset_hack.hpp"
 
 namespace dtl {
 namespace simd {
 
 template<std::size_t Nb>
-struct bitset : public hack::bitset<Nb> { // TODO re-implement bitset
+struct bitset : public dtl::bitset<Nb> { // TODO re-implement bitset
 
   /// Returns the value of the bit at the position pos.
   template<std::size_t N>

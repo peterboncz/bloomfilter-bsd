@@ -66,3 +66,15 @@ set(COMPRESSION_TEST_FILES
         bitpack_test.cpp
         )
 add_multiarch_executable(bitpack_tester ${COMPRESSION_TEST_FILES})
+
+
+#set(THREAD_TEST_FILES
+#        thread_test.cpp
+#        )
+#add_multiarch_executable(thread_tester ${THREAD_TEST_FILES})
+
+
+set(BITSET_TEST_FILES
+        bitset_test.cpp
+        )
+add_multiarch_executable(bitset_tester ${BITSET_TEST_FILES})

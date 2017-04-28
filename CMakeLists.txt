@@ -11,9 +11,11 @@ add_subdirectory(storage)
 set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
+        bits.hpp
         bloomfilter.hpp
         bitmask.hpp
         bitpack.hpp
+        bitset.hpp
         color.hpp
         dict.hpp
         dtl.hpp
