@@ -19,7 +19,7 @@ to_bitset(const T* ptr) {
     $u32 bitmask = bytes[i];
     for ($u64 m = dtl::bits::pop_count(bitmask); m > 0; m--) {
       u64 bit_pos = dtl::bits::tz_count(bitmask);
-      bits.set(bit_pos);
+      bits.set(i * 8 + bit_pos);
       bitmask = _blsr_u32(bitmask);
     }
   }
