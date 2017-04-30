@@ -19,6 +19,9 @@ u64 header_size = 2; // words
 template<typename T>
 std::vector<word_t>
 bitpack_horizontal(u32 k, const std::vector<T> in) {
+  assert(k > 0 && k < word_bitlength);
+  assert(k < (sizeof(T) * 8));
+
   // allocate memory for the output
   u64 data_size = ((in.size() * k) / word_bitlength) + 1;
   std::vector<word_t> packed;
@@ -29,7 +32,7 @@ bitpack_horizontal(u32 k, const std::vector<T> in) {
   // write the code size
   packed[1] = k;
 
-  const word_t k_mask = (1ull << k) - 1;
+  const word_t k_mask = k == word_bitlength ? ~word_t(0) : (word_t(1) << k) - 1;
 
   // write the codes starting at position 2
   word_t* writer = &packed[header_size];
@@ -64,18 +67,19 @@ bitunpack_horizontal(const std::vector<word_t> packed) {
   out.resize(output_size, 0);
 
   u64 k = packed[1];
-  const word_t k_mask = (1ull << k) - 1;
+  assert(k > 0 && k < word_bitlength);
+  const word_t k_mask = k == word_bitlength ? ~word_t(0) : (word_t(1) << k) - 1;
 
   // read the codes word by word starting at position 2
-  word_t* writer = &out[0];
-  const word_t* writer_end = &out[output_size];
+  T* writer = &out[0];
+  const T* writer_end = &out[output_size];
   const word_t* reader = &packed[header_size];
   const word_t* reader_end = &packed[header_size + output_size];
   $u8 reader_bitpos_in_word = 0;
 
   while (reader != reader_end) {
     // extract next code
-    word_t value = (*reader >> reader_bitpos_in_word) & k_mask;
+    T value = (*reader >> reader_bitpos_in_word) & k_mask;
     reader_bitpos_in_word += k;
     if (reader_bitpos_in_word >= word_bitlength) {
       // word wrap
@@ -84,6 +88,11 @@ bitunpack_horizontal(const std::vector<word_t> packed) {
       // read remaining bits if any
       value |= *reader << (k - reader_bitpos_in_word);
       value &= k_mask;
+    }
+    if (std::is_signed<T>::value) {
+      // sign extend
+      const T sign = ((T(1) << (k - 1)) & value) == 0 ? T(0) : ~T(0) << k;
+      value |= sign;
     }
     *writer = value;
     writer++;
