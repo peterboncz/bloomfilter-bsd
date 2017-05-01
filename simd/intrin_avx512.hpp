@@ -136,7 +136,12 @@ struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> {\
   inline typename fn::vector_type                      \
   operator()(const Tp* const base_addr, const typename fn::argument_type& idx) const noexcept { \
     int scale = base_addr ? Scale : 1;                 \
-    return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), scale); \
+    switch(scale) {                                    \
+      case 1: return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), 1); \
+      case 2: return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), 2); \
+      case 4: return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), 4); \
+      case 8: return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), 8); \
+    }                                                  \
   }                                                    \
   inline typename fn::vector_type                      \
   operator()(const Tp* const base_addr,                \
@@ -144,7 +149,12 @@ struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> {\
              const typename fn::vector_type& src,      \
              const mask16 mask) const noexcept {       \
     int scale = base_addr ? Scale : 1;                 \
-    return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), scale); \
+    switch(scale) {                                    \
+      case 1: return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), 1); \
+      case 2: return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), 2); \
+      case 4: return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), 4); \
+      case 8: return IntrinFnMask(src, mask.data, idx, reinterpret_cast<const ptr*>(base_addr), 8); \
+    }                                                  \
   }                                                    \
 };
 
