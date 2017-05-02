@@ -30,16 +30,20 @@ namespace detail {
 /// encapsulates a pointer to a numa bitmask (supports move and copy construction, etc.)
 struct bitmask_wrap {
   /// the wrapped pointer
-  bitmask* ptr;
+  bitmask* ptr = nullptr;
 
+  /// default c'tor
+  bitmask_wrap() : ptr(nullptr) { };
   /// c'tor that takes the ownership
   explicit bitmask_wrap(bitmask* ptr) : ptr(ptr) { };
   /// move c'tor
   bitmask_wrap(bitmask_wrap&& other) : ptr(other.ptr) { other.ptr = nullptr; };
   /// copy c'tor
   bitmask_wrap(const bitmask_wrap& other) {
-    ptr = numa_bitmask_alloc(other.ptr->size);
-    copy_bitmask_to_bitmask(other.ptr, ptr);
+    if (other.ptr) {
+      ptr = numa_bitmask_alloc(other.ptr->size);
+      copy_bitmask_to_bitmask(other.ptr, ptr);
+    }
   };
   /// d'tor
   ~bitmask_wrap() { if (ptr) numa_bitmask_free(ptr); };
