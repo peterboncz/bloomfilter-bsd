@@ -5,6 +5,10 @@
 
 #include <dtl/dtl.hpp>
 
+#if defined(__BMI__)
+#include "immintrin.h"
+#endif
+
 namespace dtl {
 
 namespace bits {
@@ -36,6 +40,26 @@ tz_count(u32 a) { return __builtin_ctz(a); }
 inline u64
 tz_count(u64 a) { return __builtin_ctzll(a); }
 
+
+/// extract contiguous bits
+inline u32
+extract(u32 a, u32 start, u32 len) {
+#if defined(__BMI__)
+  return _bextr_u32(a, start, len);
+#else
+  return (a >> start) & ((u32(1) << len) - 1);
+#endif
+}
+
+/// extract contiguous bits
+inline u64
+extract(u64 a, u32 start, u32 len) {
+#if defined(__BMI__)
+  return _bextr_u64(a, start, len);
+#else
+  return (a >> start) & ((u64(1) << len) - 1);
+#endif
+}
 
 } // namespace bits
 
