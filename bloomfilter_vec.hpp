@@ -12,11 +12,11 @@
 
 namespace dtl {
 
-template<typename Tk, template<typename Ty> class hash_fn, typename Tw = u64>
+template<typename Tk, template<typename Ty> class hash_fn, typename Tw = u64, typename Alloc = std::allocator<Tw>>
 struct bloomfilter_vec {
 
-  using bloomfilter_t = dtl::bloomfilter<Tk, hash_fn, Tw>;
-  bloomfilter_t& bf;
+  using bloomfilter_t = dtl::bloomfilter<Tk, hash_fn, Tw, Alloc>;
+  const bloomfilter_t& bf;
 
   using key_t = typename bloomfilter_t::key_t;
   using word_t = typename bloomfilter_t::word_t;
