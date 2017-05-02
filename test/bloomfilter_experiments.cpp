@@ -4,13 +4,14 @@
 #include "../bloomfilter.hpp"
 #include "../bloomfilter_vec.hpp"
 #include "../hash.hpp"
+#include "../mem.hpp"
 #include "../simd.hpp"
+#include "../thread.hpp"
 #include "../env.hpp"
 
 #include <atomic>
-#include <chrono>
 
-#include "../thread.hpp"
+#include <chrono>
 
 
 using namespace dtl;
@@ -132,10 +133,23 @@ TEST(bloom, hash_performance) {
   run_hash_benchmark_autovec(knuth);
 }
 
-// --- compiletime settings ---
+// --- compile-time settings ---
 
-using bf_t = dtl::bloomfilter<$u32, dtl::hash::knuth, $u32>;
-using bf_vt = dtl::bloomfilter_vec<$u32, dtl::hash::knuth, $u32>;
+
+struct bf {
+  using key_t = $u32;
+  using word_t = $u32;
+
+  using key_alloc = dtl::mem::numa_allocator<key_t>;
+  using word_alloc = dtl::mem::numa_allocator<word_t>;
+
+};
+
+//template<typename Alloc = bf::word_alloc>
+using bf_t = dtl::bloomfilter<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
+
+//template<typename Alloc = bf::word_alloc>
+using bf_vt = dtl::bloomfilter_vec<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
 
 static const u64 vec_unroll_factor = 4;
 
@@ -156,6 +170,19 @@ static i32 thread_cnt_hi = dtl::env<$i32>::get("THREAD_CNT_HI", std::thread::har
 static i32 thread_step_mode = dtl::env<$i32>::get("THREAD_STEP_MODE", 1);
 static i32 thread_step = dtl::env<$i32>::get("THREAD_STEP", 1);
 
+// the number of keys to probe per thread
+static u64 key_cnt_per_thread = 1ull << dtl::env<$i32>::get("KEY_CNT", 24);
+
+// the number of repetitions
+static u64 repeat_cnt = dtl::env<$i32>::get("REPEAT_CNT", 16);;
+
+
+// place bloomfilter in HBM?
+static u1 use_hbm = dtl::env<$i32>::get("HBM", 1);
+// replicate bloomfilter in HBM?
+static u1 replicate_bloomfilter = dtl::env<$i32>::get("REPL", 1);
+
+
 static auto inc_thread_cnt = [&](u64 i) {
   if (thread_step_mode == 1) {
     // linear
@@ -168,7 +195,6 @@ static auto inc_thread_cnt = [&](u64 i) {
   }
 };
 
-static u64 key_cnt_per_thread = 1ull << dtl::env<$i32>::get("KEY_CNT", 24);
 
 void run_filter_benchmark(u64 bf_size) {
   dtl::thread_affinitize(0);
@@ -210,7 +236,14 @@ TEST(bloom, filter_performance) {
 void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
   u64 key_cnt = key_cnt_per_thread * thread_cnt;
-  bf_t bf(bf_size);
+
+  bf::word_alloc bf_cpu_interleaved_alloc(dtl::mem::allocator_config::interleave_cpu());
+  bf::word_alloc bf_hbm_interleaved_alloc(dtl::mem::allocator_config::interleave_hbm());
+
+  if (use_hbm) {
+    std::cout << "Using HBM for bloomfilter" << std::endl;
+  }
+  bf_t bf(bf_size, use_hbm ? bf_hbm_interleaved_alloc : bf_cpu_interleaved_alloc);
   {
     f64 duration = timing([&] {
       for ($u64 i = 0; i < bf_size >> 4; i++) {
@@ -218,11 +251,11 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
       }
     });
     u64 perf = (key_cnt) / (duration / nano_to_sec);
-//    std::cout << perf << " [inserts/sec]" << std::endl;
   }
 
-  // prepare the input
-  aligned_vector<$u32> keys;
+  // prepare the input (interleaved)
+  bf::key_alloc input_interleaved_alloc(dtl::mem::allocator_config::interleave_cpu());
+  std::vector<bf::key_t, bf::key_alloc> keys(input_interleaved_alloc);
   keys.resize(key_cnt);
   for ($u64 i = 0; i < key_cnt; i++) {
     keys[i] = dtl::hash::crc32<u32, 7331>::hash(i);
@@ -236,28 +269,70 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   matches_found.resize(thread_cnt, 0);
   std::atomic<$u64> grain_cntr(0);
 
+  // create replicas is requested (see env 'HBM' and 'HBM_REPL')
+  std::vector<bf_t> bloomfilter_replicas;
+  // maps node_id -> replica_id
+  std::vector<$u64> bloomfilter_node_map;
+  // insert the already existing bloomfilter (as a fallback when numa/hbm is not available)
+  bloomfilter_replicas.push_back(bf);
+  // initially, let all nodes refer to the first replica
+  bloomfilter_node_map.resize(dtl::mem::get_node_count(), 0);
+
+  if (replicate_bloomfilter) {
+    // replicate the bloomfilter to all HBM nodes
+    if (dtl::mem::hbm_available()) {
+      for (auto hbm_node_id : dtl::mem::get_hbm_nodes()) {
+        // make a copy
+        std::cout << "replicate bloomfilter to HBM node " << hbm_node_id << std::endl;
+        bf::word_alloc on_node_alloc(dtl::mem::allocator_config::on_node(hbm_node_id));
+        bf_t replica = bf.make_copy(on_node_alloc);
+        bloomfilter_replicas.push_back(std::move(replica));
+        // update mapping
+        bloomfilter_node_map[hbm_node_id] = bloomfilter_replicas.size() - 1;
+        dtl::mem::get_node_of_address(&bloomfilter_replicas[bloomfilter_node_map[hbm_node_id]].word_array[0]);
+      }
+    }
+  }
+
   auto worker_fn = [&](u32 thread_id) {
+    // determine NUMA node id
+    const auto cpu_mask = dtl::this_thread::get_cpu_affinity();
+    const auto cpu_id = cpu_mask.find_first(); // handwaving
+    const auto numa_node_id = dtl::mem::get_node_of_cpu(cpu_id);
+
+    // determine nearest HBM node (returns numa_node_id if HBM is not available)
+    const auto hbm_node_id = dtl::mem::get_nearest_hbm_node(numa_node_id);
+
+    // obtain the local bloomfilter instance
+//    std::cout << "thread " << thread_id << " using BF instance #" << bloomfilter_node_map[hbm_node_id] << std::endl;
+    const bf_t& _bf = bloomfilter_replicas[bloomfilter_node_map[hbm_node_id]];
+//    dtl::mem::get_node_of_address(&_bf.word_array[0]);
+
     $u64 found = 0;
     while (true) {
-      u64 read_from = grain_cntr.fetch_add(grain_size);
+      u64 cntr = grain_cntr.fetch_add(grain_size);
+      u64 read_from = cntr % key_cnt;
       u64 read_to = std::min(key_cnt, read_from + grain_size);
-      if (read_from >= key_cnt) break;
+      if (cntr >= key_cnt * repeat_cnt) break;
       for ($u64 i = read_from; i < read_to; i++) {
-        found += bf.contains(keys[i]);
+        found += _bf.contains(keys[i]);
       }
     }
     matches_found[thread_id] = found;
   };
 
 
-  f64 duration = timing([&] {
+  $f64 duration = timing([&] {
     dtl::run_in_parallel(worker_fn, thread_cnt);
   });
+
+  duration /= repeat_cnt;
 
   $u64 found = 0;
   for ($u64 i = 0; i < thread_cnt; i++) {
     found += matches_found[i];
   }
+  found /= repeat_cnt;
   u64 perf = (key_cnt) / (duration / nano_to_sec);
   std::cout << "bf_size: " << (bf_size / 8) << " [bytes], "
             << "thread_cnt: " << thread_cnt << ", "
@@ -282,8 +357,14 @@ TEST(bloom, filter_performance_parallel) {
 void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
   u64 key_cnt = key_cnt_per_thread * thread_cnt;
-  bf_t bf(bf_size);
-  bf_vt bf_vec { bf };
+
+  bf::word_alloc bf_cpu_interleaved_alloc(dtl::mem::allocator_config::interleave_cpu());
+  bf::word_alloc bf_hbm_interleaved_alloc(dtl::mem::allocator_config::interleave_hbm());
+
+  if (use_hbm) {
+    std::cout << "Using HBM for bloomfilter" << std::endl;
+  }
+  bf_t bf(bf_size, use_hbm ? bf_hbm_interleaved_alloc : bf_cpu_interleaved_alloc);
   {
     f64 duration = timing([&] {
       for ($u64 i = 0; i < bf_size >> 4; i++) {
@@ -291,15 +372,41 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
       }
     });
     u64 perf = (key_cnt) / (duration / nano_to_sec);
-//    std::cout << perf << " [inserts/sec]" << std::endl;
   }
 
-  // prepare the input
-  using key_t = $u32;
-  aligned_vector<key_t> keys;
+  // prepare the input (interleaved)
+  bf::key_alloc input_interleaved_alloc(dtl::mem::allocator_config::interleave_cpu());
+  std::vector<bf::key_t, bf::key_alloc> keys(input_interleaved_alloc);
   keys.resize(key_cnt);
   for ($u64 i = 0; i < key_cnt; i++) {
     keys[i] = dtl::hash::crc32<u32, 7331>::hash(i);
+  }
+
+  // create replicas is requested (see env 'HBM' and 'HBM_REPL')
+  std::vector<bf_t> bloomfilter_replicas;
+  // maps node_id -> replica_id
+  std::vector<$u64> bloomfilter_node_map;
+  // insert the already existing bloomfilter (as a fallback when numa/hbm is not available)
+  bloomfilter_replicas.push_back(bf);
+  // initially, let all nodes refer to the first replica
+  bloomfilter_node_map.resize(dtl::mem::get_node_count(), 0);
+
+  if (replicate_bloomfilter) {
+    // replicate the bloomfilter to all HBM nodes
+    auto replica_nodes = (use_hbm && dtl::mem::hbm_available())
+                         ? dtl::mem::get_hbm_nodes()
+                         : dtl::mem::get_cpu_nodes();
+
+    for (auto dst_node_id : replica_nodes) {
+      // make a copy
+      std::cout << "replicate bloomfilter to node " << dst_node_id << std::endl;
+      bf::word_alloc on_node_alloc(dtl::mem::allocator_config::on_node(dst_node_id));
+      bf_t replica = bf.make_copy(on_node_alloc);
+      bloomfilter_replicas.push_back(std::move(replica));
+      // update mapping
+      bloomfilter_node_map[dst_node_id] = bloomfilter_replicas.size() - 1;
+      dtl::mem::get_node_of_address(&bloomfilter_replicas[bloomfilter_node_map[dst_node_id]].word_array[0]);
+    }
   }
 
   // size of a work item (dispatched to a thread)
@@ -310,20 +417,35 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   std::atomic<$u64> grain_cntr(0);
 
   auto worker_fn = [&](u32 thread_id) {
-    u64 vlen = dtl::simd::lane_count<key_t> * vec_unroll_factor;
-    using key_vt = dtl::vec<key_t, vlen>;
+    // determine NUMA node id
+    const auto cpu_mask = dtl::this_thread::get_cpu_affinity();
+    const auto cpu_id = cpu_mask.find_first(); // handwaving
+    const auto numa_node_id = dtl::mem::get_node_of_cpu(cpu_id);
 
-//    dtl::vec<$u64, vlen> found_vec = 0;
+    // determine nearest HBM node (returns numa_node_id if HBM is not available)
+    const auto hbm_node_id = dtl::mem::get_nearest_hbm_node(numa_node_id);
+
+    // obtain the local bloomfilter instance
+//    std::cout << "thread " << thread_id << " using BF instance #" << bloomfilter_node_map[hbm_node_id] << std::endl;
+    const bf_t& _bf = bloomfilter_replicas[bloomfilter_node_map[hbm_node_id]];
+//    dtl::mem::get_node_of_address(&_bf.word_array[0]);
+
+    // SIMD extension
+    bf_vt bf_vec { _bf };
+
+    u64 vlen = dtl::simd::lane_count<bf::key_t> * vec_unroll_factor;
+    using key_vt = dtl::vec<bf::key_t, vlen>;
+
     key_vt found_vec = 0;
     while (true) {
-      u64 read_from = grain_cntr.fetch_add(grain_size);
+      u64 cntr = grain_cntr.fetch_add(grain_size);
+      u64 read_from = cntr % key_cnt;
       u64 read_to = std::min(key_cnt, read_from + grain_size);
-      if (read_from >= key_cnt) break;
+      if (cntr >= key_cnt * repeat_cnt) break;
       for ($u64 i = read_from; i < read_to; i += vlen) {
         const key_vt* k = reinterpret_cast<const key_vt*>(&keys[i]);
         auto mask = bf_vec.contains<vlen>(*k);
         found_vec[mask] += 1;
-//        found += bf.contains();
       }
     }
     $u64 found = 0;
@@ -334,14 +456,17 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   };
 
 
-  f64 duration = timing([&] {
+  $f64 duration = timing([&] {
     dtl::run_in_parallel(worker_fn, thread_cnt);
   });
+
+  duration /= repeat_cnt;
 
   $u64 found = 0;
   for ($u64 i = 0; i < thread_cnt; i++) {
     found += matches_found[i];
   }
+  found /= repeat_cnt;
   u64 perf = (key_cnt) / (duration / nano_to_sec);
   std::cout << "bf_size: " << (bf_size / 8) << " [bytes], "
             << "thread_cnt: " << thread_cnt << ", "
@@ -352,6 +477,9 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
 
 
 TEST(bloom, filter_performance_parallel_vec) {
+  std::cout << "native degree of data parallelism: " << dtl::simd::lane_count<bf::key_t> << std::endl;
+  std::cout << "                 unrolling factor: " << vec_unroll_factor << std::endl;
+
   u64 bf_size_lo = 1ull << bf_size_lo_exp;
   u64 bf_size_hi = 1ull << bf_size_hi_exp;
 

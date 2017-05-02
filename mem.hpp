@@ -2,12 +2,14 @@
 
 #include "adept.hpp"
 
-#include <memory>
 #include <cstring>
+#include <limits>
+#include <memory>
 #include <stdlib.h>
 #include <sys/mman.h>
 #if defined(HAVE_NUMA)
 #include <numa.h>
+#include <numaif.h>
 #endif
 
 namespace dtl {
@@ -87,8 +89,70 @@ get_all_nodemask() {
 } // namespace detail
 
 
+/// determine the NUMA node ids
+std::vector<$i32>
+get_nodes() {
+  std::vector<$i32> nodes;
+#if defined(HAVE_NUMA)
+  i32 node_cnt = numa_num_configured_nodes();
+  for ($i32 i = 0; i < node_cnt; i++) {
+    nodes.push_back(i);
+  }
+#else
+  nodes.push_back(0);
+#endif
+  return nodes;
+}
 
-/// determines the node ids of HBM nodes
+
+/// determine the number of NUMA nodes
+i32
+get_node_count() {
+#if defined(HAVE_NUMA)
+  return numa_num_configured_nodes();
+#else
+  return 1;
+#endif
+}
+
+
+/// determine the NUMA node id of the given CPU id
+i32
+get_node_of_cpu(i32 cpu_id) {
+#if defined(HAVE_NUMA)
+  i32 node_id = numa_node_of_cpu(cpu_id);
+  return (node_id < 0) ? 0 : node_id;
+#else
+  return 0;
+#endif
+}
+
+
+/// determine the node ids of HBM nodes
+std::vector<$i32>
+get_cpu_nodes() {
+  std::vector<$i32> cpu_nodes;
+#if defined(HAVE_NUMA)
+  i32 node_cnt = numa_num_configured_nodes();
+  std::vector<$i32> cpus_on_node_cnt;
+  cpus_on_node_cnt.resize(node_cnt, 0);
+
+  i32 cpu_cnt = numa_num_configured_cpus();
+  for ($u32 i = 0; i < cpu_cnt; i++) {
+    cpus_on_node_cnt[numa_node_of_cpu(i)]++;
+  }
+  for ($u32 i = 0; i < node_cnt; i++) {
+    if (cpus_on_node_cnt[i] > 0) {
+      // we assume that all *memory-only* NUMA nodes are HBM nodes.
+      cpu_nodes.push_back(i);
+    }
+  }
+#endif
+  return cpu_nodes;
+}
+
+
+/// determine the node ids of HBM nodes
 std::vector<$i32>
 get_hbm_nodes() {
   std::vector<$i32> hbm_nodes;
@@ -112,12 +176,51 @@ get_hbm_nodes() {
 }
 
 
-/// determines whether the system has HBM nodes
+/// determine whether the system has HBM nodes
 u1
 hbm_available() {
   return get_hbm_nodes().size() > 0;
 }
 
+/// determine the HBM node that is nearest to the given node
+/// if HBM is not available, the given node id is returned.
+i32
+get_nearest_hbm_node(i32 numa_node_id) {
+#if defined(HAVE_NUMA)
+  if (!hbm_available()) return numa_node_id;
+
+  $i32 min_distance = std::numeric_limits<$i32>::max();
+  $i32 nearest_node = numa_node_id;
+  for (auto hbm_node_id : get_hbm_nodes()) {
+    i32 distance = numa_distance(numa_node_id, hbm_node_id);
+    if (distance < min_distance) {
+      min_distance = distance;
+      nearest_node = hbm_node_id;
+    }
+  }
+  return nearest_node;
+#else
+  return 0;
+#endif
+}
+
+i32
+get_node_of_address(const void* addr) {
+#if defined(HAVE_NUMA)
+  void* ptr_to_check = const_cast<void*>(addr); // TODO align ptr to page boundary
+  $i32 status[1];
+  status[0] = -1;
+
+  $i32 ret_code = move_pages(0, 1, &ptr_to_check, nullptr, status, 0);
+  if (ret_code != 0) {
+    throw std::invalid_argument("Failed to determine NUMA node for the given address.");
+  }
+//  printf("Memory at %p is at %d node (retcode %d)\n", ptr_to_check, status[0], ret_code);
+  return status[0];
+#else
+  return 0;
+#endif
+}
 
 enum class allocation_policy {
   interleaved,
