@@ -623,7 +623,7 @@ operator>>(std::basic_istream<CharT, Traits>& is, dtl::bitset<N>& x) {
 
 // --- include utility functions for bitsets ---
 
-// used generate compiler errors if util headers are included directly
+// used to generate compiler errors if util headers are included directly
 #ifndef _DTL_BITSET_INCLUDED
 #define _DTL_BITSET_INCLUDED
 #endif
