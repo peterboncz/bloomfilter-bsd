@@ -160,6 +160,13 @@ struct bitset {
   }
 
   inline void
+  flip() noexcept {
+    for ($u64 i = 0; i < word_cnt; i++) {
+      words[i] = ~words[i];
+    }
+  }
+
+  inline void
   flip(u64 idx) noexcept {
     if (get(idx)) reset(idx); else set(idx);
   }
