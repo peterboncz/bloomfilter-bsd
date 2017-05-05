@@ -245,6 +245,28 @@ struct plus<$u32, __m256i> : vector_fn<$u32, __m256i> {
 };
 
 template<>
+struct plus<$i64, __m256i> : vector_fn<$i64, __m256i> {
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return _mm256_add_epi64(lhs, rhs);
+  }
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask& m) const noexcept {
+    return _mm256_blendv_epi8(src, _mm256_add_epi64(lhs, rhs), m.data);
+  }
+};
+
+template<>
+struct plus<$u64, __m256i> : vector_fn<$u64, __m256i> {
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return _mm256_add_epi64(lhs, rhs);
+  }
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask& m) const noexcept {
+    return _mm256_blendv_epi8(src, _mm256_add_epi64(lhs, rhs), m.data);
+  }
+};
+
+template<>
 struct minus<$i32, __m256i> : vector_fn<$i32, __m256i> {
   inline __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return _mm256_sub_epi32(lhs, rhs);
@@ -322,6 +344,13 @@ struct shift_left_var<$u32, __m256i,  __m256i> : vector_fn<$u32, __m256i, __m256
 };
 
 template<>
+struct shift_left_var<$u64, __m256i,  __m256i> : vector_fn<$u64, __m256i, __m256i> {
+  inline __m256i operator()(const __m256i& lhs, const __m256i& count) const noexcept {
+    return _mm256_sllv_epi64(lhs, count);
+  }
+};
+
+template<>
 struct shift_right<$i32, __m256i, i32> : vector_fn<$i32, __m256i, i32> {
   inline __m256i operator()(const __m256i& lhs, i32& count) const noexcept {
     return _mm256_srli_epi32(lhs, count);
@@ -332,6 +361,13 @@ template<>
 struct shift_right_var<$u32, __m256i,  __m256i> : vector_fn<$u32, __m256i, __m256i> {
   inline __m256i operator()(const __m256i& lhs, const __m256i& count) const noexcept {
     return _mm256_srlv_epi32(lhs, count);
+  }
+};
+
+template<>
+struct shift_right_var<$u64, __m256i,  __m256i> : vector_fn<$u64, __m256i, __m256i> {
+  inline __m256i operator()(const __m256i& lhs, const __m256i& count) const noexcept {
+    return _mm256_srlv_epi64(lhs, count);
   }
 };
 
@@ -391,9 +427,37 @@ struct equal<$u32, __m256i, __m256i, mask> : vector_fn<$u32, __m256i, __m256i, m
 };
 
 template<>
+struct equal<$u64, __m256i, __m256i, mask> : vector_fn<$u64, __m256i, __m256i, mask> {
+  inline mask operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask { _mm256_cmpeq_epi64(lhs, rhs) };
+  }
+};
+
+template<>
 struct not_equal<$i32, __m256i, __m256i, mask> : vector_fn<$i32, __m256i, __m256i, mask> {
   inline mask operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return mask { _mm256_andnot_si256(_mm256_cmpeq_epi32(lhs, rhs), _mm256_set1_epi32(-1))};
+  }
+};
+
+template<>
+struct not_equal<$u32, __m256i, __m256i, mask> : vector_fn<$u32, __m256i, __m256i, mask> {
+  inline mask operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask { _mm256_andnot_si256(_mm256_cmpeq_epi32(lhs, rhs), _mm256_set1_epi32(-1))};
+  }
+};
+
+template<>
+struct not_equal<$i64, __m256i, __m256i, mask> : vector_fn<$i64, __m256i, __m256i, mask> {
+  inline mask operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask { _mm256_andnot_si256(_mm256_cmpeq_epi64(lhs, rhs), _mm256_set1_epi64x(-1))};
+  }
+};
+
+template<>
+struct not_equal<$u64, __m256i, __m256i, mask> : vector_fn<$u64, __m256i, __m256i, mask> {
+  inline mask operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask { _mm256_andnot_si256(_mm256_cmpeq_epi64(lhs, rhs), _mm256_set1_epi64x(-1))};
   }
 };
 
