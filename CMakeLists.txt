@@ -24,6 +24,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         env.hpp
         hash.hpp
         index.hpp
+        like.hpp
         math.hpp
         mem.hpp
         polyfill.hpp
