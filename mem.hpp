@@ -1,5 +1,10 @@
 #pragma once
 
+// require NUMA support (for now)
+#if !defined(HAVE_NUMA)
+#define HAVE_NUMA
+#endif
+
 #include "adept.hpp"
 
 #include <cstring>
@@ -51,7 +56,7 @@ struct bitmask_wrap {
   ~bitmask_wrap() { if (ptr) numa_bitmask_free(ptr); };
 };
 
-bitmask_wrap
+inline bitmask_wrap
 get_hbm_nodemask() {
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
@@ -64,7 +69,7 @@ get_hbm_nodemask() {
   return bitmask_wrap(mask);
 }
 
-bitmask_wrap
+inline bitmask_wrap
 get_cpu_nodemask() {
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
@@ -77,7 +82,7 @@ get_cpu_nodemask() {
   return bitmask_wrap(mask);
 }
 
-bitmask_wrap
+inline bitmask_wrap
 get_all_nodemask() {
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
@@ -90,7 +95,7 @@ get_all_nodemask() {
 
 
 /// determine the NUMA node ids
-std::vector<$i32>
+inline std::vector<$i32>
 get_nodes() {
   std::vector<$i32> nodes;
 #if defined(HAVE_NUMA)
@@ -106,7 +111,7 @@ get_nodes() {
 
 
 /// determine the number of NUMA nodes
-i32
+inline i32
 get_node_count() {
 #if defined(HAVE_NUMA)
   return numa_num_configured_nodes();
@@ -117,7 +122,7 @@ get_node_count() {
 
 
 /// determine the NUMA node id of the given CPU id
-i32
+inline i32
 get_node_of_cpu(i32 cpu_id) {
 #if defined(HAVE_NUMA)
   i32 node_id = numa_node_of_cpu(cpu_id);
@@ -129,7 +134,7 @@ get_node_of_cpu(i32 cpu_id) {
 
 
 /// determine the node ids of HBM nodes
-std::vector<$i32>
+inline std::vector<$i32>
 get_cpu_nodes() {
   std::vector<$i32> cpu_nodes;
 #if defined(HAVE_NUMA)
@@ -153,7 +158,7 @@ get_cpu_nodes() {
 
 
 /// determine the node ids of HBM nodes
-std::vector<$i32>
+inline std::vector<$i32>
 get_hbm_nodes() {
   std::vector<$i32> hbm_nodes;
 #if defined(HAVE_NUMA)
@@ -177,14 +182,14 @@ get_hbm_nodes() {
 
 
 /// determine whether the system has HBM nodes
-u1
+inline u1
 hbm_available() {
   return get_hbm_nodes().size() > 0;
 }
 
 /// determine the HBM node that is nearest to the given node
 /// if HBM is not available, the given node id is returned.
-i32
+inline i32
 get_nearest_hbm_node(i32 numa_node_id) {
 #if defined(HAVE_NUMA)
   if (!hbm_available()) return numa_node_id;
@@ -204,7 +209,7 @@ get_nearest_hbm_node(i32 numa_node_id) {
 #endif
 }
 
-i32
+inline i32
 get_node_of_address(const void* addr) {
 #if defined(HAVE_NUMA)
   void* ptr_to_check = const_cast<void*>(addr); // TODO align ptr to page boundary
@@ -222,13 +227,19 @@ get_node_of_address(const void* addr) {
 #endif
 }
 
+
+/// the different memory allocation policies
 enum class allocation_policy {
-  interleaved,
+  /// thread local allocations (default)
   local,
+  /// allows to specify a node where to allocate memory
   on_node,
+  /// allows for interleaved allocation across specified nodes
+  interleaved,
 };
 
 
+/// parameters for the NUMA allocator instance
 class allocator_config {
 
   template<class T>
@@ -239,33 +250,39 @@ private:
   detail::bitmask_wrap node_mask;
   u32 numa_node;
 
-  // c'tor for interleaved allocation
+  /// c'tor for interleaved allocation
   allocator_config(detail::bitmask_wrap node_mask)
       : policy(allocation_policy::interleaved), node_mask(node_mask), numa_node(~u32(0)) { }
 
-  // c'tor for allocations on a specific node
+  /// c'tor for allocations on a specific node
   allocator_config(u32 numa_node)
       : policy(allocation_policy::on_node), node_mask(nullptr), numa_node(numa_node) { }
 
-  // c'tor for local allocations
+  /// c'tor for local allocations
   allocator_config()
       : policy(allocation_policy::local), node_mask(nullptr), numa_node(~u32(0)) { }
 
 
 public:
+  /// move c'tor
   allocator_config(allocator_config&& src) = default;
+  /// copy c'tor
   allocator_config(const allocator_config& src) = default;
 
+  /// interleaved memory allocation (also includes HBM nodes)
   static allocator_config
   interleave_all() {
     return allocator_config(detail::get_all_nodemask());
   }
 
+
+  /// interleaved memory allocations on nodes which contain CPUs.
   static allocator_config
   interleave_cpu() {
     return allocator_config(detail::get_cpu_nodemask());
   }
 
+  /// interleaved memory allocations on HMB nodes (Note: we assume all NUMA nodes that do not contain any CPUs as HBM nodes)
   static allocator_config
   interleave_hbm() {
     if (dtl::mem::hbm_available()) {
@@ -277,11 +294,13 @@ public:
     }
   }
 
+  /// allocate memory on the specified node only
   static allocator_config
   on_node(u32 numa_node) {
     return allocator_config(numa_node);
   }
 
+  /// allocate memory on the thread local node (default behavior)
   static allocator_config
   local() {
     return allocator_config();
@@ -319,11 +338,15 @@ struct numa_allocator {
 
   const allocator_config config;
 
+
+  /// c'tor
   numa_allocator() { }
 
+  /// c'tor (with user specified parameters)
   numa_allocator(allocator_config&& config)
       : config(std::move(config)) { }
 
+  /// copy c'tor
   template<class U>
   numa_allocator(const numa_allocator<U>& other)
       : config(other.config) { };
