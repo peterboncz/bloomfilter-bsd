@@ -23,7 +23,7 @@ struct base {
   static constexpr u64 length = N;
 };
 
-/// Recursive template to find the largest possible implementation.
+/// Recursive template to find the largest possible (native) vector implementation.
 template<typename Tp, u64 N>
 struct vs : vs<Tp, N / 2> {
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
@@ -334,6 +334,35 @@ struct v {
       set<is_compound>(result.data, false);
       return result;
     };
+
+
+    // Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
+    template<u1 Compound = false>
+    static inline $u64
+    to_positions(const nested_mask_type& mask, $u32* position_list, u32 offset) {
+      return mask.to_positions(position_list, offset);
+    }
+
+    // Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static inline $u64
+    to_positions(const compound_mask_type& compound_mask, $u32* position_list, u32 offset) {
+      $u32 match_cnt = 0;
+      $u32* match_writer = position_list;
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        u64 cnt = to_positions<!Compound>(compound_mask[i], match_writer, offset + (nested_vector_length * i));
+        match_cnt += cnt;
+        match_writer += cnt;
+      }
+      return match_cnt;
+    }
+
+    /// Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
+    inline $u64
+    to_positions($u32* position_list, u32 offset = 0) const {
+      return to_positions<is_compound>(data, position_list, offset);
+    }
+
 
 //    // Creates a mask instance from a bitset
 //    template<std::size_t Nb>

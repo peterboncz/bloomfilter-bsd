@@ -5,6 +5,8 @@
 #endif
 
 #include "../adept.hpp"
+#include <dtl/bits.hpp>
+
 #include "immintrin.h"
 
 namespace dtl {
@@ -30,6 +32,20 @@ struct mask16 {
   inline mask16 bit_or(const mask16& o) const { return mask16 { _mm512_kor(data, o.data) }; };
   inline mask16 bit_xor(const mask16& o) const { return mask16 { _mm512_kxor(data, o.data) }; };
   inline mask16 bit_not() const { return mask16 { _mm512_knot(data) }; };
+
+  inline $u64
+  to_positions($u32* positions, $u32 offset) const {
+    // TODO SIMDfication
+    $u32 bitmask = data;
+    $u32* writer = positions;
+    for ($u32 m = _mm_popcnt_u32(bitmask); m > 0; m--) {
+      $u32 bit_pos = dtl::bits::tz_count(bitmask);
+      *writer = bit_pos + offset;
+      bitmask = _blsr_u32(bitmask);
+      writer++;
+    }
+    return writer - positions;
+  }
 };
 
 //    __mmask8

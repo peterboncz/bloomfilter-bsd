@@ -137,12 +137,40 @@ TEST(vec, gather) {
   }
 
   act = act + 1;
-//  exp.store(&arr[0], act);
   dtl::scatter(act, &arr[0], exp);
   for ($u64 i = 0; i < vec_len; i++) {
     ASSERT_EQ(exp[i] + 1, act[i]);
   }
 }
+
+
+//// TODO implement gather of non 64-bit types
+//TEST(vec, gather_from_absolute_addresses) {
+//  u64 vec_len = simd::lane_count<$i64> * 2;
+//  using vec_t = v<$u64, vec_len>;
+//  using ptr_vt = v<$u64, vec_len>;
+//
+//  u64 arr_len = 128;
+//  std::array<$u64, arr_len> arr;
+//  for ($u64 i = 0; i < arr_len; i++) {
+//    arr[i] = i;
+//  }
+//
+//  vec_t exp = vec_t::make_index_vector() * 4;
+//
+//  ptr_vt addrs = ptr_vt::make(reinterpret_cast<$u64>(&arr[0]));
+//  addrs += ptr_vt::make_index_vector() * 4 * sizeof(i32);
+//  vec_t act = dtl::gather<$u64>(addrs);
+//  for ($u64 i = 0; i < vec_len; i++) {
+//    ASSERT_EQ(exp[i], act[i]);
+//  }
+//
+////  act = act + 1;
+////  dtl::scatter(act, &arr[0], exp);
+////  for ($u64 i = 0; i < vec_len; i++) {
+////    ASSERT_EQ(exp[i] + 1, act[i]);
+////  }
+//}
 
 TEST(vec, masked_operation_assign) {
   u64 vec_len = simd::lane_count<$i32> * 2;
@@ -204,5 +232,29 @@ TEST(vec, masked_unary_operation) {
   for ($i32 i = 0; i < vec_len; i++) {
     auto exp_val = i > 2 ? -i : i;
     ASSERT_EQ(exp_val, r[i]);
+  }
+}
+
+TEST(vec, mask_to_32bit_positions) {
+  constexpr u64 vec_len = simd::lane_count<$i32> * 2;
+  $u32 positions[vec_len];
+
+  using vec_t = v<$i32, vec_len>;
+  vec_t a = vec_t::make_index_vector();
+  vec_t b = vec_t::make(2);
+
+  vec_t::mask mask = a > b;
+
+  u64 match_cnt = mask.to_positions(positions);
+
+  u64 expected_match_cnt = vec_len - 3;
+  ASSERT_EQ(expected_match_cnt, match_cnt);
+
+  $u32* reader = positions;
+  for ($i32 i = 0; i < vec_len; i++) {
+    if (i > 2) {
+      ASSERT_EQ(i, *reader) << " reader pos = " << (reader - positions);
+      reader++;
+    }
   }
 }

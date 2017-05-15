@@ -5,6 +5,7 @@
 #endif
 
 #include "../adept.hpp"
+#include <dtl/bits.hpp>
 
 #include "immintrin.h"
 
@@ -29,6 +30,7 @@ struct mask {
   inline void set(u64 idx, u1 value) {
     i32 v = value ? -1 : 0;
     switch (idx) {
+      // TODO support other types than 32-bit integer
       case 0: data = _mm256_insert_epi32(data, v, 0); break;
       case 1: data = _mm256_insert_epi32(data, v, 1); break;
       case 2: data = _mm256_insert_epi32(data, v, 2); break;
@@ -57,6 +59,21 @@ struct mask {
   inline mask bit_or(const mask& o) const { return mask { _mm256_or_si256(data, o.data) }; };
   inline mask bit_xor(const mask& o) const { return mask { _mm256_xor_si256(data, o.data) }; };
   inline mask bit_not() const { return mask { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
+
+  inline $u64
+  to_positions($u32* positions, $u32 offset) const {
+    // TODO consider SIMDfication using a LUT
+    $u32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
+    $u32* writer = positions;
+    for ($u32 m = _mm_popcnt_u32(bitmask); m > 0; m--) {
+      $u32 bit_pos = dtl::bits::tz_count(bitmask);
+      *writer = bit_pos + offset;
+      bitmask = _blsr_u32(bitmask);
+      writer++;
+    }
+    return writer - positions;
+  }
+
 };
 
 } // anonymous namespace
