@@ -237,10 +237,15 @@ TEST(vec, masked_unary_operation) {
 
 TEST(vec, mask_to_32bit_positions) {
   constexpr u64 vec_len = simd::lane_count<$i32> * 2;
+
   $u32 positions[vec_len];
+  alignas(64) $i32 input[vec_len];
+  for ($i32 i = 0; i < vec_len; i++) {
+    input[i] = i;
+  }
 
   using vec_t = v<$i32, vec_len>;
-  vec_t a = vec_t::make_index_vector();
+  vec_t& a = reinterpret_cast<vec_t&>(input);
   vec_t b = vec_t::make(2);
 
   vec_t::mask mask = a > b;

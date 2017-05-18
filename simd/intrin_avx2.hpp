@@ -17,17 +17,17 @@ namespace {
 //template<u32 L>
 struct mask {
   __m256i data;
-  inline u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-  inline u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-  inline u1 none() const { return _mm256_movemask_epi8(data) == 0; };
-  inline void set(u1 value) {
+  forceinline u1 all() const { return _mm256_movemask_epi8(data) == -1; };
+  forceinline u1 any() const { return _mm256_movemask_epi8(data) != 0; };
+  forceinline u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+  forceinline void set(u1 value) {
     if (value) {
       data = _mm256_set1_epi64x(-1);
     } else {
       data = _mm256_set1_epi64x(0);
     }
   }
-  inline void set(u64 idx, u1 value) {
+  forceinline void set(u64 idx, u1 value) {
     i32 v = value ? -1 : 0;
     switch (idx) {
       // TODO support other types than 32-bit integer
@@ -42,7 +42,7 @@ struct mask {
       default: unreachable();
     }
   };
-  inline u1 get(u64 idx) const {
+  forceinline u1 get(u64 idx) const {
     switch (idx) {
       case 0: return _mm256_extract_epi32(data, 0) != 0;
       case 1: return _mm256_extract_epi32(data, 1) != 0;
@@ -55,23 +55,40 @@ struct mask {
       default: unreachable();
     }
   };
-  inline mask bit_and(const mask& o) const { return mask { _mm256_and_si256(data, o.data) }; };
-  inline mask bit_or(const mask& o) const { return mask { _mm256_or_si256(data, o.data) }; };
-  inline mask bit_xor(const mask& o) const { return mask { _mm256_xor_si256(data, o.data) }; };
-  inline mask bit_not() const { return mask { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
+  forceinline mask bit_and(const mask& o) const { return mask { _mm256_and_si256(data, o.data) }; };
+  forceinline mask bit_or(const mask& o) const { return mask { _mm256_or_si256(data, o.data) }; };
+  forceinline mask bit_xor(const mask& o) const { return mask { _mm256_xor_si256(data, o.data) }; };
+  forceinline mask bit_not() const { return mask { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
 
-  inline $u64
+//  forceinline $u64
+//  to_positions($u32* positions, $u32 offset) const {
+//    const __m256i zero = _mm256_setzero_si256();
+//    if (_mm256_testc_si256(zero, data)) return 0;
+//
+//    // TODO consider SIMDfication using a LUT
+//    $u32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
+////    if (bitmask == 0) return 0;
+//    $u32* writer = positions;
+//    for ($u32 m = _mm_popcnt_u32(bitmask); m > 0; m--) {
+//      $u32 bit_pos = dtl::bits::tz_count(bitmask);
+//      *writer = bit_pos + offset;
+//      bitmask = _blsr_u32(bitmask);
+//      writer++;
+//    }
+//    return writer - positions;
+//  }
+
+  forceinline $u64
   to_positions($u32* positions, $u32 offset) const {
-    // TODO consider SIMDfication using a LUT
-    $u32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
-    $u32* writer = positions;
-    for ($u32 m = _mm_popcnt_u32(bitmask); m > 0; m--) {
-      $u32 bit_pos = dtl::bits::tz_count(bitmask);
-      *writer = bit_pos + offset;
-      bitmask = _blsr_u32(bitmask);
-      writer++;
-    }
-    return writer - positions;
+//    const __m256i zero = _mm256_setzero_si256();
+//    if (_mm256_testc_si256(zero, data)) return 0;
+
+    const __m256i offset_vec = _mm256_set1_epi32(offset);
+    i32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
+    const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
+    const __m256i pos_vec = _mm256_add_epi32(offset_vec, match_pos_vec.i);
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(positions), pos_vec);
+    return dtl::simd::lut_match_cnt[bitmask];
   }
 
 };
@@ -113,11 +130,11 @@ struct vs<$u64, 4> : base<$u64, 4> {
 template<>                                             \
 struct broadcast<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  forceinline typename fn::vector_type                 \
   operator()(const typename fn::value_type& a) const noexcept { \
     return IntrinFn(a);                                \
   }                                                    \
-  inline typename fn::vector_type                      \
+  forceinline typename fn::vector_type                 \
   operator()(const typename fn::value_type& a,         \
              const typename fn::vector_type& src,      \
              const mask m) const noexcept {       \
@@ -136,7 +153,7 @@ __GENERATE($u64, __m256i, $u64, _mm256_set1_epi64x)
 template<>                                             \
 struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {     \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  forceinline typename fn::vector_type                 \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::vector_type& b,        \
              const mask m) const noexcept {            \
@@ -153,7 +170,7 @@ __GENERATE_BLEND($u64, __m256i, __m256i, _mm256_blendv_epi8)
 
 template<>
 struct set<$i32, __m256i, $i32> : vector_fn<$i32, __m256i, $i32> {
-  inline __m256i operator()(const $i32& a) const noexcept {
+  forceinline __m256i operator()(const $i32& a) const noexcept {
     return _mm256_set1_epi32(a);
   }
 };

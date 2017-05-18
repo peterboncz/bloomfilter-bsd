@@ -6,6 +6,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/intrin_avx512.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/intrin_sse.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/intrin_x64.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/types.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/vec.hpp
 
     PARENT_SCOPE)

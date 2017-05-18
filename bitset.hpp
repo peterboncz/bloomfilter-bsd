@@ -5,8 +5,8 @@
 #include <sstream>
 #include <string>
 
-#include <dtl/bits.hpp>
 #include <dtl/dtl.hpp>
+#include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 
 namespace dtl {
@@ -105,6 +105,11 @@ struct bitset {
       case uninitialized:
         break;
     }
+  }
+
+  bitset(word_t val) {
+    reset();
+    words[0] = val;
   }
 
   bitset(const bitset& other, const u1 flip = false) {

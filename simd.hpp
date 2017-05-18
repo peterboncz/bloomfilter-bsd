@@ -39,6 +39,7 @@ namespace simd {
 } // namespace dtl
 
 
+#include "simd/types.hpp"
 #include "simd/vec.hpp"
 
 

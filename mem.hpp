@@ -31,6 +31,12 @@ constexpr u1 has_numa_support =
                                 false;
 #endif
 
+/// Checks, whether a pointer is aligned (to n bytes).
+template<typename T>
+inline u1
+is_aligned(const T* const ptr, u64 n = alignof(T)) {
+  return (reinterpret_cast<uintptr_t>(ptr) % n) == 0 ;
+}
 
 namespace detail {
 
