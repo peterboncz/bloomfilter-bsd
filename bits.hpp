@@ -1,8 +1,5 @@
 #pragma once
 
-#include <bitset>
-#include <string>
-
 #include <dtl/dtl.hpp>
 
 #if defined(__BMI__)
@@ -60,6 +57,7 @@ extract(u64 a, u32 start, u32 len) {
   return (a >> start) & ((u64(1) << len) - 1);
 #endif
 }
+
 
 } // namespace bits
 
