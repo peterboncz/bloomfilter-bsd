@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <array>
 
+#include <boost/align/aligned_allocator.hpp>
+
 
 // type aliases for more concise code
 using i1 = const bool;
@@ -106,6 +108,12 @@ struct array_info<std::array<T, N>> {
   #if !defined(forceinline)
   #define forceinline
   #endif
+#endif
+
+#if defined(NDEBUG)
+  #define unroll_loops __attribute__((optimize("unroll-loops")))
+#else
+  #define unroll_loops
 #endif
 
 // add missing operator function objects
@@ -225,3 +233,14 @@ print(const std::vector<bool>& v) {
 #define __restrict__
 #endif
 // ---
+
+
+namespace dtl {
+
+template<typename T, std::size_t A = 64>
+using aligned_vector = std::vector<T, boost::alignment::aligned_allocator<T, A>>;
+
+//template<typename T, std::size_t L>
+//using aligned_array = alignas(64) std::array<T, L>; //FIXME
+
+} // namespace dtl

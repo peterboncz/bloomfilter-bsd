@@ -1,16 +1,10 @@
 #include "gtest/gtest.h"
-#include "../adept.hpp"
-#include "../bloomfilter.hpp"
-#include "../hash.hpp"
-#include "../simd.hpp"
 
-#include <atomic>
-#include <chrono>
-
-#include "../thread.hpp"
+#include <dtl/dtl.hpp>
+#include <dtl/bloomfilter.hpp>
+#include <dtl/simd.hpp>
 
 using namespace dtl;
-
 
 TEST(bloom, vectorization) {
   using key_t = $u32;

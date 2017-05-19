@@ -80,6 +80,7 @@ struct mask {
 
   forceinline $u64
   to_positions($u32* positions, $u32 offset) const {
+    // only makes sence for unselective queries
 //    const __m256i zero = _mm256_setzero_si256();
 //    if (_mm256_testc_si256(zero, data)) return 0;
 
@@ -88,6 +89,7 @@ struct mask {
     const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
     const __m256i pos_vec = _mm256_add_epi32(offset_vec, match_pos_vec.i);
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(positions), pos_vec);
+    // TODO consider using popcnt instead
     return dtl::simd::lut_match_cnt[bitmask];
   }
 
