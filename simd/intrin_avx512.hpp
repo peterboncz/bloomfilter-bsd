@@ -4,7 +4,7 @@
 #error "Never use <dtl/simd/intrin_avx512.hpp> directly; include <dtl/simd.hpp> instead."
 #endif
 
-#include "../adept.hpp"
+#include <dtl/dtl.hpp>
 #include <dtl/bits.hpp>
 
 #include "immintrin.h"
@@ -24,27 +24,22 @@ struct mask16 {
   }
   inline void set(u64 idx, u1 value) {
     data = __mmask16(1) << idx;
-  };
+  }
   inline u1 get(u64 idx) const {
     return (data & (__mmask16(1) << idx)) != __mmask16(0);
-  };
-  inline mask16 bit_and(const mask16& o) const { return mask16 { _mm512_kand(data, o.data) }; };
-  inline mask16 bit_or(const mask16& o) const { return mask16 { _mm512_kor(data, o.data) }; };
-  inline mask16 bit_xor(const mask16& o) const { return mask16 { _mm512_kxor(data, o.data) }; };
-  inline mask16 bit_not() const { return mask16 { _mm512_knot(data) }; };
+  }
+  inline mask16 bit_and(const mask16& o) const { return mask16 { _mm512_kand(data, o.data) }; }
+  inline mask16 bit_or(const mask16& o) const { return mask16 { _mm512_kor(data, o.data) }; }
+  inline mask16 bit_xor(const mask16& o) const { return mask16 { _mm512_kxor(data, o.data) }; }
+  inline mask16 bit_not() const { return mask16 { _mm512_knot(data) }; }
 
   inline $u64
   to_positions($u32* positions, $u32 offset) const {
-    // TODO SIMDfication
-    $u32 bitmask = data;
-    $u32* writer = positions;
-    for ($u32 m = _mm_popcnt_u32(bitmask); m > 0; m--) {
-      $u32 bit_pos = dtl::bits::tz_count(bitmask);
-      *writer = bit_pos + offset;
-      bitmask = _blsr_u32(bitmask);
-      writer++;
-    }
-    return writer - positions;
+    if (data == 0) return 0;
+    static const __m512i sequence = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    const __m512i seq = _mm512_add_epi64(sequence, _mm512_set1_epi32(offset));
+    _mm512_mask_compressstoreu_epi32(positions, data, seq);
+    return dtl::bits::pop_count(static_cast<u32>(data));
   }
 };
 
