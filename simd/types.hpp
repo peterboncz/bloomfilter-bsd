@@ -57,6 +57,7 @@ union r256 {
 
 namespace simd {
 
+/// lookup table used to convert a mask into a 32-bit position list
 constexpr dtl::r128 lut_match_pos[256] = {
     { .i16 = { -1, -1, -1, -1, -1, -1, -1, -1 } }, // 0
     { .i16 = { 0, -1, -1, -1, -1, -1, -1, -1 } }, // 1
@@ -329,5 +330,28 @@ constexpr u8 lut_match_cnt[256] = {
 } // namespace simd
 
 #endif // defined(__AVX2__)
+
+#if defined(__AVX512F__)
+union r512 {
+  $u64 u64[8];
+  $i64 i64[8];
+
+  $u32 u32[16];
+  $i32 i32[16];
+
+  $u16 u16[32];
+  $i16 i16[32];
+
+  $u8 u8[64];
+  $i8 i8[64];
+
+  __m512i i; // integer data
+  __m512  s; // single precision floating point data
+  __m512d d; // double precision floating point data
+
+  dtl::r256 r256[2];
+  dtl::r128 r128[4];
+};
+#endif // defined(__AVX512F__)
 
 } // namespace dtl
