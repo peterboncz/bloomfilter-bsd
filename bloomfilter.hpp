@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
 
 #include <dtl/dtl.hpp>
@@ -11,10 +12,13 @@
 
 namespace dtl {
 
-template<typename Tk,   // the key type
-    template<typename Ty> class HashFn,  // the hash function to use
-    typename Tw = u64,  // the word type to use for the bitset
-    typename Alloc = std::allocator<Tw>>
+template<typename Tk,      // the key type
+    template<typename Ty> class HashFn,     // the hash function to use
+    typename Tw = u64,     // the word type to use for the bitset
+    typename Alloc = std::allocator<Tw>,
+    u32 K = 2,             // the number of hash functions to use
+    u1 Sectorized = false
+    >
 struct bloomfilter {
 
   using key_t = typename std::remove_cv<Tk>::type;
@@ -36,26 +40,26 @@ struct bloomfilter {
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
 
-
   // the number of hash functions to use
-  static constexpr u32 k = 2; // TODO hardcoded for now, should be a template parameter
+  static constexpr u32 k = K;
 
   // split each word into multiple sectors (sub words, with a length of a power of two)
-  // note that sectorization is a specialization. having a only one sector = no sectorization
-  static constexpr u1 sectorized = false; // TODO hardcoded for now, should be a template parameter
-  static constexpr u32 sector_cnt = sectorized
-                                    ? ((word_bitlength / k) > 0
-                                       ? dtl::next_power_of_two(word_bitlength / k)
-                                       : 0
-                                      )
-                                    : 1;
-  static_assert(sector_cnt > 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
+  // note that sectorization is a specialization. having only one sector = no sectorization
+  static constexpr u1 sectorized = Sectorized;
+  static constexpr u32 compute_sector_cnt() {
+    if (!sectorized) return 1;
+    u32 k_pow_2 = dtl::next_power_of_two(k);
+    static_assert((word_bitlength / k_pow_2) != 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
+    return word_bitlength / (word_bitlength / k_pow_2);
+  }
+  static constexpr u32 sector_cnt = compute_sector_cnt();
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
-  static_assert(sector_bitlength > 0, "The number of sectors must not exceed the bitlength of a processor word.");
   // the number of bits needed to address the individual bits within a sector
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2<sector_bitlength>::value;
   static constexpr word_t sector_mask() { return sector_bitlength - 1; } // a function, to work around a compiler bug
 
+  static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? k * sector_bitlength_log2 : k * word_bitlength_log2);
+  static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // members
   size_t length_mask; // the length of the bitvector (length_mask + 1) is not stored explicitly
@@ -64,12 +68,12 @@ struct bloomfilter {
   std::vector<word_t, Alloc> word_array;
 
 
-  bloomfilter(size_t length, Alloc allocator = Alloc())
+  bloomfilter(const size_t length, const Alloc allocator = Alloc())
       : length_mask(next_power_of_two(length) - 1),
         word_cnt_log2(dtl::log_2(next_power_of_two(length) / word_bitlength)),
         allocator(allocator),
         word_array(next_power_of_two(length) / word_bitlength, 0, this->allocator) {
-    assert(length < u64(1) << 32);
+    if (length > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
   /// creates a copy of the bloomfilter (allows to specify a different allocator)
@@ -92,7 +96,7 @@ struct bloomfilter {
   }
 
 
-  forceinline unroll_loops  //  __attribute__((optimize("hot")))
+  forceinline unroll_loops
   word_t
   which_bits(const hash_value_t hash_val) const noexcept {
     word_t word = 0;

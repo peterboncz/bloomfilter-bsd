@@ -148,6 +148,10 @@ constexpr u64 next_power_of_two(u64 value) {
   return 1ull << ((sizeof(u64) << 3) - __builtin_clzll(value - 1));
 }
 
+constexpr u64 prev_power_of_two(u64 value) {
+  return next_power_of_two(value) >> 1;
+}
+
 struct trunc {
   static size_t byte(uint64_t max) {
     if (!max) return 0;
