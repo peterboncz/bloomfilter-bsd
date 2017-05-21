@@ -42,7 +42,20 @@ struct knuth_32 {
   __host__ __device__
   static inline Ty
   hash(const Ty& key) {
-    Ty knuth = 2654435769u;
+    Ty knuth = 2654435769u; // 0b10011110001101110111100110111001
+    return (key * knuth) >> (32 - p);
+  }
+};
+
+
+template<typename T, u32 p = 32>
+struct knuth_32_alt {
+  using Ty = typename std::remove_cv<T>::type;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    Ty knuth = 1799596469u; // 0b01101011010000111010100110110101
     return (key * knuth) >> (32 - p);
   }
 };
@@ -52,6 +65,32 @@ template<typename T>
 struct knuth {
   using Ty = typename std::remove_cv<T>::type;
   using F = knuth_32<T, 32>;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return F::hash(key);
+  }
+};
+
+
+template<typename T>
+struct knuth_alt {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = knuth_32_alt<T, 32>;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return F::hash(key);
+  }
+};
+
+
+template<typename T>
+struct knuth64 {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = knuth_32<T, 64>;
 
   __host__ __device__
   static inline Ty
@@ -91,6 +130,19 @@ struct murmur1_32 {
     h *= m;
     h ^= h >> 17;
     return h;
+  }
+};
+
+
+template<typename T>
+struct murmur_32 {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = murmur1_32<T>;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return F::hash(key);
   }
 };
 

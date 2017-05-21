@@ -1,21 +1,47 @@
 cmake_minimum_required(VERSION 3.5)
 project(dtl_tester)
 
-set(DEFAULT_ARCH -march=core-avx2)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+#set(DEFAULT_ARCH -march=knl)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=knl")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
 
 # build optimized executables for the following architectures
 set(ARCHS
-        core-avx2
         knl
+        core-avx2
         )
+
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+set(LIBS
+        gtest
+        gtest_main
+        pthread
+        )
+
+# check for NUMA support
+find_package(NUMA)
+if (NUMA_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_NUMA")
+    set(LIBS ${LIBS} numa)
+endif (NUMA_FOUND)
+
+# check for CUDA support
+find_package(CUDA)
+if (CUDA_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_CUDA")
+    # TODO add CUDA libs
+endif (CUDA_FOUND)
+
 
 # replacement for 'add_executable'
 function(add_multiarch_executable executable_name files)
     foreach(arch ${ARCHS})
         add_executable(${executable_name}_${arch} ${files})
         set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
-        target_link_libraries(${executable_name}_${arch} gtest gtest_main pthread numa)
+        target_link_libraries(${executable_name}_${arch} ${LIBS})
     endforeach(arch ${ARCHS})
 endfunction(add_multiarch_executable)
 
@@ -28,11 +54,12 @@ include_directories(SYTEM ../../)
 
 
 set(TEST_FILES
-        bitmask_test.cpp
-        bitpack_test.cpp
-        bloomfilter_test.cpp
-        mem_test.cpp
-        vec_test.cpp
+#        bitmask_test.cpp
+#        bitpack_test.cpp
+#        bloomfilter_test.cpp
+#        mem_test.cpp
+#        vec_test.cpp
+        like_test.cpp
         )
 add_multiarch_executable(dtl_tester ${TEST_FILES})
 
@@ -78,3 +105,14 @@ set(BITSET_TEST_FILES
         bitset_test.cpp
         )
 add_multiarch_executable(bitset_tester ${BITSET_TEST_FILES})
+
+
+set(MEM_TEST_FILES
+        mem_test.cpp
+        )
+add_multiarch_executable(mem_tester ${MEM_TEST_FILES})
+
+#set(LUT_TEST_FILES
+#        lut_test.cpp
+#        )
+#add_multiarch_executable(lut_tester ${LUT_TEST_FILES})

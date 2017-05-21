@@ -13,7 +13,9 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         bits.hpp
         bloomfilter.hpp
+        bloomfilter2.hpp
         bloomfilter_vec.hpp
+        bloomfilter2_vec.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp
@@ -25,6 +27,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         hash.hpp
         index.hpp
         like.hpp
+        lockstripe.hpp
         math.hpp
         mem.hpp
         polyfill.hpp
@@ -42,6 +45,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        compression/lz4hc.h
 #        compression/lz4hc.c
         )
+
 
 add_library(dtl ${SOURCE_FILES})
 target_include_directories(dtl PUBLIC . )

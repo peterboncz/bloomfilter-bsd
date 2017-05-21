@@ -13,13 +13,14 @@
 namespace dtl {
 
 template<typename Tk,      // the key type
-    template<typename Ty> class HashFn,     // the hash function to use
+    template<typename Ty> class HashFn,     // the first hash function to use
+    template<typename Ty> class HashFn2,    // the second hash function to use
     typename Tw = u64,     // the word type to use for the bitset
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
     u1 Sectorized = false
-    >
-struct bloomfilter {
+>
+struct bloomfilter2 {
 
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
@@ -36,12 +37,16 @@ struct bloomfilter {
 
 
   // inspect the given hash function
+  static_assert(
+      std::is_same<decltype(HashFn<key_t>::hash(0)), decltype(HashFn2<key_t>::hash(0))>::value,
+      "The two hash functions must return the same type.");
   using hash_value_t = decltype(HashFn<key_t>::hash(0));
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
 
   // the number of hash functions to use
   static constexpr u32 k = K;
+  static_assert(k > 1, "Parameter 'k' must be at least '2'.");
 
   // split each word into multiple sectors (sub words, with a length of a power of two)
   // note that sectorization is a specialization. having only one sector = no sectorization
@@ -56,9 +61,11 @@ struct bloomfilter {
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
   // the number of bits needed to address the individual bits within a sector
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2<sector_bitlength>::value;
-  static constexpr word_t sector_mask() { return sector_bitlength - 1; } // a function, to work around a compiler bug
+//  static constexpr word_t sector_mask() { return sector_bitlength_log2 - 1; } // a function, to work around a compiler bug
+  static constexpr word_t sector_mask() { return sector_bitlength - 1; }
 
-  static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? k * sector_bitlength_log2 : k * word_bitlength_log2);
+  // the number of remaining bits of the FIRST hash value (used to identify the word)
+  static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? sector_bitlength_log2 : word_bitlength_log2);
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // members
@@ -68,7 +75,7 @@ struct bloomfilter {
   std::vector<word_t, Alloc> word_array;
 
 
-  bloomfilter(const size_t length, const Alloc allocator = Alloc())
+  bloomfilter2(const size_t length, const Alloc allocator = Alloc())
       : length_mask(next_power_of_two(length) - 1),
         word_cnt_log2(dtl::log_2(next_power_of_two(length) / word_bitlength)),
         allocator(allocator),
@@ -78,9 +85,9 @@ struct bloomfilter {
 
   /// creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter<Tk, HashFn, Tw, AllocOfCopy>
+  bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) {
-    using return_t = bloomfilter<Tk, HashFn, Tw, AllocOfCopy>;
+    using return_t = bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy>;
     return_t bf_copy(this->length_mask + 1, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
@@ -98,11 +105,13 @@ struct bloomfilter {
 
   forceinline unroll_loops
   word_t
-  which_bits(const hash_value_t hash_val) const noexcept {
-    word_t word = 0;
-    for (size_t i = 0; i < k; i++) {
-      const u32 bit_idx = (hash_val >> (i * sector_bitlength_log2)) & sector_mask();
-      word |= word_t(1) << (bit_idx + (i * sector_bitlength));
+  which_bits(const hash_value_t first_hash_val,
+             const hash_value_t second_hash_val) const noexcept {
+    // take the LSBs of first hash value
+    word_t word = word_t(1) << (first_hash_val & sector_mask());
+    for (size_t i = 0; i < k - 1; i++) {
+      const u32 bit_idx = (second_hash_val >> (i * sector_bitlength_log2)) & sector_mask();
+      word |= word_t(1) << (bit_idx + ((i + 1) * sector_bitlength));
     }
     return word;
   }
@@ -110,19 +119,21 @@ struct bloomfilter {
 
   forceinline void
   insert(const key_t& key) noexcept {
-    const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val);
+    const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
+    const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
+    u32 word_idx = which_word(first_hash_val);
     word_t word = word_array[word_idx];
-    word |= which_bits(hash_val);
+    word |= which_bits(first_hash_val, second_hash_val);
     word_array[word_idx] = word;
   }
 
 
   forceinline u1
   contains(const key_t& key) const noexcept {
-    const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val);
-    const word_t search_mask = which_bits(hash_val);
+    const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
+    const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
+    u32 word_idx = which_word(first_hash_val);
+    const word_t search_mask = which_bits(first_hash_val, second_hash_val);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
 
