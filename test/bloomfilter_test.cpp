@@ -24,18 +24,24 @@ template<typename bf_t>
 void
 print_info(const bf_t& bf) {
   std::cout << "-- bloomfilter parameters --" << std::endl;
-  std::cout << "k:                    " << bf_t::k << std::endl;
-  std::cout << "word bitlength:       " << bf_t::word_bitlength << std::endl;
-  std::cout << "hash value bitlength: " << bf_t::hash_value_bitlength << std::endl;
-  std::cout << "sectorized:           " << (bf_t::sectorized ? "true" : "false") << std::endl;
-  std::cout << "sector count:         " << bf_t::sector_cnt << std::endl;
-  std::cout << "sector bitlength:     " << bf_t::sector_bitlength << std::endl;
-  std::cout << "hash bits per sector: " << bf_t::sector_bitlength_log2 << std::endl;
-  std::cout << "hash bits per word:   " << (bf_t::k * bf_t::sector_bitlength_log2) << std::endl;
-  std::cout << "hash bits wasted:     " << (bf_t::sectorized ? (bf_t::word_bitlength - (bf_t::sector_bitlength * bf_t::k)) : 0) << std::endl;
-  std::cout << "remaining hash bits:  " << bf_t::remaining_hash_bit_cnt << std::endl;
-  std::cout << "max m:                " << bf_t::max_m << std::endl;
-  std::cout << "max size [MiB]:       " << (bf_t::max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
+  std::cout << "static" << std::endl;
+  std::cout << "  k:                    " << bf_t::k << std::endl;
+  std::cout << "  word bitlength:       " << bf_t::word_bitlength << std::endl;
+  std::cout << "  hash value bitlength: " << bf_t::hash_value_bitlength << std::endl;
+  std::cout << "  sectorized:           " << (bf_t::sectorized ? "true" : "false") << std::endl;
+  std::cout << "  sector count:         " << bf_t::sector_cnt << std::endl;
+  std::cout << "  sector bitlength:     " << bf_t::sector_bitlength << std::endl;
+  std::cout << "  hash bits per sector: " << bf_t::sector_bitlength_log2 << std::endl;
+  std::cout << "  hash bits per word:   " << (bf_t::k * bf_t::sector_bitlength_log2) << std::endl;
+  std::cout << "  hash bits wasted:     " << (bf_t::sectorized ? (bf_t::word_bitlength - (bf_t::sector_bitlength * bf_t::k)) : 0) << std::endl;
+  std::cout << "  remaining hash bits:  " << bf_t::remaining_hash_bit_cnt << std::endl;
+  std::cout << "  max m:                " << bf_t::max_m << std::endl;
+  std::cout << "  max size [MiB]:       " << (bf_t::max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
+  std::cout << "dynamic" << std::endl;
+  std::cout << "  actual m:             " << (bf.length_mask + 1) << std::endl;
+  std::cout << "  actual size [MiB]:    " << ((bf.length_mask + 1) / 8.0 / 1024.0 / 1024.0 ) << std::endl;
+  std::cout << "  population count:     " << bf.popcnt() << std::endl;
+  std::cout << "  load factor:          " << bf.load_factor() << std::endl;
 }
 
 TEST(bloomfilter, sectorization_compile_time_asserts) {
@@ -158,7 +164,8 @@ TEST(bloomfilter, wrapper) {
     ASSERT_FALSE(bf_wrapper.contains(1337)) << "k = " << i;
     bf_wrapper.insert(1337);
     ASSERT_TRUE(bf_wrapper.contains(1337)) << "k = " << i;
-    std::cout << bf_wrapper.load_factor() << std::endl;
+    bf_wrapper.print_info();
+    std::cout << std::endl;
     bf_wrapper.destruct();
   }
 }

@@ -39,6 +39,9 @@ struct bloomfilter_runtime_t {
   std::function<f64()>
   load_factor;
 
+  std::function<void()>
+  print_info;
+
   // the supported bloomfilter implementations
   using bf_k1_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
   using bf_k2_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
@@ -79,6 +82,7 @@ struct bloomfilter_runtime_t {
     contains = std::bind(&bf_t::contains, bf, _1);
     batch_contains = std::bind(&bf_vt::template batch_contains<vector_length>, bf_v, _1, _2, _3, _4);
     load_factor = std::bind(&bf_t::load_factor, bf);
+    print_info = std::bind(&bf_t::print_info, bf);
   }
 
   template<

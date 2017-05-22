@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -18,7 +19,7 @@ template<typename Tk,      // the key type
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
     u1 Sectorized = false
-    >
+>
 struct bloomfilter {
 
   using key_t = typename std::remove_cv<Tk>::type;
@@ -75,6 +76,7 @@ struct bloomfilter {
         word_array(next_power_of_two(length) / word_bitlength, 0, this->allocator) {
     if (length > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
+
 
   /// creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
@@ -140,6 +142,37 @@ struct bloomfilter {
     f64 m = length_mask + 1;
     return popcnt() / m;
   }
+
+
+  void
+  print_info() const noexcept {
+    std::cout << "-- bloomfilter parameters --" << std::endl;
+    std::cout << "static" << std::endl;
+    std::cout << "  k:                    " << k << std::endl;
+    std::cout << "  word bitlength:       " << word_bitlength << std::endl;
+    std::cout << "  hash value bitlength: " << hash_value_bitlength << std::endl;
+    std::cout << "  sectorized:           " << (sectorized ? "true" : "false") << std::endl;
+    std::cout << "  sector count:         " << sector_cnt << std::endl;
+    std::cout << "  sector bitlength:     " << sector_bitlength << std::endl;
+    std::cout << "  hash bits per sector: " << sector_bitlength_log2 << std::endl;
+    std::cout << "  hash bits per word:   " << (k * sector_bitlength_log2) << std::endl;
+    std::cout << "  hash bits wasted:     " << (sectorized ? (word_bitlength - (sector_bitlength * k)) : 0) << std::endl;
+    std::cout << "  remaining hash bits:  " << remaining_hash_bit_cnt << std::endl;
+    std::cout << "  max m:                " << max_m << std::endl;
+    std::cout << "  max size [MiB]:       " << (max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
+    std::cout << "dynamic" << std::endl;
+    std::cout << "  m:                    " << (length_mask + 1) << std::endl;
+    f64 size_MiB = (length_mask + 1) / 8.0 / 1024.0 / 1024.0;
+    if (size_MiB < 1) {
+      std::cout << "  size [KiB]:           " << (size_MiB * 1024) << std::endl;
+    }
+    else {
+      std::cout << "  size [MiB]:           " << size_MiB << std::endl;
+    }
+    std::cout << "  population count:     " << popcnt() << std::endl;
+    std::cout << "  load factor:          " << load_factor() << std::endl;
+  }
+
 
 };
 
