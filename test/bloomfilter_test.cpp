@@ -3,6 +3,7 @@
 #include <bitset>
 
 #include <dtl/dtl.hpp>
+#include <dtl/bloomfilter_runtime.hpp>
 #include <dtl/bloomfilter.hpp>
 #include <dtl/bloomfilter_vec.hpp>
 #include <dtl/bloomfilter2.hpp>
@@ -75,7 +76,7 @@ TEST(bloomfilter, sectorization_compile_time_asserts) {
 }
 
 TEST(bloomfilter, k1) {
-  using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, true>;
+  using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 7, true>;
   bf_t bf(1024);
   print_info(bf);
 }
@@ -91,7 +92,7 @@ struct null_hash {
 };
 
 TEST(bloomfilter, k2) {
-  using bf_t = dtl::bloomfilter2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
+  using bf_t = dtl::bloomfilter2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, true>;
 //  using bf_t = dtl::bloomfilter<key_t,dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
   u32 m = 1024;
   bf_t bf(m);
@@ -116,7 +117,7 @@ TEST(bloomfilter, k2) {
 }
 
 TEST(bloomfilter, vectorized_probe) {
-  u32 k = 4;
+  u32 k = 5;
   u1 sectorize = false;
   using bf_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
   using bf_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
@@ -145,8 +146,20 @@ TEST(bloomfilter, vectorized_probe) {
   match_pos.resize(keys.size(), -1);
 
   bf_vt bf_v { bf };
-  auto match_cnt = bf_v.contains(&keys[0], key_cnt, &match_pos[0], 0);
+  auto match_cnt = bf_v.batch_contains(&keys[0], key_cnt, &match_pos[0], 0);
   ASSERT_EQ(key_cnt, match_cnt);
+}
+
+
+
+TEST(bloomfilter, wrapper) {
+  for ($u32 i = 1; i <= 8; i++) {
+    auto bf_wrapper = dtl::bloomfilter_runtime_t::construct(i, 1024);
+    ASSERT_FALSE(bf_wrapper.contains(1337)) << "k = " << i;
+    bf_wrapper.insert(1337);
+    ASSERT_TRUE(bf_wrapper.contains(1337)) << "k = " << i;
+    bf_wrapper.destruct();
+  }
 }
 
 } // namespace test

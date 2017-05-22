@@ -76,7 +76,7 @@ struct bloomfilter2_vec {
   /// Performs a batch-probe
   template<u64 vector_len = dtl::simd::lane_count<key_t>>
   forceinline $u64
-  contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+  batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;
     $u32* match_writer = match_positions;
 

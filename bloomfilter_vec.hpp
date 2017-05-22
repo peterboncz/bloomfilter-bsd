@@ -13,10 +13,17 @@
 
 namespace dtl {
 
-template<typename Tk, template<typename Ty> class hash_fn, typename Tw = u64, typename Alloc = std::allocator<Tw>>
+template<
+    typename Tk,
+    template<typename Ty> class hash_fn,
+    typename Tw = u64,
+    typename Alloc = std::allocator<Tw>,
+    u32 K = 2,             // the number of hash functions to use
+    u1 Sectorized = false
+>
 struct bloomfilter_vec {
 
-  using bf_t = dtl::bloomfilter<Tk, hash_fn, Tw, Alloc>;
+  using bf_t = dtl::bloomfilter<Tk, hash_fn, Tw, Alloc, K, Sectorized>;
   const bf_t& bf;
 
   using key_t = typename bf_t::key_t;
@@ -51,7 +58,7 @@ struct bloomfilter_vec {
   template<u64 n> // the vector length
   forceinline typename vec<key_t, n>::mask_t
   contains(const vec<key_t, n>& keys) const noexcept {
-    assert(dtl::mem::is_aligned(&keys, 32));
+    assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
     using word_vt = vec<typename bf_t::word_t, n>;
 
@@ -62,26 +69,11 @@ struct bloomfilter_vec {
     return (words & search_masks) == search_masks;
   }
 
-//  template<u64 vector_len>
-//  forceinline typename vec<key_t, vector_len>::mask_t
-//  contains(const vec<key_t, vector_len>& keys) const {
-//    assert(dtl::mem::is_aligned(&keys, 32));
-//    using key_vt = vec<key_t, vector_len>;
-//    using word_vt = vec<typename bf_t::word_t, vector_len>;
-//    const key_vt hash_vals = hash_fn<key_vt>::hash(keys);
-//    const key_vt bit_idxs = hash_vals & bf.length_mask;
-//    const key_vt word_idxs = bit_idxs >> bf_t::word_bitlength_log2;
-//    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
-//    const key_vt in_word_idxs = bit_idxs & (bf_t::word_bitlength - 1);
-//    const key_vt second_in_word_idxs = hash_vals >> (32 - bf_t::word_bitlength_log2);
-//    const word_vt search_masks = (word_vt::make(1) << in_word_idxs) | (word_vt::make(1) << second_in_word_idxs); // implement vec(x) constructor
-//    return (words & search_masks) == search_masks;
-//  }
 
   /// Performs a batch-probe
   template<u64 vector_len = dtl::simd::lane_count<key_t>>
   forceinline $u64
-  contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+  batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;
     $u32* match_writer = match_positions;
 
