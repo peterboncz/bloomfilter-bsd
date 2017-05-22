@@ -146,7 +146,8 @@ struct bloomfilter2 {
     return pc;
   }
 
-  f64 load_factor() {
+
+  f64 load_factor() const noexcept {
     f64 m = length_mask + 1;
     return popcnt() / m;
   }
