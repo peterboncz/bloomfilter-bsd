@@ -145,6 +145,12 @@ struct bloomfilter2 {
     }
     return pc;
   }
+
+  f64 load_factor() {
+    f64 m = length_mask + 1;
+    return popcnt() / m;
+  }
+
 };
 
 } // namespace dtl

@@ -158,6 +158,7 @@ TEST(bloomfilter, wrapper) {
     ASSERT_FALSE(bf_wrapper.contains(1337)) << "k = " << i;
     bf_wrapper.insert(1337);
     ASSERT_TRUE(bf_wrapper.contains(1337)) << "k = " << i;
+    std::cout << bf_wrapper.load_factor() << std::endl;
     bf_wrapper.destruct();
   }
 }

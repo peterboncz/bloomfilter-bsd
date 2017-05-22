@@ -36,6 +36,9 @@ struct bloomfilter_runtime_t {
   std::function<$u64(const key_t* /*keys*/, u32 /*key_cnt*/, $u32* /*match_positions*/, u32 /*match_offset*/)>
   batch_contains;
 
+  std::function<f64()>
+  load_factor;
+
   // the supported bloomfilter implementations
   using bf_k1_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
   using bf_k2_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
@@ -75,6 +78,7 @@ struct bloomfilter_runtime_t {
     insert = std::bind(&bf_t::insert, bf, _1);
     contains = std::bind(&bf_t::contains, bf, _1);
     batch_contains = std::bind(&bf_vt::template batch_contains<vector_length>, bf_v, _1, _2, _3, _4);
+    load_factor = std::bind(&bf_t::load_factor, bf);
   }
 
   template<
