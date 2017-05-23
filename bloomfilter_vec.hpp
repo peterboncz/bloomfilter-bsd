@@ -31,14 +31,11 @@ struct bloomfilter_vec {
   using size_t = typename bf_t::size_t;
   using hash_value_t = typename bf_t::hash_value_t;
 
-//  static constexpr word_t sector_mask = bf_t::sector_mask;
-
 
   template<u64 vector_len>
   forceinline vec<size_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept{
     const vec<size_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
-//    assert((word_idx < ((bf.length_mask + 1) / bf_t::word_bitlength)).all());
     return word_idx;
   }
 
@@ -49,7 +46,8 @@ struct bloomfilter_vec {
     vec<word_t, n> words = 0;
     for (size_t i = 0; i < bf_t::k; i++) {
       const vec<$u32, n> bit_idxs = (hash_val >> (i * bf_t::sector_bitlength_log2)) & bf_t::sector_mask();
-      words |= vec<$u32, n>::make(1) << bit_idxs;
+      const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
+      words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
     }
     return words;
   }

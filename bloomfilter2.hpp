@@ -17,7 +17,7 @@ template<typename Tk,      // the key type
     template<typename Ty> class HashFn2,    // the second hash function to use
     typename Tw = u64,     // the word type to use for the bitset
     typename Alloc = std::allocator<Tw>,
-    u32 K = 2,             // the number of hash functions to use
+    u32 K = 5,             // the number of hash functions to use
     u1 Sectorized = false
 >
 struct bloomfilter2 {
@@ -97,7 +97,7 @@ struct bloomfilter2 {
 
 
   forceinline size_t
-  which_word(const hash_value_t hash_val) const noexcept{
+  which_word(const hash_value_t hash_val) const noexcept {
     const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
     assert(word_idx < ((length_mask + 1) / word_bitlength));
     return word_idx;
@@ -112,7 +112,8 @@ struct bloomfilter2 {
     word_t word = word_t(1) << (first_hash_val & sector_mask());
     for (size_t i = 0; i < k - 1; i++) {
       const u32 bit_idx = (second_hash_val >> (i * sector_bitlength_log2)) & sector_mask();
-      word |= word_t(1) << (bit_idx + ((i + 1) * sector_bitlength));
+      const u32 sector_offset = ((i + 1) * sector_bitlength) & word_bitlength_mask;
+      word |= word_t(1) << (bit_idx + sector_offset);
     }
     return word;
   }

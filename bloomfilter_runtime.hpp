@@ -50,7 +50,6 @@ struct bloomfilter_runtime_t {
   using bf_k5_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
   using bf_k6_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
   using bf_k7_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
-  using bf_k8_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 8, false>;
 
   // the supported bloomfilter vectorization extensions
   using bf_k1_vt = dtl::bloomfilter_vec<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
@@ -60,7 +59,6 @@ struct bloomfilter_runtime_t {
   using bf_k5_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
   using bf_k6_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
   using bf_k7_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
-  using bf_k8_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 8, false>;
 
 
   static constexpr u64 unroll_factor = 4;
@@ -113,7 +111,6 @@ struct bloomfilter_runtime_t {
       case 5: wrapper._construct_and_bind<bf_k5_t, bf_k5_vt>(m); break;
       case 6: wrapper._construct_and_bind<bf_k6_t, bf_k6_vt>(m); break;
       case 7: wrapper._construct_and_bind<bf_k7_t, bf_k7_vt>(m); break;
-      case 8: wrapper._construct_and_bind<bf_k8_t, bf_k8_vt>(m); break;
       default:
         throw std::invalid_argument("The given 'k' is not supported.");
     }
@@ -132,7 +129,6 @@ struct bloomfilter_runtime_t {
       case 5: _destruct<bf_k5_t, bf_k5_vt>(); break;
       case 6: _destruct<bf_k6_t, bf_k6_vt>(); break;
       case 7: _destruct<bf_k7_t, bf_k7_vt>(); break;
-      case 8: _destruct<bf_k8_t, bf_k8_vt>(); break;
       default:
         throw std::invalid_argument("The given 'k' is not supported.");
     }

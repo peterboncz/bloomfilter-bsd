@@ -159,7 +159,7 @@ TEST(bloomfilter, vectorized_probe) {
 
 
 TEST(bloomfilter, wrapper) {
-  for ($u32 i = 1; i <= 8; i++) {
+  for ($u32 i = 1; i <= 7; i++) {
     auto bf_wrapper = dtl::bloomfilter_runtime_t::construct(i, 1024);
     ASSERT_FALSE(bf_wrapper.contains(1337)) << "k = " << i;
     bf_wrapper.insert(1337);
@@ -167,6 +167,42 @@ TEST(bloomfilter, wrapper) {
     bf_wrapper.print_info();
     std::cout << std::endl;
     bf_wrapper.destruct();
+  }
+}
+
+TEST(bloomfilter, wrapper_batch_probe) {
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<key_t> dis;
+
+
+  for ($u32 k = 1; k <= 7; k++) {
+    for ($u32 key_cnt = 1u << 5; key_cnt < 1u << 22; key_cnt <<= 1) {
+      u32 m = key_cnt * 2 * k;
+      auto bf = dtl::bloomfilter_runtime_t::construct(k, m);
+      std::cout << "testing: k: " << k << ", m: " << m << ", key_cnt: " << key_cnt << ", m: " << m << std::endl;
+
+      std::vector<$u32> keys;
+      keys.reserve(key_cnt);
+      for ($u32 i = 0; i < key_cnt; i++) {
+        key_t key = dis(gen);
+        keys.push_back(key);
+        bf.insert(key);
+        ASSERT_TRUE(bf.contains(key)) << "Build failed. i = " << i << " key = " << key << std::endl;
+      }
+
+      u32 read_offset = 3; // to test unaligned load code path
+      std::vector<$u32> match_pos;
+      match_pos.resize(key_cnt + read_offset, 0);
+
+      u32 match_cnt = bf.batch_contains(&keys[0], key_cnt, &match_pos[read_offset], 0);
+      ASSERT_EQ(key_cnt, match_cnt);
+      for ($u32 i = 0; i < key_cnt; i++) {
+        ASSERT_EQ(i, match_pos[i + read_offset]) << "Probe failed. i = " << i << std::endl;
+      }
+      bf.destruct();
+    }
   }
 }
 

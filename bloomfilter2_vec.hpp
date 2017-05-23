@@ -51,7 +51,8 @@ struct bloomfilter2_vec {
     words <<= first_hash_val & bf_t::sector_mask();
     for (size_t i = 0; i < bf_t::k - 1; i++) {
       const vec<$u32, n> bit_idxs = (second_hash_val >> (i * bf_t::sector_bitlength_log2)) & bf_t::sector_mask();
-      words |= vec<$u32, n>::make(1) << (bit_idxs + ((i + 1) * bf_t::sector_bitlength));
+      const u32 sector_offset = ((i + 1) * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
+      words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
     }
     return words;
   }
@@ -98,7 +99,6 @@ struct bloomfilter2_vec {
     using mask_t = typename vec<key_t, vector_len>::mask;
     u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-      assert(dtl::mem::is_aligned(reader, 32));
       const mask_t mask = contains<vector_len>(*reinterpret_cast<const vec_t*>(reader));
       u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
       match_writer += match_cnt;
