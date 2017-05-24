@@ -120,7 +120,7 @@ struct murmur1_32 {
   static inline Ty
   hash(const Ty& key) {
     const Ty m = seed;
-    const Ty hi = 0x4e774912u ^(4 * m);
+    const Ty hi = (m * 4u) ^ 0x4e774912u;
     Ty h = hi;
     h += key;
     h *= m;
