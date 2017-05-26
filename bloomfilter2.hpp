@@ -10,6 +10,7 @@
 #include <dtl/math.hpp>
 
 #include "immintrin.h"
+#include "bloomfilter.hpp"
 
 namespace dtl {
 
@@ -109,10 +110,9 @@ struct bloomfilter2 {
   word_t
   which_bits(const hash_value_t first_hash_val,
              const hash_value_t second_hash_val) const noexcept {
-    // take the LSBs of first hash value
-    word_t word = word_t(1) << (first_hash_val & sector_mask());
+    word_t word = word_t(1) << ((first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask());
     for (size_t i = 0; i < k - 1; i++) {
-      const u32 bit_idx = (second_hash_val >> (i * sector_bitlength_log2)) & sector_mask();
+      const u32 bit_idx = (second_hash_val >> (hash_value_bitlength - (i * sector_bitlength_log2))) & sector_mask();
       const u32 sector_offset = ((i + 1) * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
     }

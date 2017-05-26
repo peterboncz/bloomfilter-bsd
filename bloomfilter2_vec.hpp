@@ -48,9 +48,9 @@ struct bloomfilter2_vec {
              const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
     vec<word_t, n> words = 1;
-    words <<= first_hash_val & bf_t::sector_mask();
+    words <<= (first_hash_val >> ((bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
     for (size_t i = 0; i < bf_t::k - 1; i++) {
-      const vec<$u32, n> bit_idxs = (second_hash_val >> (i * bf_t::sector_bitlength_log2)) & bf_t::sector_mask();
+      const vec<$u32, n> bit_idxs = (second_hash_val >> (bf_t::hash_value_bitlength - (i * bf_t::sector_bitlength_log2))) & bf_t::sector_mask();
       const u32 sector_offset = ((i + 1) * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
     }

@@ -104,7 +104,7 @@ struct bloomfilter {
   which_bits(const hash_value_t hash_val) const noexcept {
     word_t word = 0;
     for (size_t i = 0; i < k; i++) {
-      const u32 bit_idx = (hash_val >> (i * sector_bitlength_log2)) & sector_mask();
+      const u32 bit_idx = (hash_val >> ((hash_value_bitlength - word_cnt_log2) - (i * sector_bitlength_log2))) & sector_mask();
       const u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
     }
