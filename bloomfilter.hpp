@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
@@ -63,8 +64,8 @@ struct bloomfilter {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // members
-  size_t length_mask; // the length of the bitvector (length_mask + 1) is not stored explicitly
-  size_t word_cnt_log2; // the number of bits to address the individual words of the bitvector
+  size_t length_mask; // The length of the bitvector - 1. Note the actual length (length_mask + 1) is not stored explicitly.
+  size_t word_cnt_log2; // The number of bits to address the individual words of the bitvector
   Alloc allocator;
   std::vector<word_t, Alloc> word_array;
 
@@ -174,6 +175,22 @@ struct bloomfilter {
     std::cout << "  load factor:          " << load_factor() << std::endl;
   }
 
+
+  void
+  print() const noexcept {
+    std::cout << "-- bloomfilter dump --" << std::endl;
+    $u64 i = 0;
+    for (const word_t word : word_array) {
+      std::cout << std::bitset<word_bitlength>(word);
+      i++;
+      if (i % (128 / word_bitlength) == 0) {
+        std::cout << std::endl;
+      }
+      else {
+        std::cout << " ";
+      }
+    }
+  }
 
 };
 

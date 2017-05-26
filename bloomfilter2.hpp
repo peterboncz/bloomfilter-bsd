@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <functional>
 #include <stdexcept>
 #include <vector>
@@ -182,6 +183,23 @@ struct bloomfilter2 {
     }
     std::cout << "  population count:     " << popcnt() << std::endl;
     std::cout << "  load factor:          " << load_factor() << std::endl;
+  }
+
+
+  void
+  print() const noexcept {
+    std::cout << "-- bloomfilter dump --" << std::endl;
+    $u64 i = 0;
+    for (const word_t word : word_array) {
+      std::cout << std::bitset<word_bitlength>(word);
+      i++;
+      if (i % (128 / word_bitlength) == 0) {
+        std::cout << std::endl;
+      }
+      else {
+        std::cout << " ";
+      }
+    }
   }
 
 

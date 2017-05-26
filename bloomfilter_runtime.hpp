@@ -42,23 +42,35 @@ struct bloomfilter_runtime_t {
   std::function<void()>
   print_info;
 
+  std::function<void()>
+  print;
+
+  template<typename T>
+  using hash_fn_0 = dtl::hash::knuth<T>;
+//  using hash_fn_0 = dtl::hash::murmur_32<T>;
+//  using hash_fn_0 = dtl::hash::identity<T>;
+
+  template<typename T>
+  using hash_fn_1 = dtl::hash::knuth_alt<T>;
+//  using hash_fn_0 = dtl::hash::identity<T>;
+
   // the supported bloomfilter implementations
-  using bf_k1_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
-  using bf_k2_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
-  using bf_k3_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
-  using bf_k4_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
-  using bf_k5_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
-  using bf_k6_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
-  using bf_k7_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+  using bf_k1_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
+  using bf_k2_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf_k3_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf_k4_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf_k5_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf_k6_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf_k7_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
 
   // the supported bloomfilter vectorization extensions
-  using bf_k1_vt = dtl::bloomfilter_vec<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
-  using bf_k2_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
-  using bf_k3_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
-  using bf_k4_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
-  using bf_k5_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
-  using bf_k6_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
-  using bf_k7_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+  using bf_k1_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
+  using bf_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf_k4_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf_k5_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf_k6_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf_k7_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
 
 
   static constexpr u64 unroll_factor = 4;
@@ -81,7 +93,9 @@ struct bloomfilter_runtime_t {
     batch_contains = std::bind(&bf_vt::template batch_contains<vector_length>, bf_v, _1, _2, _3, _4);
     load_factor = std::bind(&bf_t::load_factor, bf);
     print_info = std::bind(&bf_t::print_info, bf);
+    print = std::bind(&bf_t::print, bf);
   }
+
 
   template<
       typename bf_t, // the scalar bloomfilter type
