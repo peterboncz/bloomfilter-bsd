@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include <algorithm>
 #include <bitset>
 
 #include <dtl/dtl.hpp>
@@ -20,29 +21,6 @@ namespace test {
 using key_t = $u32;
 using word_t = $u32;
 
-template<typename bf_t>
-void
-print_info(const bf_t& bf) {
-  std::cout << "-- bloomfilter parameters --" << std::endl;
-  std::cout << "static" << std::endl;
-  std::cout << "  k:                    " << bf_t::k << std::endl;
-  std::cout << "  word bitlength:       " << bf_t::word_bitlength << std::endl;
-  std::cout << "  hash value bitlength: " << bf_t::hash_value_bitlength << std::endl;
-  std::cout << "  sectorized:           " << (bf_t::sectorized ? "true" : "false") << std::endl;
-  std::cout << "  sector count:         " << bf_t::sector_cnt << std::endl;
-  std::cout << "  sector bitlength:     " << bf_t::sector_bitlength << std::endl;
-  std::cout << "  hash bits per sector: " << bf_t::sector_bitlength_log2 << std::endl;
-  std::cout << "  hash bits per word:   " << (bf_t::k * bf_t::sector_bitlength_log2) << std::endl;
-  std::cout << "  hash bits wasted:     " << (bf_t::sectorized ? (bf_t::word_bitlength - (bf_t::sector_bitlength * bf_t::k)) : 0) << std::endl;
-  std::cout << "  remaining hash bits:  " << bf_t::remaining_hash_bit_cnt << std::endl;
-  std::cout << "  max m:                " << bf_t::max_m << std::endl;
-  std::cout << "  max size [MiB]:       " << (bf_t::max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
-  std::cout << "dynamic" << std::endl;
-  std::cout << "  actual m:             " << (bf.length_mask + 1) << std::endl;
-  std::cout << "  actual size [MiB]:    " << ((bf.length_mask + 1) / 8.0 / 1024.0 / 1024.0 ) << std::endl;
-  std::cout << "  population count:     " << bf.popcnt() << std::endl;
-  std::cout << "  load factor:          " << bf.load_factor() << std::endl;
-}
 
 TEST(bloomfilter, sectorization_compile_time_asserts) {
   {
@@ -69,22 +47,12 @@ TEST(bloomfilter, sectorization_compile_time_asserts) {
     using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
     static_assert(bf_t::sector_cnt >= bf_t::k, "Sector count must be greater or equal to k.");
   }
-  {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 7, true>;
-    static_assert(bf_t::sector_cnt >= bf_t::k, "Sector count must be greater or equal to k.");
-    static_assert(bf_t::sector_cnt == dtl::next_power_of_two(bf_t::k), "Sector count must equal to next_pow_of_two(k).");
-  }
-  {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 8, true>;
-    static_assert(bf_t::sector_cnt == bf_t::k, "Sector count must equal to k.");
-  }
-
 }
 
 TEST(bloomfilter, k1) {
-  using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 7, true>;
+  using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
   bf_t bf(1024);
-  print_info(bf);
+  bf.print_info();
 }
 
 template<typename T>
@@ -98,11 +66,11 @@ struct null_hash {
 };
 
 TEST(bloomfilter, k2) {
-  using bf_t = dtl::bloomfilter2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 7, true>;
+  using bf_t = dtl::bloomfilter2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
 //  using bf_t = dtl::bloomfilter<key_t,dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
   u32 m = 1024;
   bf_t bf(m);
-  print_info(bf);
+  bf.print_info();
   std::cout << std::bitset<32>(bf.which_bits(0, 0)) << std::endl;
   std::cout << std::bitset<32>(bf.which_bits(~0, 0)) << std::endl;
   std::cout << std::bitset<32>(bf.which_bits(0, ~0)) << std::endl;
@@ -123,7 +91,7 @@ TEST(bloomfilter, k2) {
 }
 
 TEST(bloomfilter, vectorized_probe) {
-  u32 k = 5;
+  u32 k = 2;
   u1 sectorize = false;
   using bf_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
   using bf_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
@@ -160,7 +128,8 @@ TEST(bloomfilter, vectorized_probe) {
 
 TEST(bloomfilter, wrapper) {
   for ($u32 i = 1; i <= 7; i++) {
-    auto bf_wrapper = dtl::bloomfilter_runtime_t::construct(i, 1024);
+    std::cout << "k: " << i << std::endl;
+    auto bf_wrapper = dtl::bloomfilter_runtime::construct(i, 1024);
     ASSERT_FALSE(bf_wrapper.contains(1337)) << "k = " << i;
     bf_wrapper.insert(1337);
     ASSERT_TRUE(bf_wrapper.contains(1337)) << "k = " << i;
@@ -180,7 +149,7 @@ TEST(bloomfilter, wrapper_batch_probe) {
   for ($u32 k = 1; k <= 7; k++) {
     for ($u32 key_cnt = 1u << 5; key_cnt < 1u << 22; key_cnt <<= 1) {
       u32 m = key_cnt * 2 * k;
-      auto bf = dtl::bloomfilter_runtime_t::construct(k, m);
+      auto bf = dtl::bloomfilter_runtime::construct(k, m);
       std::cout << "testing: k: " << k << ", m: " << m << ", key_cnt: " << key_cnt << ", m: " << m << std::endl;
 
       std::vector<$u32> keys;
@@ -205,6 +174,220 @@ TEST(bloomfilter, wrapper_batch_probe) {
     }
   }
 }
+
+TEST(bloomfilter, init) {
+  u64 k = 4;
+  u64 begin = 0;
+  u64 end = 256;
+  u64 modulus = 1;
+  u32 m = 2048;
+  auto bf = dtl::bloomfilter_runtime::construct(k, m);
+  for ($u64 i = begin; i < end; i++) {
+    if (i % modulus == 0) {
+      bf.insert(i);
+    }
+  }
+  bf.print();
+  bf.print_info();
+  bf.destruct();
+}
+
+
+TEST(bloomfilter, quality) {
+  u32 mod = 10;
+
+  for ($u32 i = 0; i < 20; i++) {
+    if (i % mod != 0) continue;
+//    std::cout << std::bitset<32>(dtl::hash::murmur1_32<u32>::hash(i)) << std::endl;
+  }
+
+  u32 key_cnt = 1u << 16;
+
+  std::vector<$u32> keys;
+  keys.reserve(key_cnt);
+  for ($u64 i = 0; i < key_cnt; i++) { keys.push_back(i); }
+
+  auto predicate = [](u32 key) { return (key % mod) == 0; };
+  auto actual_match_cnt = std::count_if(keys.begin(), keys.end(), predicate);
+
+  f64 load_factor = 0.5;
+
+  for ($u32 k = 1; k < 8; k++) {
+
+    u32 m = static_cast<u32>((1/load_factor) * actual_match_cnt * k);
+    auto bf = dtl::bloomfilter_runtime::construct(k, m);
+    std::cout << "testing: k: " << k << ", m: " << m << ", key_cnt: " << key_cnt << std::endl;
+
+    std::for_each(keys.begin(), keys.end(), [&](u32 key) {
+      if (predicate(key)) bf.insert(key);
+    });
+
+
+    auto filter_match_cnt = std::count_if(keys.begin(), keys.end(), [&](u32 key) {
+      return bf.contains(key);
+    });
+
+    auto fpr = 1.0 - ((actual_match_cnt * 1.0) / filter_match_cnt);
+    std::cout << "false positive rate: " << fpr
+              << ", approx. false positive probability: " << bf.false_positive_probability(actual_match_cnt)
+              << ", actual match count: " << actual_match_cnt
+              << ", filter match count: " << filter_match_cnt << std::endl;
+    bf.print_info();
+    bf.print();
+    std::cout << std::endl;
+
+    bf.destruct();
+  }
+  std::cout << std::endl;
+}
+
+
+TEST(bloomfilter, false_positive_rate_fixed_load_factor) {
+
+  // Generate a dense key set.
+  u32 key_cnt_bits = 24;
+  u32 key_cnt = 1u << key_cnt_bits;
+  std::vector<key_t> keys;
+  {
+    keys.reserve(key_cnt);
+    for (key_t i = 0; i < key_cnt; i++) { keys.push_back(i); }
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(keys.begin(), keys.end(), g);
+  }
+
+  auto pick_unique_sample = [](const std::vector<key_t>& input,
+                   const std::size_t size) {
+    assert(size <= input.size());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::vector<key_t> sample = input;
+    std::shuffle(sample.begin(), sample.end(), g);
+    sample.resize(size);
+    return sample;
+  };
+
+  std::vector<$f64> selectivities;
+  for ($f64 s = 0.0001; s < 0.01; s+=0.0001) { selectivities.push_back(s); }
+  for ($f64 s = 0.1; s < 1.0; s+=0.01) { selectivities.push_back(s); }
+
+  std::vector<$u32> ks {1, 2, 3, 4, 5, 6, 7};
+
+  std::cout
+      << "key_cnt"
+      << ",sel"
+      << ",match_cnt"
+      << ",b"
+      << ",bf_match_cnt_k1,bf_match_cnt_k2,bf_match_cnt_k3,bf_match_cnt_k4,bf_match_cnt_k5,bf_match_cnt_k6,bf_match_cnt_k7,"
+      << std::endl;
+
+  for (f64 sel : selectivities) {
+
+    u32 b = 2;
+
+    u64 sample_size = std::max(u64(1), static_cast<u64>(key_cnt * sel));
+    auto sample = pick_unique_sample(keys, sample_size);
+
+    std::vector<$u64> bf_match_cnts;
+    bf_match_cnts.resize(ks.size(), 0);
+
+    for ($u32 i = 0; i < ks.size(); i++) {
+
+      u32 k = ks[i];
+      u32 m = static_cast<u32>(sample.size() * b * k);
+      auto bf = dtl::bloomfilter_runtime::construct(k, m);
+
+      std::for_each(sample.begin(), sample.end(), bf.insert);
+      ASSERT_EQ(sample.size(), std::count_if(sample.begin(), sample.end(), bf.contains));
+
+      bf_match_cnts[i] = std::count_if(keys.begin(), keys.end(), bf.contains);
+
+      bf.destruct();
+    }
+
+    std::cout
+        << key_cnt
+        << "," << sel
+        << "," << sample.size()
+        << "," << b;
+    std::for_each(bf_match_cnts.begin(), bf_match_cnts.end(), [](auto value){ std::cout << "," << value; });
+    std::cout << std::endl;
+  }
+}
+
+
+TEST(bloomfilter, false_positive_rate_fixed_size_l1) {
+
+  // Generate a dense key set.
+  u32 key_cnt_bits = 24;
+  u32 key_cnt = 1u << key_cnt_bits;
+  std::vector<key_t> keys;
+  {
+    keys.reserve(key_cnt);
+    for (key_t i = 0; i < key_cnt; i++) { keys.push_back(i); }
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(keys.begin(), keys.end(), g);
+  }
+
+  auto pick_unique_sample = [](const std::vector<key_t>& input,
+                   const std::size_t size) {
+    assert(size <= input.size());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::vector<key_t> sample = input;
+    std::shuffle(sample.begin(), sample.end(), g);
+    sample.resize(size);
+    return sample;
+  };
+
+  std::vector<$f64> selectivities;
+  for ($f64 s = 0.0001; s < 0.01; s+=0.0001) { selectivities.push_back(s); }
+  for ($f64 s = 0.1; s < 1.0; s+=0.01) { selectivities.push_back(s); }
+
+
+  std::vector<$u32> ks {1, 2, 3, 4, 5, 6, 7};
+
+  std::cout
+      << "key_cnt"
+      << ",sel"
+      << ",match_cnt"
+      << ",b"
+      << ",bf_match_cnt_k1,bf_match_cnt_k2,bf_match_cnt_k3,bf_match_cnt_k4,bf_match_cnt_k5,bf_match_cnt_k6,bf_match_cnt_k7,"
+      << std::endl;
+
+  for (f64 sel : selectivities) {
+
+    u64 sample_size = std::max(u64(1), static_cast<u64>(key_cnt * sel));
+    auto sample = pick_unique_sample(keys, sample_size);
+
+    std::vector<$u64> bf_match_cnts;
+    bf_match_cnts.resize(ks.size(), 0);
+
+    for ($u32 i = 0; i < ks.size(); i++) {
+
+      u32 k = ks[i];
+      u32 m = 16u * 1024u * 1024u * 8u;
+      auto bf = dtl::bloomfilter_runtime::construct(k, m);
+
+      std::for_each(sample.begin(), sample.end(), bf.insert);
+      ASSERT_EQ(sample.size(), std::count_if(sample.begin(), sample.end(), bf.contains));
+
+      bf_match_cnts[i] = std::count_if(keys.begin(), keys.end(), bf.contains);
+
+      bf.destruct();
+    }
+
+    std::cout
+        << key_cnt
+        << "," << sel
+        << "," << sample.size()
+        << ",n/a";
+    std::for_each(bf_match_cnts.begin(), bf_match_cnts.end(), [](auto value){ std::cout << "," << value; });
+    std::cout << std::endl;
+  }
+}
+
 
 } // namespace test
 } // namespace dtl

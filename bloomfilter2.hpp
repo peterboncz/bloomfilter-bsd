@@ -14,6 +14,7 @@
 
 namespace dtl {
 
+/// A high-performance Bloom filter.
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the first hash function to use
     template<typename Ty> class HashFn2,    // the second hash function to use
@@ -38,20 +39,22 @@ struct bloomfilter2 {
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
 
-  // inspect the given hash function
+  // Inspect the given hash function
   static_assert(
       std::is_same<decltype(HashFn<key_t>::hash(0)), decltype(HashFn2<key_t>::hash(0))>::value,
       "The two hash functions must return the same type.");
   using hash_value_t = decltype(HashFn<key_t>::hash(0));
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
+  static constexpr u32 hash_fn_cnt = 2;
 
-  // the number of hash functions to use
+
+  // The number of hash functions to use.
   static constexpr u32 k = K;
   static_assert(k > 1, "Parameter 'k' must be at least '2'.");
 
-  // split each word into multiple sectors (sub words, with a length of a power of two)
-  // note that sectorization is a specialization. having only one sector = no sectorization
+  // Split each word into multiple sectors (sub words, with a length of a power of two).
+  // Note that sectorization is a specialization. Having only one sector = no sectorization.
   static constexpr u1 sectorized = Sectorized;
   static constexpr u32 compute_sector_cnt() {
     if (!sectorized) return 1;
@@ -70,23 +73,35 @@ struct bloomfilter2 {
   static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? sector_bitlength_log2 : word_bitlength_log2);
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
-  // members
+  // ---- Members ----
   size_t length_mask; // the length of the bitvector (length_mask + 1) is not stored explicitly
   size_t word_cnt_log2; // the number of bits to address the individual words of the bitvector
-  Alloc allocator;
-  std::vector<word_t, Alloc> word_array;
+  allocator_t allocator;
+  std::vector<word_t, allocator_t> word_array;
+  // ----
 
 
-  bloomfilter2(const size_t length, const Alloc allocator = Alloc())
-      : length_mask(next_power_of_two(length) - 1),
-        word_cnt_log2(dtl::log_2(next_power_of_two(length) / word_bitlength)),
-        allocator(allocator),
-        word_array(next_power_of_two(length) / word_bitlength, 0, this->allocator) {
-    if (length > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+  static constexpr
+  size_t
+  determine_actual_length(const size_t length) {
+    // round up to the next power of two
+    const size_t m = static_cast<size_t>(next_power_of_two(length));
+    const size_t min = static_cast<size_t>(min_m);
+    return std::max(m, min);
   }
 
 
-  /// creates a copy of the bloomfilter (allows to specify a different allocator)
+  bloomfilter2(const size_t length,
+               const allocator_t allocator = allocator_t())
+      : length_mask(determine_actual_length(length) - 1),
+        word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)),
+        allocator(allocator),
+        word_array((length_mask + 1) / word_bitlength, 0, this->allocator) {
+    if (((length_mask + 1)) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+  }
+
+
+  /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
   bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) {
@@ -98,7 +113,8 @@ struct bloomfilter2 {
   };
 
 
-  forceinline size_t
+  forceinline
+  size_t
   which_word(const hash_value_t hash_val) const noexcept {
     const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
     assert(word_idx < ((length_mask + 1) / word_bitlength));
@@ -110,7 +126,8 @@ struct bloomfilter2 {
   word_t
   which_bits(const hash_value_t first_hash_val,
              const hash_value_t second_hash_val) const noexcept {
-    word_t word = word_t(1) << ((first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask());
+    u32 first_bit_idx = ((first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask());
+    word_t word = word_t(1) << first_bit_idx;
     for (size_t i = 0; i < k - 1; i++) {
       const u32 bit_idx = (second_hash_val >> (hash_value_bitlength - (i * sector_bitlength_log2))) & sector_mask();
       const u32 sector_offset = ((i + 1) * sector_bitlength) & word_bitlength_mask;
@@ -120,7 +137,8 @@ struct bloomfilter2 {
   }
 
 
-  forceinline void
+  forceinline
+  void
   insert(const key_t& key) noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
@@ -131,7 +149,8 @@ struct bloomfilter2 {
   }
 
 
-  forceinline u1
+  forceinline
+  u1
   contains(const key_t& key) const noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
@@ -141,7 +160,8 @@ struct bloomfilter2 {
   }
 
 
-  u64 popcnt() const noexcept {
+  u64
+  popcnt() const noexcept {
     $u64 pc = 0;
     for (auto& w : word_array) {
       pc += _mm_popcnt_u64(w);
@@ -150,7 +170,8 @@ struct bloomfilter2 {
   }
 
 
-  f64 load_factor() const noexcept {
+  f64
+  load_factor() const noexcept {
     f64 m = length_mask + 1;
     return popcnt() / m;
   }
@@ -160,6 +181,7 @@ struct bloomfilter2 {
   print_info() const noexcept {
     std::cout << "-- bloomfilter parameters --" << std::endl;
     std::cout << "static" << std::endl;
+    std::cout << "  h:                    " << hash_fn_cnt << std::endl;
     std::cout << "  k:                    " << k << std::endl;
     std::cout << "  word bitlength:       " << word_bitlength << std::endl;
     std::cout << "  hash value bitlength: " << hash_value_bitlength << std::endl;

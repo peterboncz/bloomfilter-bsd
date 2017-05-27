@@ -13,7 +13,8 @@
 
 namespace dtl {
 
-template<typename Tk,
+template<
+    typename Tk,
     template<typename Ty> class hash_fn,
     template<typename Ty> class hash_fn2,
     typename Tw = u64,
@@ -61,7 +62,7 @@ struct bloomfilter2_vec {
   template<u64 n> // the vector length
   forceinline typename vec<key_t, n>::mask_t
   contains(const vec<key_t, n>& keys) const noexcept {
-    assert(dtl::mem::is_aligned(&keys, 32));
+    assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
     using word_vt = vec<typename bf_t::word_t, n>;
 
