@@ -18,6 +18,23 @@ struct crc32 {
 
 
 template<typename T>
+struct xorshift_32 {
+  using Ty = typename std::remove_cv<T>::type;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    const u32 seed = 2654435769u;
+    Ty h = key ^ seed;
+    h ^= h << 13;
+    h ^= h >> 17;
+    h ^= h << 5;
+    return h;
+  }
+};
+
+
+template<typename T>
 struct xorshift_64 {
   using Ty = typename std::remove_cv<T>::type;
 
@@ -32,6 +49,7 @@ struct xorshift_64 {
   }
 };
 
+
 /// Knuth multiplicative hashing taken from TAOCP volume 3 (2nd edition), section 6.4, page 516.
 /// see: http://stackoverflow.com/questions/11871245/knuth-multiplicative-hash
 /// 0 <= p <= 32
@@ -42,7 +60,8 @@ struct knuth_32 {
   __host__ __device__
   static inline Ty
   hash(const Ty& key) {
-    Ty knuth = 2654435769u; // 0b10011110001101110111100110111001
+//    Ty knuth = 2654435769u; // 0b10011110001101110111100110111001
+    Ty knuth = 596572387u; // Peter 1
     return (key * knuth) >> (32 - p);
   }
 };
@@ -55,7 +74,8 @@ struct knuth_32_alt {
   __host__ __device__
   static inline Ty
   hash(const Ty& key) {
-    Ty knuth = 1799596469u; // 0b01101011010000111010100110110101
+//    Ty knuth = 1799596469u; // 0b01101011010000111010100110110101
+    Ty knuth = 370248451u; // Peter 2
     return (key * knuth) >> (32 - p);
   }
 };
