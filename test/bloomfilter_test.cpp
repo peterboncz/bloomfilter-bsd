@@ -71,9 +71,6 @@ TEST(bloomfilter, k2) {
   u32 m = 1024;
   bf_t bf(m);
   bf.print_info();
-  std::cout << std::bitset<32>(bf.which_bits(0, 0)) << std::endl;
-  std::cout << std::bitset<32>(bf.which_bits(~0, 0)) << std::endl;
-  std::cout << std::bitset<32>(bf.which_bits(0, ~0)) << std::endl;
 
   std::random_device rd;
   std::mt19937 gen(rd());

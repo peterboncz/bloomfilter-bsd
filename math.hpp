@@ -1,5 +1,8 @@
 #pragma once
 
+#include <dtl/dtl.hpp>
+#include <dtl/bits.hpp>
+
 #include <array>
 #include <bitset>
 #include <type_traits>
@@ -163,8 +166,16 @@ struct trunc {
   }
 };
 
-static size_t log_2(const size_t n) {
-    return 8 * sizeof(size_t) - __builtin_clzl(n) - 1;
+__forceinline__ __host__ __device__
+static u32
+log_2(const u32 n) {
+  return 8 * sizeof(u32) - dtl::bits::lz_count(n) - 1;
+};
+
+__forceinline__ __host__ __device__
+static u64
+log_2(const u64 n) {
+  return 8 * sizeof(u64) - dtl::bits::lz_count(n) - 1;
 };
 
 

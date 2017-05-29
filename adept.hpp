@@ -111,9 +111,25 @@ struct array_info<std::array<T, N>> {
 #endif
 
 #if defined(NDEBUG)
+#if !defined(__forceinline__)
+  #define __forceinline__ inline __attribute__((always_inline))
+  #endif
+#else
+#if !defined(__forceinline__)
+#define __forceinline__
+#endif
+#endif
+
+#if defined(NDEBUG)
   #define unroll_loops __attribute__((optimize("unroll-loops")))
 #else
   #define unroll_loops
+#endif
+
+#if defined(NDEBUG)
+  #define __unroll_loops__ __attribute__((optimize("unroll-loops")))
+#else
+  #define __unroll_loops__
 #endif
 
 // add missing operator function objects

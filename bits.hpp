@@ -11,22 +11,37 @@ namespace dtl {
 namespace bits {
 
 
-/// counts the number of set bits
-inline u64
-pop_count(u32 a) { return __builtin_popcount(a); }
+/// Counts the number of set bits.
+#if defined(__CUDA_ARCH__)
+__forceinline__ __device__
+u32 pop_count(u32 a) { return __popc(a); }
+__forceinline__ __device__
+u32 pop_count(u64 a) { return __popcll(a); }
+#else
+__forceinline__
+u32 pop_count(u32 a) { return __builtin_popcount(a); }
+__forceinline__
+u32 pop_count(u64 a) { return __builtin_popcountll(a); }
+#endif
 
-/// counts the number of set bits
-inline u64
-pop_count(u64 a) { return __builtin_popcountll(a); }
 
+/// Counts the number of leading zeros.
+#if defined(__CUDA_ARCH__)
+__forceinline__ __device__
+u64 lz_count(u32 a) { return __clz(a); }
+#else
+__forceinline__
+u64 lz_count(u32 a) { return __builtin_clz(a); }
+#endif
 
-/// counts the number of leading zeros
-inline u64
-lz_count(u32 a) { return __builtin_clz(a); }
-
-/// counts the number of leading zeros
-inline u64
-lz_count(u64 a) { return __builtin_clzll(a); }
+/// Counts the number of leading zeros.
+#if defined(__CUDA_ARCH__)
+__forceinline__ __device__
+u64 lz_count(u64 a) { return __clzll(a); }
+#else
+__forceinline__
+u64 lz_count(u64 a) { return __builtin_clzll(a); }
+#endif
 
 
 /// counts the number of tailing zeros
