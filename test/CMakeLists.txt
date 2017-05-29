@@ -4,7 +4,7 @@ project(dtl_tester)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 #set(DEFAULT_ARCH -march=knl)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=knl")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -fuse-ld=gold -fsplit-stack")
 
 # build optimized executables for the following architectures
 set(ARCHS
@@ -73,6 +73,7 @@ add_multiarch_executable(vector_tester ${VECTOR_TEST_FILES})
 set(STORAGE_TEST_FILES
         bitmask_test.cpp
         bitmask_experiments.cpp
+#        io_test.cpp
         )
 add_multiarch_executable(storage_tester ${STORAGE_TEST_FILES})
 
@@ -81,6 +82,12 @@ set(BLOOMFILTER_EXPERIMENTS_FILES
         bloomfilter_experiments.cpp
         )
 add_multiarch_executable(bloomfilter_experiments ${BLOOMFILTER_EXPERIMENTS_FILES})
+
+
+set(BLOOMFILTER_RTS_EXPERIMENTS_FILES
+        bloomfilter_rts_experiments.cpp
+        )
+add_multiarch_executable(bloomfilter_rts_experiments ${BLOOMFILTER_RTS_EXPERIMENTS_FILES})
 
 
 set(BLOOMFILTER_TEST_FILES

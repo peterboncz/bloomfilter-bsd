@@ -19,7 +19,8 @@ template<
     typename Tw = u64,
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
-    u1 Sectorized = false
+    u1 Sectorized = false,
+    u32 UnrollFactor = 2
 >
 struct bloomfilter_vec {
 
@@ -30,6 +31,8 @@ struct bloomfilter_vec {
   using word_t = typename bf_t::word_t;
   using size_t = typename bf_t::size_t;
   using hash_value_t = typename bf_t::hash_value_t;
+
+  static constexpr u32 unroll_factor = UnrollFactor;
 
 
   template<u64 vector_len>
@@ -46,7 +49,7 @@ struct bloomfilter_vec {
     u32 word_bit_cnt = (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     vec<word_t, n> words = 0;
     for (size_t i = 0; i < bf_t::k; i++) {
-      const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & bf_t::sector_mask;
+      const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
     }
@@ -70,7 +73,7 @@ struct bloomfilter_vec {
 
 
   /// Performs a batch-probe
-  template<u64 vector_len = dtl::simd::lane_count<key_t>>
+  template<u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor>
   forceinline $u64
   batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;

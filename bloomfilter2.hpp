@@ -104,12 +104,24 @@ struct bloomfilter2 {
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy>
-  make_copy(AllocOfCopy alloc = AllocOfCopy()) {
-    using return_t = bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy>;
+  bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>
+  make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
+    using return_t = bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>;
     return_t bf_copy(this->length_mask + 1, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
+    return bf_copy;
+  };
+
+
+  /// Creates a copy of the bloomfilter (allows to specify a different allocator)
+  template<typename AllocOfCopy = Alloc>
+  bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>*
+  make_heap_copy(AllocOfCopy alloc = AllocOfCopy()) const {
+    using bf_t = bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>;
+    bf_t* bf_copy = new bf_t(this->length_mask + 1, alloc);
+    bf_copy->word_array.clear();
+    bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
   };
 

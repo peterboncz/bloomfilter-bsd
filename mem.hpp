@@ -226,7 +226,6 @@ get_node_of_address(const void* addr) {
   if (ret_code != 0) {
     throw std::invalid_argument("Failed to determine NUMA node for the given address.");
   }
-//  printf("Memory at %p is at %d node (retcode %d)\n", ptr_to_check, status[0], ret_code);
   return status[0];
 #else
   return 0;
@@ -349,13 +348,17 @@ struct numa_allocator {
   numa_allocator() { }
 
   /// c'tor (with user specified parameters)
+  numa_allocator(const allocator_config& config)
+      : config(config) { }
+
+  /// c'tor (with user specified parameters)
   numa_allocator(allocator_config&& config)
       : config(std::move(config)) { }
 
   /// copy c'tor
   template<class U>
   numa_allocator(const numa_allocator<U>& other)
-      : config(other.config) { };
+      : config(other.config) { }
 
   ~numa_allocator() { }
 
@@ -424,7 +427,6 @@ struct numa_allocator {
       madvise(p, byte_cnt, MADV_HUGEPAGE);
       return reinterpret_cast<T*>(p);
     }
-    unreachable();
   }
 
   template<typename T>

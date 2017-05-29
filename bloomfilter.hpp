@@ -70,7 +70,7 @@ struct bloomfilter {
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
   // the number of bits needed to address the individual bits within a sector
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2<sector_bitlength>::value;
-  static constexpr word_t sector_mask = sector_bitlength - 1; // a function, to work around a compiler bug
+  static constexpr word_t sector_mask = sector_bitlength - 1;
   static constexpr u32 bit_cnt_per_k = sector_bitlength_log2;
 
   static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? k * sector_bitlength_log2 : k * word_bitlength_log2);
@@ -102,6 +102,7 @@ struct bloomfilter {
   }
 
 
+  /// C'tor
   bloomfilter(const size_t length,
               const allocator_t allocator = allocator_t())
       : length_mask(determine_actual_length(length) - 1),
@@ -114,12 +115,25 @@ struct bloomfilter {
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter<Tk, HashFn, Tw, AllocOfCopy>
-  make_copy(AllocOfCopy alloc = AllocOfCopy()) {
-    using return_t = bloomfilter<Tk, HashFn, Tw, AllocOfCopy>;
+  bloomfilter<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>
+  make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
+    using return_t = bloomfilter<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
     return_t bf_copy(this->length_mask + 1, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
+    return bf_copy;
+  }
+
+
+  // TODO implement copy c'tor
+  /// Creates a copy of the bloomfilter (allows to specify a different allocator)
+  template<typename AllocOfCopy = Alloc>
+  bloomfilter<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>*
+  make_heap_copy(AllocOfCopy alloc = AllocOfCopy()) const {
+    using bf_t = bloomfilter<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
+    bf_t* bf_copy = new bf_t(this->length_mask + 1, alloc);
+    bf_copy->word_array.clear();
+    bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
   }
 

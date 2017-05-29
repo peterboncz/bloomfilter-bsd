@@ -20,7 +20,8 @@ template<
     typename Tw = u64,
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
-    u1 Sectorized = false
+    u1 Sectorized = false,
+    u32 UnrollFactor = 4
 >
 struct bloomfilter2_vec {
 
@@ -32,7 +33,7 @@ struct bloomfilter2_vec {
   using size_t = typename bf_t::size_t;
   using hash_value_t = typename bf_t::hash_value_t;
 
-//  static constexpr word_t sector_mask = bf_t::sector_mask;
+  static constexpr u32 unroll_factor = UnrollFactor;
 
 
   template<u64 vector_len>
@@ -76,7 +77,7 @@ struct bloomfilter2_vec {
 
 
   /// Performs a batch-probe
-  template<u64 vector_len = dtl::simd::lane_count<key_t>>
+  template<u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor>
   forceinline $u64
   batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;
