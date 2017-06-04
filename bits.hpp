@@ -19,9 +19,9 @@ __forceinline__ __device__
 u32 pop_count(u64 a) { return __popcll(a); }
 #else
 __forceinline__
-u32 pop_count(u32 a) { return __builtin_popcount(a); }
+constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
 __forceinline__
-u32 pop_count(u64 a) { return __builtin_popcountll(a); }
+constexpr u32 pop_count(u64 a) { return __builtin_popcountll(a); }
 #endif
 
 
@@ -31,7 +31,7 @@ __forceinline__ __device__
 u64 lz_count(u32 a) { return __clz(a); }
 #else
 __forceinline__
-u64 lz_count(u32 a) { return __builtin_clz(a); }
+constexpr u64 lz_count(u32 a) { return __builtin_clz(a); }
 #endif
 
 /// Counts the number of leading zeros.
@@ -40,7 +40,7 @@ __forceinline__ __device__
 u64 lz_count(u64 a) { return __clzll(a); }
 #else
 __forceinline__
-u64 lz_count(u64 a) { return __builtin_clzll(a); }
+constexpr u64 lz_count(u64 a) { return __builtin_clzll(a); }
 #endif
 
 
