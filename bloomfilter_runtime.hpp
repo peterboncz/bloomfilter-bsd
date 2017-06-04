@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
@@ -72,6 +73,25 @@ struct bloomfilter_runtime {
     src.instance_vec = nullptr;
   }
 
+  bloomfilter_runtime&
+  operator=(dtl::bloomfilter_runtime&& src) {
+    m = src.m;
+    h = src.h;
+    k = src.k;
+    instance = src.instance;
+    instance_vec = src.instance_vec;
+    insert = std::move(src.insert);
+    contains = std::move(src.contains);
+    batch_contains = std::move(src.batch_contains);
+    load_factor = std::move(src.load_factor);
+    pop_count = std::move(src.pop_count);
+    print_info = std::move(src.print_info);
+    print = std::move(src.print);
+    // invalidate pointers
+    src.instance = nullptr;
+    src.instance_vec = nullptr;
+    return *this;
+  }
 
   template<typename T>
   using hash_fn_0 = dtl::hash::knuth<T>;
