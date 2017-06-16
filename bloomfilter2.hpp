@@ -56,11 +56,19 @@ struct bloomfilter2 {
   // Split each word into multiple sectors (sub words, with a length of a power of two).
   // Note that sectorization is a specialization. Having only one sector = no sectorization.
   static constexpr u1 sectorized = Sectorized;
+
+// incompatible with C++11
+//  static constexpr u32 compute_sector_cnt() {
+//    if (!sectorized) return 1;
+//    u32 k_pow_2 = dtl::next_power_of_two(k);
+//    static_assert((word_bitlength / k_pow_2) != 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
+//    return word_bitlength / (word_bitlength / k_pow_2);
+//  }
+
   static constexpr u32 compute_sector_cnt() {
-    if (!sectorized) return 1;
-    u32 k_pow_2 = dtl::next_power_of_two(k);
-    static_assert((word_bitlength / k_pow_2) != 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
-    return word_bitlength / (word_bitlength / k_pow_2);
+    static_assert(!sectorized && (word_bitlength / dtl::next_power_of_two(k)) != 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
+    return (!sectorized) ? 1
+                         : word_bitlength / (word_bitlength / dtl::next_power_of_two(k));
   }
   static constexpr u32 sector_cnt = compute_sector_cnt();
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
@@ -82,13 +90,25 @@ struct bloomfilter2 {
   // ----
 
 
+// incompatible with C++11
+//  static constexpr
+//  size_t
+//  determine_actual_length(const size_t length) {
+//    // round up to the next power of two
+//    const size_t m = static_cast<size_t>(next_power_of_two(length));
+//    const size_t min = static_cast<size_t>(min_m);
+//    return std::max(m, min);
+//  }
+
+
   static constexpr
   size_t
   determine_actual_length(const size_t length) {
     // round up to the next power of two
-    const size_t m = static_cast<size_t>(next_power_of_two(length));
-    const size_t min = static_cast<size_t>(min_m);
-    return std::max(m, min);
+    return std::max(
+        static_cast<size_t>(next_power_of_two(length)),
+        static_cast<size_t>(min_m)
+    );
   }
 
 
