@@ -52,6 +52,14 @@ tz_count(u32 a) { return __builtin_ctz(a); }
 inline u64
 tz_count(u64 a) { return __builtin_ctzll(a); }
 
+#if defined(__BMI__)
+inline u32
+blsr_u32(u32 a) { return _blsr_u32(a); };
+#else
+inline u32
+blsr_u32(u32 a) { return (a - 1) & a; };
+#endif
+
 
 /// extract contiguous bits
 inline u32
