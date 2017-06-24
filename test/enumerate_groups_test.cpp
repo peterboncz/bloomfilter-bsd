@@ -62,7 +62,7 @@ enumerate_groups(const __m512i& elements) {
     const auto group_cnt = _popcnt32(conflict_free_mask);
     if (group_cnt > 3 || group_cnt < 13) {
       // walk the chain of conflicts (in parallel) and solve them step-by-step.
-      // in worst case the cain length is 16, however if the number
+      // in worst case the chain length is 16, however if the number
       // of groups is not in [4,12], we fall back to a different strategy (see below).
       while (remaining_mask) {
         // remove handled conflicts
