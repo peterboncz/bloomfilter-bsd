@@ -215,6 +215,28 @@ get_nearest_hbm_node(i32 numa_node_id) {
 #endif
 }
 
+/// Determine the CPU node that is nearest to the given HBM node.
+/// If HBM is not available, the given node ID is returned.
+inline i32
+get_nearest_cpu_node(i32 hbm_numa_node_id) {
+#if defined(HAVE_NUMA)
+  if (!hbm_available()) return hbm_numa_node_id;
+
+  $i32 min_distance = std::numeric_limits<$i32>::max();
+  $i32 nearest_node = hbm_numa_node_id;
+  for (auto cpu_node_id : get_cpu_nodes()) {
+    i32 distance = numa_distance(hbm_numa_node_id, cpu_node_id);
+    if (distance < min_distance) {
+      min_distance = distance;
+      nearest_node = cpu_node_id;
+    }
+  }
+  return nearest_node;
+#else
+  return 0;
+#endif
+}
+
 inline i32
 get_node_of_address(const void* addr) {
 #if defined(HAVE_NUMA)
