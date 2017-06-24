@@ -198,8 +198,10 @@ void run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
       if (cntr >= key_cnt * repeat_cnt) break;
       u64 cnt = read_to - read_from;
       probe_cntr += cnt;
+      __sync_synchronize();
       u64 tsc_begin = _rdtsc();
       auto match_cnt = _bf.batch_contains(&keys[read_from], cnt, &match_pos[0], 0);
+      __sync_synchronize();
       u64 tsc_end = _rdtsc();
       tsc += tsc_end - tsc_begin;
       found += match_cnt;
