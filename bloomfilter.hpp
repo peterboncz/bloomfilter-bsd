@@ -246,6 +246,7 @@ struct bloomfilter {
         std::cout << " ";
       }
     }
+    std::cout << std::endl;
   }
 
 

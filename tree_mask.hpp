@@ -216,7 +216,7 @@ struct tree_mask {
       is_inner_node ? cntr++ : cntr--;
       if (cntr == 0) return i + 1;
     }
-    unreachable();
+//    unreachable();
   }
 
   static inline void

@@ -82,7 +82,7 @@ TYPED_TEST(bitset_test, assign_left_shift_by_word_length) {
   this->bits <<= word_len;
   ASSERT_EQ(this->bits[0], false);
   if (TestFixture::bitset_t::length > word_len) {
-    ASSERT_EQ(this->bits[64], true);
+    ASSERT_EQ(this->bits[word_len], true);
   }
 }
 
