@@ -39,7 +39,7 @@ struct mask {
       case 5: data = _mm256_insert_epi32(data, v, 5); break;
       case 6: data = _mm256_insert_epi32(data, v, 6); break;
       case 7: data = _mm256_insert_epi32(data, v, 7); break;
-      default: unreachable();
+//      default: unreachable();
     }
   };
   forceinline u1 get(u64 idx) const {
@@ -52,7 +52,7 @@ struct mask {
       case 5: return _mm256_extract_epi32(data, 5) != 0;
       case 6: return _mm256_extract_epi32(data, 6) != 0;
       case 7: return _mm256_extract_epi32(data, 7) != 0;
-      default: unreachable();
+//      default: unreachable();
     }
   };
   forceinline mask bit_and(const mask& o) const { return mask { _mm256_and_si256(data, o.data) }; };

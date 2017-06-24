@@ -16,7 +16,8 @@
 
 namespace dtl {
 
-union r128 {
+union alignas(16)
+r128 {
   $u64 u64[2];
   $i64 i64[2];
 
@@ -35,7 +36,8 @@ union r128 {
 };
 
 #if defined(__AVX2__)
-union r256 {
+union alignas(32)
+r256 {
   $u64 u64[4];
   $i64 i64[4];
 
@@ -54,6 +56,7 @@ union r256 {
 
   dtl::r128 r128[2];
 };
+
 
 namespace simd {
 
@@ -332,7 +335,8 @@ constexpr u8 lut_match_cnt[256] = {
 #endif // defined(__AVX2__)
 
 #if defined(__AVX512F__)
-union r512 {
+union alignas(64)
+r512 {
   $u64 u64[8];
   $i64 i64[8];
 
@@ -351,6 +355,10 @@ union r512 {
 
   dtl::r256 r256[2];
   dtl::r128 r128[4];
+
+//  r512(const __m512i v) : i(v) {}
+//  r512() = default;
+//  inline void operator=(const __m512i v) { i = v; }
 };
 #endif // defined(__AVX512F__)
 
