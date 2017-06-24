@@ -66,7 +66,7 @@ struct bloomfilter2 {
 //  }
 
   static constexpr u32 compute_sector_cnt() {
-    static_assert(!sectorized && (word_bitlength / dtl::next_power_of_two(k)) != 0, "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
+    static_assert(!sectorized || ((word_bitlength / dtl::next_power_of_two(k)) != 0), "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
     return (!sectorized) ? 1
                          : word_bitlength / (word_bitlength / dtl::next_power_of_two(k));
   }
@@ -131,7 +131,7 @@ struct bloomfilter2 {
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
-  };
+  }
 
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
@@ -143,7 +143,7 @@ struct bloomfilter2 {
     bf_copy->word_array.clear();
     bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
-  };
+  }
 
 
   __forceinline__ __host__ __device__
@@ -258,6 +258,7 @@ struct bloomfilter2 {
         std::cout << " ";
       }
     }
+    std::cout << std::endl;
   }
 
 
