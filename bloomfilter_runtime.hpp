@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
+#include <dtl/bloomfilter_runtime_types.hpp>
 #include <dtl/bloomfilter.hpp>
 #include <dtl/bloomfilter_vec.hpp>
 #include <dtl/bloomfilter2_vec.hpp>
@@ -15,11 +16,8 @@ namespace dtl {
 
 /// A runtime wrapper for a Bloom filter instance.
 /// The actual Bloom filter type is determined by the parameters 'm' and 'k'.
-/// Note: This should only be used if the parameter is NOT known at compile time.
+/// Note: This wrapper should only be used if the parameter is NOT known at compile time.
 struct bloomfilter_runtime {
-
-  using key_t = $u32;
-  using word_t = $u32;
 
   /// The bit length of the Bloom filter.
   $u32 m;
@@ -93,36 +91,10 @@ struct bloomfilter_runtime {
     return *this;
   }
 
-  template<typename T>
-  using hash_fn_0 = dtl::hash::knuth<T>;
-//  using hash_fn_0 = dtl::hash::murmur_32<T>;
-//  using hash_fn_0 = dtl::hash::identity<T>;
-
-  template<typename T>
-  using hash_fn_1 = dtl::hash::knuth_alt<T>;
-//  using hash_fn_1 = dtl::hash::knuth<T>;
-//  using hash_fn_0 = dtl::hash::identity<T>;
-
-
-  // The supported Bloom filter implementations. (Note: Sectorization is not supported via the runtime API.)
-  using bf1_k1_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
-  using bf1_k2_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
-  using bf1_k3_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
-  using bf1_k4_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
-  using bf1_k5_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
-  using bf1_k6_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
-
-  using bf2_k2_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
-  using bf2_k3_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
-  using bf2_k4_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
-  using bf2_k5_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
-  using bf2_k6_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
-  using bf2_k7_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
-
 
   // Vectorization related compile time constants.
-  static constexpr u32 unroll_factors_avx2_bf1[7]   { 0u,       8u, 4u, 4u, 2u, 2u, 2u };
-  static constexpr u32 unroll_factors_avx2_bf2[8]   { 0u, 0u,   2u, 2u, 2u, 1u, 1u, 1u };
+  static constexpr u32 unroll_factors_avx2_bf1[7]   { 0u,       8u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx2_bf2[8]   { 0u, 0u,   2u, 2u, 1u, 1u, 1u, 1u };
   static constexpr u32 unroll_factors_avx512_bf1[7] { 0u,       4u, 4u, 4u, 4u, 4u, 4u };
   static constexpr u32 unroll_factors_avx512_bf2[8] { 0u, 0u,   4u, 4u, 4u, 2u, 2u, 1u };
 
@@ -133,11 +105,19 @@ struct bloomfilter_runtime {
 
   // The supported Bloom filter vectorization extensions.
   using bf1_k1_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false, unroll_factors_bf1[1]>;
+#ifndef USE_BF2
   using bf1_k2_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf1[2]>;
   using bf1_k3_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf1[3]>;
   using bf1_k4_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf1[4]>;
   using bf1_k5_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf1[5]>;
   using bf1_k6_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf1[6]>;
+#else
+  using bf1_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
+  using bf1_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
+  using bf1_k4_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
+  using bf1_k5_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
+  using bf1_k6_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
+#endif
 
   using bf2_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
   using bf2_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
@@ -267,7 +247,7 @@ struct bloomfilter_runtime {
         }
         break;
       default:
-        unreachable();
+        throw std::invalid_argument("The given 'h' is not supported.");
     }
     return wrapper;
   }
@@ -351,7 +331,7 @@ struct bloomfilter_runtime {
   /// Returns 'true' if the Bloom filter is initialized, 'false' otherwise.
   forceinline
   u1
-  is_initialized() {
+  is_initialized() const {
     return instance != nullptr;
   }
 
@@ -360,7 +340,7 @@ struct bloomfilter_runtime {
   /// Assuming independence for the probabilities of each bit being set,
   /// which is not the case in the current implementation.
   f64
-  false_positive_probability(u64 element_cnt) {
+  false_positive_probability(u64 element_cnt) const {
     auto n = element_cnt;
     return std::pow(1.0 - std::pow(1.0 - (1.0 / m), k * n), k);
   }

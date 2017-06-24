@@ -72,6 +72,7 @@ struct bloomfilter2_vec {
     const key_vt word_idxs = which_word(first_hash_vals);
     const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(first_hash_vals, second_hash_vals);
+// late gather   const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     return (words & search_masks) == search_masks;
   }
 
