@@ -3,6 +3,8 @@
 #include "dtl.hpp"
 #include "nmmintrin.h"
 
+#include <stdint.h>
+
 namespace dtl {
 namespace hash {
 
@@ -132,7 +134,7 @@ struct identity {
 };
 
 
-template<typename T, u32 seed = 0xc6a4a793u>
+template<typename T, u32 seed = 596572387u>
 struct murmur1_32 {
   using Ty = typename std::remove_cv<T>::type;
 
@@ -140,7 +142,7 @@ struct murmur1_32 {
   static inline Ty
   hash(const Ty& key) {
     const Ty m = seed;
-    const Ty hi = (m * 4u) ^ 0x4e774912u;
+    const Ty hi = (m * 4u) ^ 0xc6a4a793u;
     Ty h = hi;
     h += key;
     h *= m;
@@ -157,7 +159,20 @@ struct murmur1_32 {
 template<typename T>
 struct murmur_32 {
   using Ty = typename std::remove_cv<T>::type;
-  using F = murmur1_32<T>;
+  using F = murmur1_32<T, 596572387u>;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return F::hash(key);
+  }
+};
+
+
+template<typename T>
+struct murmur_32_alt {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = murmur1_32<T, 370248451u>;
 
   __host__ __device__
   static inline Ty
@@ -191,5 +206,7 @@ struct murmur64a_64 {
   }
 };
 
+} // namespace hash
+} // namespace dtl
 
-}}
+#include "hash_fvn.hpp"

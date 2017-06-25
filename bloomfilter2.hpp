@@ -122,6 +122,12 @@ struct bloomfilter2 {
   }
 
 
+  // FIXME
+  ~bloomfilter2() {
+    word_array.resize(8);
+  }
+
+
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
   bloomfilter2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>
