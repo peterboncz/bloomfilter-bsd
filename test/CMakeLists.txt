@@ -19,6 +19,7 @@ set(LIBS
         gtest
         gtest_main
         pthread
+        numa
         )
 
 # check for NUMA support
