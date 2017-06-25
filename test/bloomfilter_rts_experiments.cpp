@@ -1,5 +1,9 @@
 #include "gtest/gtest.h"
 
+#include <mutex>
+#include <sstream>
+#include <unordered_set>
+
 #include "../adept.hpp"
 #include "../bloomfilter_runtime.hpp"
 //#include "../bloomfilter.hpp"
@@ -247,4 +251,125 @@ TEST(bloom, filter_performance_parallel_vec) {
       run_filter_benchmark_in_parallel_vec(bf_k, bf_size, t);
     }
   }
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+TEST(bloom, accuracy) {
+  const std::size_t m_max = 64u * 1024u * 1024u * 8u;
+//  const std::size_t m_max = 256u * 1024u * 1024u * 8u;
+//  const std::size_t m_max = 256u * 1024u * 8u;
+
+  std::cout << "# generating random data: " << std::flush;
+  std::vector<$u32> data;
+  data.reserve(m_max * 2);
+
+  {
+    std::unordered_set<$u32> vals;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<$u32> dis(0, std::numeric_limits<$u32>::max());
+
+    while (data.size() < m_max) {
+      auto v = dis(gen);
+      if (vals.count(v) == 0) {
+        vals.insert(v);
+        data.push_back(v);
+      }
+    }
+    vals.clear();
+  }
+  std::cout << "done" << std::endl;
+
+  // the values for m
+  std::vector<std::size_t> ms {
+      32u * 1024 * 8,            // L1 cache size
+      64u * 1024 * 8,
+      128u * 1024 * 8,
+      256u * 1024 * 8,           // L2 cache size (Intel)
+      512u * 1024 * 8,           // L2 cache size (AMD)
+      8u * 1024 * 1024 * 8,      // L3 cache sizes
+      16u * 1024 * 1024 * 8,
+      32u * 1024 * 1024 * 8,     // ~L3 cache size (Xeon E5-2680 v4)
+      64u * 1024 * 1024 * 8,     // m_max
+//      128u * 1024 * 1024 * 8,
+//      256u * 1024 * 1024 * 8,  // m_max
+  };
+
+  struct launch_params {
+    $u64 k;
+    $u64 m;
+    $u64 n;
+  };
+
+  u64 data_points_per_test = 32;
+  $u64 current_m_idx = 0;
+  $u64 current_n = 0;
+  $u64 current_k = 1;
+  u64 k_max = 7;
+
+  std::mutex generator_mutex;
+  auto generate_test_cases = [&](launch_params& p) {
+    std::lock_guard<std::mutex> lock(generator_mutex);
+    if (current_n < ms[current_m_idx]) {
+      // increment n
+      current_n += ms[current_m_idx] / data_points_per_test;
+    }
+    else if (current_m_idx < ms.size() - 1) {
+      // increment m, reset n
+      current_m_idx++;
+      current_n = 0;
+    }
+    else {
+      // increment k, reset m and n
+      current_k++;
+      current_m_idx = 0;
+      current_n = 0;
+    }
+
+    u1 continue_tests = current_k <= k_max && current_m_idx < ms.size() && current_n <= m_max;
+    if (continue_tests) {
+      p.k = current_k;
+      p.m = ms[current_m_idx];
+      p.n = current_n;
+    }
+    return continue_tests;
+  };
+
+  using bf_t = dtl::bloomfilter_runtime;
+  auto worker_fn = [&](u32 thread_id) {
+    constexpr u32 batch_size = 1024;
+    $u32 match_pos[batch_size];
+    launch_params p;
+    while (generate_test_cases(p)) {
+
+      // create and populate Bloom filter
+      bf_t bf = bf_t::construct(p.k, p.m);
+      // use keys from lower half of data
+      for (std::size_t i = 0; i < p.n; i++) {
+        bf.insert(data[i]);
+      }
+
+      // query the Bloom filter
+      $u64 match_cntr = 0;
+
+      // upper half of data are keys that should result in negative queries
+      // every match is a false positive
+      for (std::size_t i = data.size() / 2; i < data.size(); i += batch_size) {
+        match_cntr += bf.batch_contains(&data[i], batch_size, &match_pos[0], 0);
+      }
+
+      bf.destruct();
+      std::stringstream result;
+      result << p.k << "," << p.m << "," << p.n << "," << (data.size() / 2) << "," << match_cntr << "," << (match_cntr * 1.0) / (data.size() / 2) << std::endl;
+      std::cout << result.str();
+    }
+  };
+
+  std::cout << "k,m,n,key_cnt,match_cnt,fpr" << std::endl;
+
+  dtl::run_in_parallel(worker_fn, std::min(std::thread::hardware_concurrency(), 64u));
 }
