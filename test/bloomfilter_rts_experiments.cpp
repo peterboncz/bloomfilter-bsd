@@ -149,6 +149,8 @@ void run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
   // initially, let all nodes refer to the first replica
   bloomfilter_node_map.resize(dtl::mem::get_node_count(), 0);
 
+  bloomfilter_replicas[0].print_info();
+
   if (replicate_bloomfilter) {
     // replicate the bloomfilter to all HBM nodes
     auto replica_nodes = (use_hbm && dtl::mem::hbm_available())
@@ -238,6 +240,7 @@ void run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
             << "cycles/probe: " << cycles_per_probe
             << " (matchcnt: " << found << ")"
             << std::endl;
+
 }
 
 
