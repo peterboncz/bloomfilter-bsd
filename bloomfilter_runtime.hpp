@@ -16,7 +16,7 @@ namespace dtl {
 
 /// A runtime wrapper for a Bloom filter instance.
 /// The actual Bloom filter type is determined by the parameters 'm' and 'k'.
-/// Note: This wrapper should only be used if the parameter is NOT known at compile time.
+/// Note: This wrapper should only be used if the parameters is NOT known at compile time.
 struct bloomfilter_runtime {
 
   /// The bit length of the Bloom filter.

@@ -17,17 +17,17 @@ using key_t = $u32;
 using word_t = $u32;
 
 template<typename T>
-using hash_fn_0 = dtl::hash::knuth<T>;
+//using hash_fn_0 = dtl::hash::knuth<T>;
 // -- alternative hash functions
 //using hash_fn_0 = dtl::hash::murmur_32<T>;
-//using hash_fn_0 = dtl::hash::fnv_32<T>;
+using hash_fn_0 = dtl::hash::fnv_32<T>;
 //using hash_fn_0 = dtl::hash::identity<T>;
 
 template<typename T>
-using hash_fn_1 = dtl::hash::knuth_alt<T>;
+//using hash_fn_1 = dtl::hash::knuth_alt<T>;
 // -- alternative hash functions
 //using hash_fn_1 = dtl::hash::murmur_32_alt<T>;
-//using hash_fn_1 = dtl::hash::fnv_32_alt<T>;
+using hash_fn_1 = dtl::hash::fnv_32_alt<T>;
 //using hash_fn_1 = dtl::hash::identity<T>;
 
 
