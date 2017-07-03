@@ -88,9 +88,9 @@ struct array_info<std::array<T, N>> {
 #define assume_aligned(address, byte) __builtin_assume_aligned(address, byte)
 #endif
 
-#ifndef unreachable
-#define unreachable() __builtin_unreachable();
-#endif
+//#ifndef unreachable
+//#define unreachable() __builtin_unreachable();
+//#endif
 
 #ifndef likely
 #define likely(expr) __builtin_expect(!!(expr), 1)

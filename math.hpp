@@ -253,10 +253,17 @@ namespace ct {
     };
   };
 
-  template<size_t n>
-  struct log_2{
-    enum : size_t {
-      value = 8 * sizeof(size_t) - __builtin_clzll(n) - 1
+  template<u32 n>
+  struct log_2_u32{
+    enum : u32 {
+      value = 8 * sizeof(u32) - dtl::bits::lz_count(n) - 1
+    };
+  };
+
+  template<u64 n>
+  struct log_2_u64{
+    enum : u64 {
+      value = 8 * sizeof(u64) - dtl::bits::lz_count(n) - 1
     };
   };
 

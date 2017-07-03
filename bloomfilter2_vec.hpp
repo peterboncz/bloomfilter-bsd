@@ -37,22 +37,25 @@ struct bloomfilter2_vec {
 
 
   template<u64 vector_len>
-  forceinline vec<size_t, vector_len>
-  which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept{
+  __forceinline__
+  vec<size_t, vector_len>
+  which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
     const vec<size_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     return word_idx;
   }
 
 
   template<u64 n> // the vector length
-  forceinline unroll_loops vec<word_t, n>
+  __forceinline__ __unroll_loops__
+  vec<word_t, n>
   which_bits(const vec<hash_value_t, n>& first_hash_val,
              const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
     vec<word_t, n> words = 1;
     words <<= (first_hash_val >> ((bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
     for (size_t i = 0; i < bf_t::k - 1; i++) {
-      const vec<$u32, n> bit_idxs = (second_hash_val >> (bf_t::hash_value_bitlength - (i * bf_t::sector_bitlength_log2))) & bf_t::sector_mask();
+      u32 shift = bf_t::hash_value_bitlength - (i * bf_t::sector_bitlength_log2 + 2);
+      const vec<$u32, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
       const u32 sector_offset = ((i + 1) * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
     }
@@ -61,7 +64,8 @@ struct bloomfilter2_vec {
 
 
   template<u64 n> // the vector length
-  forceinline typename vec<key_t, n>::mask_t
+  __forceinline__
+  typename vec<key_t, n>::mask_t
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
@@ -79,15 +83,16 @@ struct bloomfilter2_vec {
 
   /// Performs a batch-probe
   template<u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor>
-  forceinline $u64
+  __forceinline__
+  $u64
   batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;
     $u32* match_writer = match_positions;
 
     // determine the number of keys that need to be probed sequentially, due to alignment
     u64 required_alignment_bytes = 64;
-    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)
-                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t)
+    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)  // should always be true
+                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
                             : key_cnt;
     // process the unaligned keys sequentially
     $u64 read_pos = 0;

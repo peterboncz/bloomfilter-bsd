@@ -36,7 +36,7 @@ struct bloomfilter {
 
 
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
-  static constexpr u32 word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
+  static constexpr u32 word_bitlength_log2 = dtl::ct::log_2_u32<word_bitlength>::value;
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
 
@@ -69,7 +69,7 @@ struct bloomfilter {
   static constexpr u32 sector_cnt = compute_sector_cnt();
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
   // the number of bits needed to address the individual bits within a sector
-  static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2<sector_bitlength>::value;
+  static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
   static constexpr word_t sector_mask = sector_bitlength - 1;
   static constexpr u32 bit_cnt_per_k = sector_bitlength_log2;
 

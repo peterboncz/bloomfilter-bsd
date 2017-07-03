@@ -36,7 +36,8 @@ struct bloomfilter_vec {
 
 
   template<u64 vector_len>
-  forceinline vec<size_t, vector_len>
+  __forceinline__
+  vec<size_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept{
     const vec<size_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     return word_idx;
@@ -44,7 +45,8 @@ struct bloomfilter_vec {
 
 
   template<u64 n> // the vector length
-  forceinline unroll_loops vec<word_t, n>
+  __forceinline__ __unroll_loops__
+  vec<word_t, n>
   which_bits(const vec<hash_value_t, n>& hash_val) const noexcept {
     u32 word_bit_cnt = (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     vec<word_t, n> words = 0;
@@ -58,7 +60,8 @@ struct bloomfilter_vec {
 
 
   template<u64 n> // the vector length
-  forceinline typename vec<key_t, n>::mask_t
+  __forceinline__
+  typename vec<key_t, n>::mask_t
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
@@ -68,14 +71,15 @@ struct bloomfilter_vec {
     const key_vt word_idxs = which_word(hash_vals);
     const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(hash_vals);
-// late gather    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
+// late gather:    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     return (words & search_masks) == search_masks;
   }
 
 
   /// Performs a batch-probe
   template<u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor>
-  forceinline $u64
+  __forceinline__
+  $u64
   batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
     const key_t* reader = keys;
     $u32* match_writer = match_positions;

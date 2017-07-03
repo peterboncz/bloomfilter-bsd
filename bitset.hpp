@@ -22,7 +22,7 @@ struct bitset {
 
   using word_t = $u64;
   static constexpr u64 word_bitlength = sizeof(word_t) * 8;
-  static constexpr u64 word_bitlength_log = ct::log_2<word_bitlength>::value;
+  static constexpr u64 word_bitlength_log = ct::log_2_u64<word_bitlength>::value;
   static constexpr u64 word_mask = word_bitlength - 1;
   static constexpr u64 word_cnt = (N + (word_bitlength - 1)) / word_bitlength;
 

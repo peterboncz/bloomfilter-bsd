@@ -13,6 +13,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         bits.hpp
         bloomfilter_runtime.hpp
+        bloomfilter_runtime_types.hpp
         bloomfilter.hpp
         bloomfilter2.hpp
         bloomfilter_vec.hpp

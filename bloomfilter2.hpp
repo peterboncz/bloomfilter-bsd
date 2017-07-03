@@ -35,7 +35,7 @@ struct bloomfilter2 {
 
 
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
-  static constexpr u32 word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
+  static constexpr u32 word_bitlength_log2 = dtl::ct::log_2_u32<word_bitlength>::value;
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
 
@@ -73,7 +73,7 @@ struct bloomfilter2 {
   static constexpr u32 sector_cnt = compute_sector_cnt();
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
   // the number of bits needed to address the individual bits within a sector
-  static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2<sector_bitlength>::value;
+  static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
 //  static constexpr word_t sector_mask() { return sector_bitlength_log2 - 1; } // a function, to work around a compiler bug
   static constexpr word_t sector_mask() { return sector_bitlength - 1; }
 
@@ -171,15 +171,16 @@ struct bloomfilter2 {
     u32 first_bit_idx = ((first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask());
     word_t word = word_t(1) << first_bit_idx;
     for (size_t i = 0; i < k - 1; i++) {
-      const u32 bit_idx = (second_hash_val >> (hash_value_bitlength - (i * sector_bitlength_log2))) & sector_mask();
-      const u32 sector_offset = ((i + 1) * sector_bitlength) & word_bitlength_mask;
+      u32 shift = hash_value_bitlength - (i * sector_bitlength_log2 + 2); // FIXME for 64-bit words
+      u32 bit_idx = (second_hash_val >> shift) & sector_mask();
+      u32 sector_offset = ((i + 1) * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
     }
     return word;
   }
 
 
-  forceinline
+  __forceinline__
   void
   insert(const key_t& key) noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
@@ -191,7 +192,7 @@ struct bloomfilter2 {
   }
 
 
-  forceinline
+  __forceinline__
   u1
   contains(const key_t& key) const noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
