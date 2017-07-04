@@ -4,10 +4,10 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter_runtime_types.hpp>
-#include <dtl/bloomfilter.hpp>
-#include <dtl/bloomfilter_vec.hpp>
-#include <dtl/bloomfilter2_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_runtime_types.hpp>
+#include <dtl/bloomfilter/bloomfilter.hpp>
+#include <dtl/bloomfilter/bloomfilter_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter2_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 

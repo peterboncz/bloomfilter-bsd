@@ -12,12 +12,12 @@ set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
         bits.hpp
-        bloomfilter_runtime.hpp
-        bloomfilter_runtime_types.hpp
-        bloomfilter.hpp
-        bloomfilter2.hpp
-        bloomfilter_vec.hpp
-        bloomfilter2_vec.hpp
+        bloomfilter/bloomfilter_runtime.hpp
+        bloomfilter/bloomfilter_runtime_types.hpp
+        bloomfilter/bloomfilter.hpp
+        bloomfilter/bloomfilter2.hpp
+        bloomfilter/bloomfilter_vec.hpp
+        bloomfilter/bloomfilter2_vec.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp

@@ -4,8 +4,8 @@
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 
-#include <dtl/bloomfilter.hpp>
-#include <dtl/bloomfilter2.hpp>
+#include <dtl/bloomfilter/bloomfilter.hpp>
+#include <dtl/bloomfilter/bloomfilter2.hpp>
 
 // use 'bloomfilter2' for k > 1 (used for benchmarking purposes only)
 // #define USE_BF2
