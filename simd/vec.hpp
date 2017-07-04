@@ -135,7 +135,6 @@ struct v {
   ///     architectures.
   struct m {
 
-    using type = compound_mask_type;
     /// The actual mask data. (the one and only non-static member variable of this class)
     compound_mask_type data;
 
@@ -336,14 +335,14 @@ struct v {
     };
 
 
-    // Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
+    /// Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
     template<u1 Compound = false>
     static inline $u64
     to_positions(const nested_mask_type& mask, $u32* position_list, u32 offset) {
       return mask.to_positions(position_list, offset);
     }
 
-    // Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
+    /// Converts the mask into a position list and returns the number of elements. (the size of the position list must be at least N)
     template<u1 Compound, typename = std::enable_if_t<Compound>>
     static inline $u64
     to_positions(const compound_mask_type& compound_mask, $u32* position_list, u32 offset) {

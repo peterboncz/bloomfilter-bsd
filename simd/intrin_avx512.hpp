@@ -12,7 +12,8 @@
 namespace dtl {
 namespace simd {
 
-namespace {
+namespace internal {
+namespace avx512 {
 
 struct mask16 {
   __mmask16 data;
@@ -45,7 +46,13 @@ struct mask16 {
 
 //    __mmask8
 
-} // anonymous namespace
+} // avx512 namespace
+} // internal namespace
+
+
+namespace {
+using mask16 = internal::avx512::mask16;
+}
 
 
 // --- vector types

@@ -12,7 +12,8 @@
 namespace dtl {
 namespace simd {
 
-namespace {
+namespace internal {
+namespace avx2 {
 
 //template<u32 L>
 struct mask {
@@ -95,7 +96,14 @@ struct mask {
 
 };
 
-} // anonymous namespace
+} // avx2 namespace
+} // internal namespace
+
+
+namespace {
+using mask = internal::avx2::mask;
+}
+
 
 /// Define native vector type for SIMD-256: 8 x i32
 template<>
