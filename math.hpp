@@ -48,7 +48,7 @@ std::array<T, N> unrank(uint64_t r) {
 }
 
 /// Computes (iteratively) the factorial of n.
-static uint64_t factorial(const uint64_t n) {
+uint64_t factorial(const uint64_t n) {
   uint64_t factorial = n;
   for (size_t i = n; i > 1; i--) {
     factorial *= i;
@@ -77,7 +77,7 @@ static uint64_t n_choose_k(const uint64_t n, const uint64_t k) {
 ///   n = 20 exceeds 32 bit (n = 19 requires 31 bits)
 ///   n = 37 exceeds 64 bit
 //FIXME: returns wrong results for n > 33
-static uint64_t catalan_number(const uint64_t n) {
+uint64_t catalan_number(const uint64_t n) {
   return n_choose_k(2 * n, n) / (n + 1);
 }
 
