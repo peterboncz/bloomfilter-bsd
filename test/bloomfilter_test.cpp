@@ -4,14 +4,16 @@
 #include <bitset>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter_runtime.hpp>
-#include <dtl/bloomfilter.hpp>
-#include <dtl/bloomfilter_vec.hpp>
-#include <dtl/bloomfilter2.hpp>
-#include <dtl/bloomfilter2_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_runtime.hpp>
+#include <dtl/bloomfilter/bloomfilter.hpp>
+#include <dtl/bloomfilter/bloomfilter_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter2.hpp>
+#include <dtl/bloomfilter/bloomfilter2_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
+
+#include "bloomfilter_util.hpp"
 
 using namespace dtl;
 
@@ -84,43 +86,43 @@ TEST(bloomfilter, k2) {
   for (word_t word : bf.word_array) {
     std::cout << std::bitset<bf_t::word_bitlength>(word) << std::endl;
   }
-
 }
 
+
 TEST(bloomfilter, vectorized_probe) {
-  u32 k = 2;
-  u1 sectorize = false;
+  u32 k = 6;
+  u1 sectorize = true;
   using bf_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
   using bf_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
 
-  u32 key_cnt = 1024;
+  u32 key_cnt = 1000000u;
   u32 m = key_cnt * k * 2;
+//  u32 m = 64;
   bf_t bf(m);
+  bf.print_info();
 
+//  dtl::aligned_vector<key_t> keys;
   std::vector<key_t> keys;
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<key_t> dis(0, m - 1);
+  std::mt19937 gen(1979);
+  std::uniform_int_distribution<key_t> dis(1, m - 1);
   for ($u64 i = 0; i < key_cnt; i++) {
     const key_t key = dis(gen);
     keys.push_back(key);
     bf.insert(key);
+
+    ASSERT_TRUE(bf.contains(key)) << "Build failed. i = " << i << " key = " << key << std::endl;
   }
 
   std::cout << "popcount: " << bf.popcnt() << std::endl;
-  for (word_t word : bf.word_array) {
-    std::cout << std::bitset<bf_t::word_bitlength>(word) << std::endl;
-  }
 
   std::vector<key_t> match_pos;
   match_pos.resize(keys.size(), -1);
 
   bf_vt bf_v { bf };
   auto match_cnt = bf_v.batch_contains(&keys[0], key_cnt, &match_pos[0], 0);
-  ASSERT_EQ(key_cnt, match_cnt);
+  ASSERT_LE(key_cnt, match_cnt);
 }
-
 
 
 TEST(bloomfilter, wrapper) {
@@ -135,6 +137,7 @@ TEST(bloomfilter, wrapper) {
     bf_wrapper.destruct();
   }
 }
+
 
 TEST(bloomfilter, wrapper_batch_probe) {
 
@@ -173,15 +176,16 @@ TEST(bloomfilter, wrapper_batch_probe) {
 }
 
 TEST(bloomfilter, init) {
-  u64 k = 4;
+  u64 k = 1;
   u64 begin = 0;
-  u64 end = 256;
-  u64 modulus = 1;
-  u32 m = 2048;
+  u64 end = 200000000;
+  u64 modulus = 1000;
+  u32 m = 199999002;
   auto bf = dtl::bloomfilter_runtime::construct(k, m);
   for ($u64 i = begin; i < end; i++) {
     if (i % modulus == 0) {
       bf.insert(i);
+      ASSERT_TRUE(bf.contains(i));
     }
   }
   bf.print();
@@ -239,7 +243,7 @@ TEST(bloomfilter, quality) {
 }
 
 
-TEST(bloomfilter, false_positive_rate_fixed_load_factor) {
+TEST(bloomfilter, DISABLED_false_positive_rate_fixed_load_factor) {
 
   // Generate a dense key set.
   u32 key_cnt_bits = 24;
@@ -313,7 +317,7 @@ TEST(bloomfilter, false_positive_rate_fixed_load_factor) {
 }
 
 
-TEST(bloomfilter, false_positive_rate_fixed_size_l1) {
+TEST(bloomfilter, DISABLED_false_positive_rate_fixed_size_l1) {
 
   // Generate a dense key set.
   u32 key_cnt_bits = 24;
@@ -385,6 +389,54 @@ TEST(bloomfilter, false_positive_rate_fixed_size_l1) {
   }
 }
 
+
+TEST(bloomfilter, DISABLED_determine_m) {
+//  std::vector<$f64> fs {
+//     0.0000100000,
+//     0.0001000000,
+//     0.0010000000,
+//     0.0100000000,
+//     0.1000000000
+//  };
+//
+////  u64 k = 2;
+//  u64 n = 20000;
+//  u64 B = 32;
+//
+//  for ($u64 k = 1; k < 8; k++) {
+//    std::cout << "--- k = " << k << " ---" << std::endl;
+//    std::for_each(fs.begin(), fs.end(), [&](f64 f) {
+//      auto m = determine_m_std(f, n, k);
+//      std::cout << std::fixed << std::setprecision(12) << f << " -> m:" << m << " <- fpr:" << fpr_std(m, n, k) << " (blocked: " << fpr_blocked(m, n, k, B) << ")" << std::endl;
+//    });
+//  }
+//
+//  for ($u64 i = 1; i < (u64(1) << 30); i <<= 1) {
+//    std::cout << i << std::endl;
+//  }
+
+  std::cout << "---" << std::endl;
+//  u64 m = 1ul << 30;
+//  {
+//    u64 c = 8;
+//    u64 n = 2000000;
+//    u64 m = n * c;
+//    u64 k = 4;
+//    u64 B = 4;
+//    std::cout << std::fixed << std::setprecision(12) << fpr_std(m, n, k) << std::endl;
+//    std::cout << std::fixed << std::setprecision(12) << fpr_blocked(m, n, k, B) <<  std::endl;
+//  }
+
+  {
+    u64 n = 2000000;
+    u64 k = 4;
+    u64 B = 4;
+    f64 f = 0.00001;
+    std::cout << std::fixed << std::setprecision(12) << determine_m_std(f, n, k) << std::endl;
+    std::cout << std::fixed << std::setprecision(12) << determine_m(f, n, k, B) <<  std::endl;
+
+  }
+}
 
 } // namespace test
 } // namespace dtl

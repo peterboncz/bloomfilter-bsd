@@ -1,22 +1,23 @@
 #include "gtest/gtest.h"
 
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <fstream>
+#include <iostream>
 #include <mutex>
 #include <sstream>
 #include <unordered_set>
 
-#include "../adept.hpp"
-#include "../bloomfilter_runtime.hpp"
-//#include "../bloomfilter.hpp"
-//#include "../bloomfilter_vec.hpp"
-#include "../hash.hpp"
-#include "../mem.hpp"
-#include "../simd.hpp"
-#include "../thread.hpp"
-#include "../env.hpp"
+#include <boost/tokenizer.hpp>
 
-#include <atomic>
-
-#include <chrono>
+#include <dtl/dtl.hpp>
+#include <dtl/bloomfilter/bloomfilter_runtime.hpp>
+#include <dtl/hash.hpp>
+#include <dtl/mem.hpp>
+#include <dtl/simd.hpp>
+#include <dtl/thread.hpp>
+#include <dtl/env.hpp>
 
 #include "immintrin.h"
 
@@ -261,7 +262,7 @@ TEST(bloom, filter_performance_parallel_vec) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 
-TEST(bloom, accuracy) {
+TEST(bloom, DISABLED_accuracy) {
   const std::size_t m_max = 64u * 1024u * 1024u * 8u;
 //  const std::size_t m_max = 256u * 1024u * 1024u * 8u;
 //  const std::size_t m_max = 256u * 1024u * 8u;
@@ -319,7 +320,15 @@ TEST(bloom, accuracy) {
     std::lock_guard<std::mutex> lock(generator_mutex);
     if (current_n < ms[current_m_idx]) {
       // increment n
-      current_n += ms[current_m_idx] / data_points_per_test;
+      auto m = ms[current_m_idx];
+      auto m_low = (m / 100);
+      if (current_n < m_low) {
+        current_n += m_low / data_points_per_test;
+        if (current_n > m_low) current_n = m_low;
+      }
+      else {
+        current_n += ms[current_m_idx] / data_points_per_test;
+      }
     }
     else if (current_m_idx < ms.size() - 1) {
       // increment m, reset n
@@ -375,4 +384,126 @@ TEST(bloom, accuracy) {
   std::cout << "k,m,n,key_cnt,match_cnt,fpr" << std::endl;
 
   dtl::run_in_parallel(worker_fn, std::min(std::thread::hardware_concurrency(), 64u));
+//  dtl::run_in_parallel(worker_fn, std::min(std::thread::hardware_concurrency(), 1u));
+}
+
+
+
+static void parse_csv(std::ifstream& csv_input,
+                      std::function<void(std::vector<std::string>&)> callback) {
+
+  using namespace boost;
+  boost::char_separator<char> sep(",");
+//  typedef tokenizer<escaped_list_separator<char>> Tokenizer;
+  typedef boost::tokenizer<boost::char_separator<char> >
+      Tokenizer;
+  std::vector<std::string> tokens;
+  std::string line;
+
+  while (getline(csv_input, line)) {
+    Tokenizer tok(line,sep);
+    tokens.assign(tok.begin(), tok.end());
+    callback(tokens);
+  }
+}
+
+
+TEST(foo, DISABLED_bar) {
+  double probe_perf[8][5];
+  size_t m_values[100];
+  std::string data("./probe_performance.csv");
+  std::ifstream in(data.c_str());
+  ASSERT_TRUE(in.is_open());
+  int i = -1;
+  $u64 current_m = 0;
+  parse_csv(in, [&](std::vector<std::string>& fields) {
+    auto k = stoul(fields[0]);
+    auto m = stoul(fields[1]);
+    if (current_m != m) {
+      current_m = m;
+      i++;
+    }
+    auto p = stod(fields[2]);
+    std::cout << fields[0] << "|"
+              << fields[1] << "|"
+              << fields[2]
+              << std::endl;
+    m_values[i] = m;
+    probe_perf[k][i] = p;
+  });
+  for (size_t k = 1; k < 8; k++) {
+    for (size_t m = 0; m < 5; m++) {
+      std::cout << probe_perf[k][m] << ",";
+    }
+    std::cout << std::endl;
+  }
+
+
+  std::vector<$f64> fpr_load_factor;
+  std::vector<std::vector<$f64>> fpr_k;
+  fpr_k.resize(8);
+  std::string fpr_data("./false_positive_rate.csv");
+  std::ifstream fpr_in(fpr_data.c_str());
+  ASSERT_TRUE(fpr_in.is_open());
+  parse_csv(fpr_in, [&](std::vector<std::string>& fields) {
+    fpr_load_factor.push_back(stod(fields[0]));
+    fpr_k[1].push_back(stod(fields[1]));
+    fpr_k[2].push_back(stod(fields[2]));
+    fpr_k[3].push_back(stod(fields[3]));
+    fpr_k[4].push_back(stod(fields[4]));
+    fpr_k[5].push_back(stod(fields[5]));
+    fpr_k[6].push_back(stod(fields[6]));
+    fpr_k[7].push_back(stod(fields[7]));
+  });
+
+
+  u64 card_r = 600037902u;
+  u64 card_l = 20000000u;
+  f64 sel = 0.01;
+  u64 n = card_l * sel;
+  f64 c_tuple_pre = 10;
+  double c[8][5];
+  double picked_f[8][5];
+  for (size_t k = 1; k < 8; k++) {
+    for (size_t m = 0; m < 5; m++) {
+
+      // lookup fpr
+      auto lf = (n * 1.0) / m_values[m];
+      auto lf_it = std::lower_bound(fpr_load_factor.begin(), fpr_load_factor.end(), lf);
+      auto lf_idx = std::distance(fpr_load_factor.begin(), lf_it);
+      std::vector<$f64>& fpr = fpr_k[k];
+      auto f = fpr[lf_idx];
+      picked_f[k][m] = f;
+      // lookup c_tuple_bloom
+      auto c_tuple_bloom = probe_perf[k][m];
+
+      // c_t,dis= f(m,n,k)٠(1-sel)٠c_t,pre  + c_t,bloom (m,k)
+
+      c[k][m] = f * (1 - sel) * c_tuple_pre + c_tuple_bloom;
+    }
+  }
+
+  std::cout << "costs: ------------------" << std::endl;
+  std::cout << "k";
+  for (size_t m = 0; m < 5; m++) {
+    std::cout << "  " << m_values[m];
+  }
+  std::cout << std::endl;
+  for (size_t k = 1; k < 8; k++) {
+    std::cout << k ;
+    for (size_t m = 0; m < 5; m++) {
+      std::cout << "  " << c[k][m];
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "costs: ------------------" << std::endl;
+  std::cout << "k m costs";
+  std::cout << std::endl;
+  for (size_t k = 1; k < 8; k++) {
+    for (size_t m = 0; m < 5; m++) {
+      std::cout << m_values[m] << "  " <<k << "  " << c[k][m] << std::endl;
+    }
+    std::cout << std::endl;
+  }
 }

@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "../adept.hpp"
-#include "../bloomfilter.hpp"
-#include "../bloomfilter_vec.hpp"
+#include "dtl/bloomfilter/bloomfilter.hpp"
+#include "dtl/bloomfilter/bloomfilter_vec.hpp"
 #include "../hash.hpp"
 #include "../mem.hpp"
 #include "../simd.hpp"
