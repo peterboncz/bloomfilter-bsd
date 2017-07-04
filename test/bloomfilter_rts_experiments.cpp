@@ -262,7 +262,7 @@ TEST(bloom, filter_performance_parallel_vec) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 
-TEST(bloom, DISABLED_accuracy) {
+TEST(bloom, accuracy) {
   const std::size_t m_max = 64u * 1024u * 1024u * 8u;
 //  const std::size_t m_max = 256u * 1024u * 1024u * 8u;
 //  const std::size_t m_max = 256u * 1024u * 8u;
