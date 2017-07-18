@@ -58,21 +58,23 @@ include_directories(SYTEM ../../)
 
 
 set(TEST_FILES
-#        bitmask_test.cpp
+        bitmask_test.cpp
+#        bitset_test.cpp
 #        bitpack_test.cpp
+
 #        bloomfilter_test.cpp
 #        mem_test.cpp
 #        vec_test.cpp
 #        like_test.cpp
-        enumerate_groups_test.cpp
+#        enumerate_groups_test.cpp # avx-512 only
         )
-add_multiarch_executable(dtl_tester ${TEST_FILES})
+add_multiarch_executable(dtl_tester "${TEST_FILES}")
 
 
 set(VECTOR_TEST_FILES
         vec_test.cpp
         )
-add_multiarch_executable(vector_tester ${VECTOR_TEST_FILES})
+add_multiarch_executable(vector_tester "${VECTOR_TEST_FILES}")
 
 
 set(STORAGE_TEST_FILES
@@ -80,60 +82,60 @@ set(STORAGE_TEST_FILES
         bitmask_experiments.cpp
 #        io_test.cpp
         )
-add_multiarch_executable(storage_tester ${STORAGE_TEST_FILES})
+add_multiarch_executable(storage_tester "${STORAGE_TEST_FILES}")
 
 
 set(BLOOMFILTER_EXPERIMENTS_FILES
         bloomfilter_experiments.cpp
         )
-add_multiarch_executable(bloomfilter_experiments ${BLOOMFILTER_EXPERIMENTS_FILES})
+add_multiarch_executable(bloomfilter_experiments "${BLOOMFILTER_EXPERIMENTS_FILES}")
 
 
 set(BLOOMFILTER_RTS_EXPERIMENTS_FILES
         bloomfilter_rts_experiments.cpp
         )
-add_multiarch_executable(bloomfilter_rts_experiments ${BLOOMFILTER_RTS_EXPERIMENTS_FILES})
+add_multiarch_executable(bloomfilter_rts_experiments "${BLOOMFILTER_RTS_EXPERIMENTS_FILES}")
 
 
 set(BLOOMFILTER_TEST_FILES
         bloomfilter_test.cpp
         )
-add_multiarch_executable(bloomfilter_tester ${BLOOMFILTER_TEST_FILES})
+add_multiarch_executable(bloomfilter_tester "${BLOOMFILTER_TEST_FILES}")
 
 
 #set(COMPRESSION_TEST_FILES
 #        bitpack_test.cpp
 #        )
-#add_multiarch_executable(bitpack_tester ${COMPRESSION_TEST_FILES})
+#add_multiarch_executable(bitpack_tester "${COMPRESSION_TEST_FILES}")
 
 
 #set(THREAD_TEST_FILES
 #        thread_test.cpp
 #        )
-#add_multiarch_executable(thread_tester ${THREAD_TEST_FILES})
+#add_multiarch_executable(thread_tester "${THREAD_TEST_FILES}")
 
 
 set(BITSET_TEST_FILES
         bitset_test.cpp
         )
-add_multiarch_executable(bitset_tester ${BITSET_TEST_FILES})
+add_multiarch_executable(bitset_tester "${BITSET_TEST_FILES}")
 
 
 #set(MEM_TEST_FILES
 #        mem_test.cpp
 #        )
-#add_multiarch_executable(mem_tester ${MEM_TEST_FILES})
+#add_multiarch_executable(mem_tester "${MEM_TEST_FILES}")
 
 #set(LUT_TEST_FILES
 #        lut_test.cpp
 #        )
-#add_multiarch_executable(lut_tester ${LUT_TEST_FILES})
+#add_multiarch_executable(lut_tester "${LUT_TEST_FILES}")
 
 #set(BF_TOOL_FILES
 #        bloomfilter_util.hpp
 #        bloomfilter_tool.cpp
 #        )
-#add_executable(bf_tool ${BF_TOOL_FILES})
+#add_executable(bf_tool "${BF_TOOL_FILES}")
 
 configure_file(probe_performance.csv probe_performance.csv COPYONLY)
 configure_file(false_positive_rate.csv false_positive_rate.csv COPYONLY)

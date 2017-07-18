@@ -13,7 +13,7 @@
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
-#include "bloomfilter_util.hpp"
+//#include "bloomfilter_util.hpp"
 
 using namespace dtl;
 
@@ -432,8 +432,8 @@ TEST(bloomfilter, DISABLED_determine_m) {
     u64 k = 4;
     u64 B = 4;
     f64 f = 0.00001;
-    std::cout << std::fixed << std::setprecision(12) << determine_m_std(f, n, k) << std::endl;
-    std::cout << std::fixed << std::setprecision(12) << determine_m(f, n, k, B) <<  std::endl;
+//    std::cout << std::fixed << std::setprecision(12) << determine_m_std(f, n, k) << std::endl;
+//    std::cout << std::fixed << std::setprecision(12) << determine_m(f, n, k, B) <<  std::endl;
 
   }
 }

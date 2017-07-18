@@ -1,12 +1,14 @@
 #include "gtest/gtest.h"
-#include "../adept.hpp"
-#include "../bitmask.hpp"
-#include "../tree_mask.hpp"
-#include "../zone_mask.hpp"
+
 #include <bitset>
 #include <functional>
 #include <iostream>
 #include <random>
+
+#include <dtl/dtl.hpp>
+#include <dtl/bitmask.hpp>
+#include <dtl/tree_mask.hpp>
+#include <dtl/zone_mask.hpp>
 
 using namespace dtl;
 
@@ -48,7 +50,8 @@ TEST(bitmask, tree_decode) {
 }
 
 template<u64 N>
-static void test_enc_dec(std::bitset<N> bitmask) {
+static void
+test_enc_dec(std::bitset<N> bitmask) {
   ASSERT_EQ(bitmask, tree_mask<N>::decode(tree_mask<N>::encode(bitmask)));
 };
 

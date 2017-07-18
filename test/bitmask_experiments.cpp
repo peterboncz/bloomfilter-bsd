@@ -1,13 +1,14 @@
 #include "gtest/gtest.h"
-#include "../adept.hpp"
-#include "../bitmask.hpp"
-#include "../tree_mask.hpp"
-#include "../zone_mask.hpp"
 
 #include <bitset>
 #include <functional>
 #include <iostream>
 #include <random>
+
+#include <dtl/dtl.hpp>
+#include <dtl/bitmask.hpp>
+#include <dtl/tree_mask.hpp>
+#include <dtl/zone_mask.hpp>
 
 using namespace dtl;
 

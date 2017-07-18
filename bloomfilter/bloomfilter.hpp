@@ -16,13 +16,14 @@
 
 namespace dtl {
 
-/// A high-performance Bloom filter.
+/// A high-performance blocked Bloom filter.
+/// The hash bits are provided by one single hash function.
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the hash function to use
-    typename Tw = u64,     // the word type to use for the bitset
+    typename Tw = u64,     // the word type to use for the bit array. Note: one word = one block.
     typename Alloc = std::allocator<Tw>,
-    u32 K = 2,             // the number of hash functions to use
-    u1 Sectorized = false
+    u32 K = 2,             // the number of bits set per inserted element
+    u1 Sectorized = false  //
 >
 struct bloomfilter {
 
@@ -62,8 +63,9 @@ struct bloomfilter {
 
   static constexpr u32 compute_sector_cnt() {
     static_assert(Sectorized ? (word_bitlength / dtl::next_power_of_two(k)) != 0 : true,
-                  "The number of sectors must be greater than zero. Probably the given number of hash functions is set to high.");
-    return Sectorized ? word_bitlength / (word_bitlength / dtl::next_power_of_two(k)) : 1;
+                  "The number of sectors must be greater than zero. Probably the given 'k' is set to high.");
+    return Sectorized ? static_cast<u32>(word_bitlength / (word_bitlength / dtl::next_power_of_two(k)))
+                      : 1;
   }
 
   static constexpr u32 sector_cnt = compute_sector_cnt();
@@ -95,7 +97,7 @@ struct bloomfilter {
   }
 
 
-  forceinline
+  __forceinline__
   size_t
   length() const noexcept {
     return length_mask + 1;
@@ -169,7 +171,7 @@ struct bloomfilter {
   }
 
 
-  forceinline
+  __forceinline__
   void
   insert(const key_t& key) noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
@@ -180,7 +182,7 @@ struct bloomfilter {
   }
 
 
-  forceinline
+  __forceinline__
   u1
   contains(const key_t& key) const noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
@@ -192,11 +194,8 @@ struct bloomfilter {
 
   u64
   popcnt() const noexcept {
-    $u64 pc = 0;
-    for (auto& w : word_array) {
-      pc += _mm_popcnt_u64(w);
-    }
-    return pc;
+    return std::accumulate(word_array.begin(), word_array.end(), 0ull,
+                           [](u64 cntr, word_t word) { return cntr + dtl::bits::pop_count(word); });
   }
 
 

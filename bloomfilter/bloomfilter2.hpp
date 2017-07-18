@@ -205,11 +205,8 @@ struct bloomfilter2 {
 
   u64
   popcnt() const noexcept {
-    $u64 pc = 0;
-    for (auto& w : word_array) {
-      pc += _mm_popcnt_u64(w);
-    }
-    return pc;
+    return std::accumulate(word_array.begin(), word_array.end(), 0ull,
+                           [](u64 cntr, word_t word) { return cntr + dtl::bits::pop_count(word); });
   }
 
 
