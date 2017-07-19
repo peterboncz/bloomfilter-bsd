@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <atomic>
+#include <bitset>
 #include <chrono>
 #include <functional>
 #include <fstream>
@@ -13,9 +14,7 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/bloomfilter/bloomfilter_runtime.hpp>
-#include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
-#include <dtl/simd.hpp>
 #include <dtl/thread.hpp>
 #include <dtl/env.hpp>
 
@@ -263,44 +262,93 @@ TEST(bloom, filter_performance_parallel_vec) {
 
 
 TEST(bloom, accuracy) {
-  const std::size_t m_max = 64u * 1024u * 1024u * 8u;
-//  const std::size_t m_max = 256u * 1024u * 1024u * 8u;
-//  const std::size_t m_max = 256u * 1024u * 8u;
+  // the max. size of the Bloom filter
+  const std::size_t m_max = 128ull * 1024ull * 1024ull * 8ull;
+  // the number of queries per run
+  const std::size_t probe_cnt = 10 * 1024ull * 1024ull;
+
+  const std::size_t n_max = 2 * m_max + 1024ull;
 
   std::cout << "# generating random data: " << std::flush;
+
   std::vector<$u32> data;
-  data.reserve(m_max * 2);
-
+  data.reserve(n_max + probe_cnt);
   {
-    std::unordered_set<$u32> vals;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<$u32> dis(0, std::numeric_limits<$u32>::max());
+    u32 worker_cnt = dtl::next_power_of_two(std::min(std::thread::hardware_concurrency(), 64u));
 
-    while (data.size() < m_max) {
-      auto v = dis(gen);
-      if (vals.count(v) == 0) {
-        vals.insert(v);
-        data.push_back(v);
+    std::vector<std::vector<$u32>*> worker_data;
+    worker_data.resize(worker_cnt);
+
+    auto data_gen_worker_fn = [&](u32 thread_id) {
+      const std::size_t limit = n_max / worker_cnt;
+
+      auto bit_field = std::make_unique<std::bitset<1ull << 32>>();
+
+
+      worker_data[thread_id] = new std::vector<$u32>;
+      worker_data[thread_id]->reserve(limit);
+      std::vector<$u32>& local_data = *worker_data[thread_id];
+
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      u32 range_span = std::numeric_limits<$u32>::max() / worker_cnt;
+      u32 range_begin = thread_id * range_span;
+      u32 range_end = range_begin +  range_span - 1;
+      std::uniform_int_distribution<$u32> dis(range_begin, range_end);
+      std::stringstream str;
+      str << "# worker_id=" << thread_id << ", begin=" << range_begin << ", end=" << range_end << std::endl;
+      std::cout << str.str() << std::flush;
+
+      while (local_data.size() < limit) {
+        auto v = dis(gen);
+        if (!(*bit_field)[v]) {
+          (*bit_field)[v] = true;
+          local_data.push_back(v);
+        }
       }
+      (*bit_field).reset();
+    };
+
+    dtl::run_in_parallel(data_gen_worker_fn, worker_cnt);
+
+    // concat vectors
+    std::cout << "# concatenating data: " << std::flush;
+    for (std::size_t i = 0; i < worker_cnt; i++) {
+      data.insert(std::end(data), std::begin(*worker_data[i]), std::end(*worker_data[i]));
+      worker_data[i]->reserve(16);
+      worker_data[i]->clear();
+      delete worker_data[i];
     }
-    vals.clear();
+    std::cout << "done" << std::endl;
+
+    std::cout << "# shuffling data: " << std::flush;
+    std::random_shuffle(data.begin(), data.end());
+    std::cout << "done" << std::endl;
+
+    std::cout << "# unique check: " << std::flush;
+    auto bit_field = std::make_unique<std::bitset<1ull << 32>>();
+    std::for_each(data.begin(), data.end(), [&](auto i) {
+      if ((*bit_field)[i]) {
+        std::cout << "Validation failed!" << std::endl;
+      }
+      (*bit_field)[i] = true;
+    });
+    std::cout << "done" << std::endl;
   }
-  std::cout << "done" << std::endl;
+
 
   // the values for m
   std::vector<std::size_t> ms {
-      32u * 1024 * 8,            // L1 cache size
-      64u * 1024 * 8,
-      128u * 1024 * 8,
-      256u * 1024 * 8,           // L2 cache size (Intel)
-      512u * 1024 * 8,           // L2 cache size (AMD)
-      8u * 1024 * 1024 * 8,      // L3 cache sizes
-      16u * 1024 * 1024 * 8,
-      32u * 1024 * 1024 * 8,     // ~L3 cache size (Xeon E5-2680 v4)
-      64u * 1024 * 1024 * 8,     // m_max
-//      128u * 1024 * 1024 * 8,
-//      256u * 1024 * 1024 * 8,  // m_max
+      32ull * 1024 * 8,            // L1 cache size
+      64ull * 1024 * 8,
+      128ull * 1024 * 8,
+      256ull * 1024 * 8,           // L2 cache size (Intel)
+      512ull * 1024 * 8,           // L2 cache size (AMD)
+      8ull * 1024 * 1024 * 8,      // L3 cache sizes
+      16ull * 1024 * 1024 * 8,
+      32ull * 1024 * 1024 * 8,     // ~L3 cache size (Xeon E5-2680 v4)
+      64ull * 1024 * 1024 * 8,
+      128ull * 1024 * 1024 * 8,    // m_max
   };
 
   struct launch_params {
@@ -309,7 +357,7 @@ TEST(bloom, accuracy) {
     $u64 n;
   };
 
-  u64 data_points_per_test = 32;
+  u64 data_points_per_test = 64;
   $u64 current_m_idx = 0;
   $u64 current_n = 0;
   $u64 current_k = 1;
@@ -370,18 +418,25 @@ TEST(bloom, accuracy) {
 
       // upper half of data are keys that should result in negative queries
       // every match is a false positive
-      for (std::size_t i = data.size() / 2; i < data.size(); i += batch_size) {
+      for (std::size_t i = p.n; i < (p.n + probe_cnt); i += batch_size) {
         match_cntr += bf.batch_contains(&data[i], batch_size, &match_pos[0], 0);
       }
 
-      bf.destruct();
       std::stringstream result;
-      result << p.k << "," << p.m << "," << p.n << "," << (data.size() / 2) << "," << match_cntr << "," << (match_cntr * 1.0) / (data.size() / 2) << std::endl;
+      result << p.k << "," << p.m << "," << p.n
+             << "," << bf.hash_function_count()
+             << "," << probe_cnt
+             << "," << match_cntr
+             << "," << (match_cntr * 1.0) / probe_cnt
+             << "," << bf.pop_count()
+             << "," << bf.load_factor()
+             << std::endl;
       std::cout << result.str();
+      bf.destruct();
     }
   };
 
-  std::cout << "k,m,n,key_cnt,match_cnt,fpr" << std::endl;
+  std::cout << "k,m,n,h,key_cnt,match_cnt,fpr,pop_count,load_factor" << std::endl;
 
   dtl::run_in_parallel(worker_fn, std::min(std::thread::hardware_concurrency(), 64u));
 //  dtl::run_in_parallel(worker_fn, std::min(std::thread::hardware_concurrency(), 1u));

@@ -217,6 +217,12 @@ struct bloomfilter2 {
   }
 
 
+  u32
+  hash_function_cnt() const noexcept {
+    return hash_fn_cnt;
+  }
+
+
   void
   print_info() const noexcept {
     std::cout << "-- bloomfilter parameters --" << std::endl;

@@ -46,6 +46,9 @@ struct bloomfilter_runtime {
   std::function<u64()>
   pop_count;
 
+  std::function<u32()>
+  hash_function_count;
+
   std::function<void()>
   print_info;
 
@@ -64,6 +67,7 @@ struct bloomfilter_runtime {
         batch_contains(std::move(src.batch_contains)),
         load_factor(std::move(src.load_factor)),
         pop_count(std::move(src.pop_count)),
+        hash_function_count(std::move(src.hash_function_count)),
         print_info(std::move(src.print_info)),
         print(std::move(src.print)) {
     // invalidate pointers
@@ -83,6 +87,7 @@ struct bloomfilter_runtime {
     batch_contains = std::move(src.batch_contains);
     load_factor = std::move(src.load_factor);
     pop_count = std::move(src.pop_count);
+    hash_function_count = std::move(src.hash_function_count);
     print_info = std::move(src.print_info);
     print = std::move(src.print);
     // invalidate pointers
@@ -150,6 +155,7 @@ struct bloomfilter_runtime {
     batch_contains = std::bind(&bf_vt::template batch_contains<>, bf_v, _1, _2, _3, _4);
     load_factor = std::bind(&bf_t::load_factor, bf);
     pop_count = std::bind(&bf_t::popcnt, bf);
+    hash_function_count = std::bind(&bf_t::hash_function_cnt, bf);
     print_info = std::bind(&bf_t::print_info, bf);
     print = std::bind(&bf_t::print, bf);
   }
@@ -180,6 +186,7 @@ struct bloomfilter_runtime {
     copy.batch_contains = std::bind(&bf_vt::template batch_contains<>, bf_v, _1, _2, _3, _4);
     copy.load_factor = std::bind(&bf_t::load_factor, bf_dst);
     copy.pop_count = std::bind(&bf_t::popcnt, bf_dst);
+    copy.hash_function_count = std::bind(&bf_t::hash_function_cnt, bf_dst);
     copy.print_info = std::bind(&bf_t::print_info, bf_dst);
     copy.print = std::bind(&bf_t::print, bf_dst);
   }
