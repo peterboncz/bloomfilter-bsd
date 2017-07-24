@@ -98,7 +98,8 @@ add_multiarch_executable(bloomfilter_rts_experiments "${BLOOMFILTER_RTS_EXPERIME
 
 
 set(BLOOMFILTER_TEST_FILES
-        bloomfilter_test.cpp
+#        bloomfilter_test.cpp
+        bloomfilter_blocked_cacheline_test.cpp
         )
 add_multiarch_executable(bloomfilter_tester "${BLOOMFILTER_TEST_FILES}")
 
