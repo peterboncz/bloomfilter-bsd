@@ -40,6 +40,7 @@ using bf1_k4_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_alloc
 using bf1_k5_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
 using bf1_k6_t = dtl::bloomfilter<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
 #else
+#warning "Using Bloom filter with H=2."
 using bf1_k2_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
 using bf1_k3_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
 using bf1_k4_t = dtl::bloomfilter2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
