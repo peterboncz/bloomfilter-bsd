@@ -3,6 +3,7 @@
 #include <bitset>
 #include <functional>
 #include <iostream>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 

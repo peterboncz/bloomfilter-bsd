@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <functional>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 
