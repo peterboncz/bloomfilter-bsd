@@ -10,6 +10,7 @@
 
 namespace dtl {
 
+static constexpr uint32_t max_divisor_u32 = std::numeric_limits<uint32_t>::max() - 2;
 
 struct fast_divisor_u32_t {
   uint32_t magic;
@@ -24,7 +25,7 @@ static fast_divisor_u32_t
 next_cheap_magic(uint32_t n) {
   n = std::max(n, 2u);
 
-  const uint32_t d_max = std::numeric_limits<uint32_t>::max() - 2;
+  const uint32_t d_max = max_divisor_u32;
   assert(n <= d_max);
 
   // TODO remove redundancy

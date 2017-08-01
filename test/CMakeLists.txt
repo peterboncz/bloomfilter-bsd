@@ -59,6 +59,7 @@ include_directories(SYTEM ../../)
 
 set(TEST_FILES
         bitmask_test.cpp
+        div_test.cpp
 #        bitset_test.cpp
 #        bitpack_test.cpp
 
@@ -100,6 +101,7 @@ add_multiarch_executable(bloomfilter_rts_experiments "${BLOOMFILTER_RTS_EXPERIME
 set(BLOOMFILTER_TEST_FILES
 #        bloomfilter_test.cpp
         bloomfilter_blocked_cacheline_test.cpp
+        bloomfilter_blocked_cacheline_magic_test.cpp
         )
 add_multiarch_executable(bloomfilter_tester "${BLOOMFILTER_TEST_FILES}")
 
@@ -122,10 +124,10 @@ set(BITSET_TEST_FILES
 add_multiarch_executable(bitset_tester "${BITSET_TEST_FILES}")
 
 
-#set(MEM_TEST_FILES
-#        mem_test.cpp
-#        )
-#add_multiarch_executable(mem_tester "${MEM_TEST_FILES}")
+set(MEM_TEST_FILES
+        mem_test.cpp
+        )
+add_multiarch_executable(mem_tester "${MEM_TEST_FILES}")
 
 #set(LUT_TEST_FILES
 #        lut_test.cpp
