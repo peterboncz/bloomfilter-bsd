@@ -24,6 +24,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bitset_util.hpp
         color.hpp
         dict.hpp
+        div.hpp
         dtl.hpp
         env.hpp
         hash.hpp
@@ -46,6 +47,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        compression/lz4.c
 #        compression/lz4hc.h
 #        compression/lz4hc.c
+        # third party
+        thirdparty/libdivide/libdivide.h
         )
 
 
