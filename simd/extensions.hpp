@@ -43,6 +43,7 @@ struct mulhi_u32<$u32, __m512i, __m512i> : dtl::simd::vector_fn<$u32, __m512i, _
 } // namespace simd
 
 template<typename Tv>
+__forceinline__
 static Tv
 mulhi_u32(const Tv& a, const Tv& b) {
   using Fn = simd::mulhi_u32<typename Tv::scalar_type, typename Tv::nested_type, typename Tv::nested_type>;
@@ -51,6 +52,7 @@ mulhi_u32(const Tv& a, const Tv& b) {
 }
 
 template<typename Tv>
+__forceinline__
 static Tv
 mulhi_u32(const Tv& a, const typename Tv::scalar_type& b) {
   using Fn = simd::mulhi_u32<typename Tv::scalar_type, typename Tv::nested_type, typename Tv::nested_type>;
@@ -64,6 +66,7 @@ mulhi_u32(const Tv& a, const typename Tv::scalar_type& b) {
 //===----------------------------------------------------------------------===//
 
 template<typename Tv>
+__forceinline__
 static Tv
 fast_mod_u32(const Tv& dividend, const fast_divisor_u32_t& divisor) {
   using MulHiFn = simd::mulhi_u32<typename Tv::scalar_type, typename Tv::nested_type, typename Tv::nested_type>;

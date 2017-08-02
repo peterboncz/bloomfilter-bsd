@@ -150,7 +150,7 @@ TEST(bloomfilter, wrapper_batch_probe) {
     for ($u32 key_cnt = 1u << 5; key_cnt < 1u << 22; key_cnt <<= 1) {
       u32 m = key_cnt * 2 * k;
       auto bf = dtl::bloomfilter_runtime::construct(k, m);
-      std::cout << "testing: k: " << k << ", m: " << m << ", key_cnt: " << key_cnt << ", m: " << m << std::endl;
+      std::cout << "testing: k: " << k << ", m: " << m << ", key_cnt: " << key_cnt << ", m: " << m << " (" << bf.m << "), h: " << bf.hash_function_count() << std::endl;
 
       std::vector<$u32> keys;
       keys.reserve(key_cnt);

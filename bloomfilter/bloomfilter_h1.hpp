@@ -17,8 +17,9 @@
 
 namespace dtl {
 
-/// A high-performance blocked Bloom filter.
-/// The hash bits are provided by one single hash function.
+/// A high-performance blocked Bloom filter, whereas a block corresponds to a word.
+/// The hash bits are provided by one single hash function, thus the max. size of the
+/// filter is somewhat limited (depending on K and whether Sectorization is enabled).
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the hash function to use
     typename Tw = u64,     // the word type to use for the bit array. Note: one word = one block.
@@ -58,10 +59,6 @@ struct bloomfilter_h1 {
   // Note that sectorization is a specialization. Having only one sector = no sectorization.
   static constexpr u1 sectorized = Sectorized;
 
-  static constexpr u64 next_power_of_two(u64 value) {
-    return 1ull << ((sizeof(u64) << 3) - __builtin_clzll(value - 1));
-  }
-
   static constexpr u32 compute_sector_cnt() {
     static_assert(Sectorized ? (word_bitlength / dtl::next_power_of_two(k)) != 0 : true,
                   "The number of sectors must be greater than zero. Probably the given 'k' is set to high.");
@@ -92,7 +89,7 @@ struct bloomfilter_h1 {
   size_t
   determine_actual_length(const size_t length) {
     // round up to the next power of two
-    const size_t m = static_cast<size_t>(next_power_of_two(length));
+    const size_t m = static_cast<size_t>(dtl::next_power_of_two(length));
     const size_t min = static_cast<size_t>(min_m);
     return std::max(m, min);
   }
@@ -107,7 +104,7 @@ struct bloomfilter_h1 {
 
   /// C'tor
   bloomfilter_h1(const size_t length,
-              const allocator_t allocator = allocator_t())
+                 const allocator_t allocator = allocator_t())
       : length_mask(determine_actual_length(length) - 1),
         word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)),
         allocator(allocator),
@@ -115,14 +112,17 @@ struct bloomfilter_h1 {
     if (((length_mask + 1)) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
+  /// Copy c'tor
+  bloomfilter_h1(const bloomfilter_h1&) = default;
+  bloomfilter_h1(const bloomfilter_h1& other,
+                 const allocator_t& allocator)
+      : length_mask(other.length_mask),
+        word_cnt_log2(other.word_cnt_log2),
+        allocator(allocator),
+        word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
 
-  // FIXME
-  ~bloomfilter_h1() {
-    word_array.resize(8);
-  }
 
-
-  /// Creates a copy of the bloomfilter (allows to specify a different allocator)
+  /// Creates a copy of the bloomfilter (allows to specify a different allocator type)
   template<typename AllocOfCopy = Alloc>
   bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
@@ -149,7 +149,7 @@ struct bloomfilter_h1 {
 
   __forceinline__ __host__ __device__
   static size_t
-  which_word(const /*hash_value_t*/ uint32_t hash_val,
+  which_word(const hash_value_t hash_val,
              const size_t length_mask,
              const size_t word_cnt_log2) noexcept {
     const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
@@ -160,7 +160,7 @@ struct bloomfilter_h1 {
 
   __forceinline__ __unroll_loops__ __host__ __device__
   static word_t
-  which_bits(const /*hash_value_t*/ uint32_t hash_val,
+  which_bits(const hash_value_t hash_val,
              const size_t word_cnt_log2) noexcept {
     word_t word = 0;
     for (size_t i = 0; i < k; i++) {
@@ -215,7 +215,7 @@ struct bloomfilter_h1 {
 
   void
   print_info() const noexcept {
-    std::cout << "-- bloomfilter_h1 parameters --" << std::endl;
+    std::cout << "-- bloomfilter parameters --" << std::endl;
     std::cout << "static" << std::endl;
     std::cout << "  h:                    " << hash_fn_cnt << std::endl;
     std::cout << "  k:                    " << k << std::endl;
@@ -246,7 +246,7 @@ struct bloomfilter_h1 {
 
   void
   print() const noexcept {
-    std::cout << "-- bloomfilter_h1 dump --" << std::endl;
+    std::cout << "-- bloomfilter dump --" << std::endl;
     $u64 i = 0;
     for (const word_t word : word_array) {
       std::cout << std::bitset<word_bitlength>(word);

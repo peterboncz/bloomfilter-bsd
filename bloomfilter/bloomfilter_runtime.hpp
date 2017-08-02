@@ -7,7 +7,12 @@
 #include <dtl/bloomfilter/bloomfilter_runtime_types.hpp>
 #include <dtl/bloomfilter/bloomfilter_h1.hpp>
 #include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1_mod.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1_mod_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2.hpp>
 #include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2_mod.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2_mod_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 
@@ -20,9 +25,9 @@ namespace dtl {
 struct bloomfilter_runtime {
 
   /// The bit length of the Bloom filter.
-  $u32 m;
+  $u64 m;
   /// The number of hash functions.
-  $u32 h;
+  $u64 h;
   /// The number of bits set per entry.
   $u32 k;
   /// Pointer to the Bloom filter instance.
@@ -110,18 +115,32 @@ struct bloomfilter_runtime {
 
   // The supported Bloom filter vectorization extensions.
   using bf1_k1_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false, unroll_factors_bf1[1]>;
+
+  using bf1_k1_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false, unroll_factors_bf1[1]>;
 #ifndef USE_BF2
   using bf1_k2_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf1[2]>;
   using bf1_k3_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf1[3]>;
   using bf1_k4_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf1[4]>;
   using bf1_k5_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf1[5]>;
   using bf1_k6_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf1[6]>;
+
+  using bf1_k2_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf1[2]>;
+  using bf1_k3_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf1[3]>;
+  using bf1_k4_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf1[4]>;
+  using bf1_k5_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf1[5]>;
+  using bf1_k6_mod_vt = dtl::bloomfilter_h1_mod_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf1[6]>;
 #else
-  using bf1_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
-  using bf1_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
-  using bf1_k4_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
-  using bf1_k5_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
-  using bf1_k6_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
+  using bf1_k2_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
+  using bf1_k3_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
+  using bf1_k4_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
+  using bf1_k5_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
+  using bf1_k6_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
+
+  using bf1_k2_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
+  using bf1_k3_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
+  using bf1_k4_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
+  using bf1_k5_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
+  using bf1_k6_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
 #endif
 
   using bf2_k2_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
@@ -130,6 +149,13 @@ struct bloomfilter_runtime {
   using bf2_k5_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
   using bf2_k6_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
   using bf2_k7_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[7]>;
+
+  using bf2_k2_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
+  using bf2_k3_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
+  using bf2_k4_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
+  using bf2_k5_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
+  using bf2_k6_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
+  using bf2_k7_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[7]>;
 
 
   template<
@@ -212,10 +238,16 @@ struct bloomfilter_runtime {
   bloomfilter_runtime
   construct(u32 k, u64 m) {
 
-    // Determine the number of bits required to identify the individual words of the Bloom filter.
+    const u1 only_pow_of_two = false;
+
+    // Determine the number of bits required to identify the individual words/blocks of the Bloom filter.
     using bf_t = bf1_k1_t;
-    u64 actual_m = bf_t::determine_actual_length(m);
-    u64 word_bit_cnt = dtl::log_2(actual_m / bf_t::word_bitlength);
+    $u64 actual_m = bf_t::determine_actual_length(m);
+    $u64 word_bit_cnt = dtl::log_2(actual_m / bf_t::word_bitlength);
+    if (!dtl::is_power_of_two(m) && !only_pow_of_two) {
+      using bf_mod_t = bf2_k2_mod_t;
+      actual_m = bf_mod_t::determine_word_cnt(m) * bf_mod_t::word_bitlength;
+    }
 
     // Determine the number of hash functions needed.
     // Note: Currently only 1 or 2 hash functions are supported.
@@ -225,36 +257,72 @@ struct bloomfilter_runtime {
     wrapper.m = actual_m;
     wrapper.h = hash_fn_cnt;
     wrapper.k = k;
-    switch (wrapper.h) {
-      case 1:
-        // Instantiate a Bloom filter with one hash function.
-        switch (wrapper.k) {
-          case 1: wrapper._construct_and_bind<bf1_k1_t, bf1_k1_vt>(m); break;
-          case 2: wrapper._construct_and_bind<bf1_k2_t, bf1_k2_vt>(m); break;
-          case 3: wrapper._construct_and_bind<bf1_k3_t, bf1_k3_vt>(m); break;
-          case 4: wrapper._construct_and_bind<bf1_k4_t, bf1_k4_vt>(m); break;
-          case 5: wrapper._construct_and_bind<bf1_k5_t, bf1_k5_vt>(m); break;
-          case 6: wrapper._construct_and_bind<bf1_k6_t, bf1_k6_vt>(m); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      case 2:
-        // Instantiate a Bloom filter with two hash functions.
-        switch (wrapper.k) {
-          // k must be > 1, otherwise bf1 should be used.
-          case 2: wrapper._construct_and_bind<bf2_k2_t, bf2_k2_vt>(m); break;
-          case 3: wrapper._construct_and_bind<bf2_k3_t, bf2_k3_vt>(m); break;
-          case 4: wrapper._construct_and_bind<bf2_k4_t, bf2_k4_vt>(m); break;
-          case 5: wrapper._construct_and_bind<bf2_k5_t, bf2_k5_vt>(m); break;
-          case 6: wrapper._construct_and_bind<bf2_k6_t, bf2_k6_vt>(m); break;
-          case 7: wrapper._construct_and_bind<bf2_k7_t, bf2_k7_vt>(m); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      default:
-        throw std::invalid_argument("The given 'h' is not supported.");
+    if (dtl::is_power_of_two(wrapper.m)) {
+      switch (wrapper.h) {
+        case 1:
+          // Instantiate a Bloom filter with one hash function.
+          switch (wrapper.k) {
+            case 1: wrapper._construct_and_bind<bf1_k1_t, bf1_k1_vt>(m); break;
+            case 2: wrapper._construct_and_bind<bf1_k2_t, bf1_k2_vt>(m); break;
+            case 3: wrapper._construct_and_bind<bf1_k3_t, bf1_k3_vt>(m); break;
+            case 4: wrapper._construct_and_bind<bf1_k4_t, bf1_k4_vt>(m); break;
+            case 5: wrapper._construct_and_bind<bf1_k5_t, bf1_k5_vt>(m); break;
+            case 6: wrapper._construct_and_bind<bf1_k6_t, bf1_k6_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          // Instantiate a Bloom filter with two hash functions.
+          switch (wrapper.k) {
+            // k must be > 1, otherwise bf1 should be used.
+            case 2: wrapper._construct_and_bind<bf2_k2_t, bf2_k2_vt>(m); break;
+            case 3: wrapper._construct_and_bind<bf2_k3_t, bf2_k3_vt>(m); break;
+            case 4: wrapper._construct_and_bind<bf2_k4_t, bf2_k4_vt>(m); break;
+            case 5: wrapper._construct_and_bind<bf2_k5_t, bf2_k5_vt>(m); break;
+            case 6: wrapper._construct_and_bind<bf2_k6_t, bf2_k6_vt>(m); break;
+            case 7: wrapper._construct_and_bind<bf2_k7_t, bf2_k7_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
+    }
+    else {
+      // m is not a power of two. pick a (slightly) slower implementation
+      switch (wrapper.h) {
+        case 1:
+          // Instantiate a Bloom filter with one hash function.
+          switch (wrapper.k) {
+            case 1: wrapper._construct_and_bind<bf1_k1_mod_t, bf1_k1_mod_vt>(m); break;
+            case 2: wrapper._construct_and_bind<bf1_k2_mod_t, bf1_k2_mod_vt>(m); break;
+            case 3: wrapper._construct_and_bind<bf1_k3_mod_t, bf1_k3_mod_vt>(m); break;
+            case 4: wrapper._construct_and_bind<bf1_k4_mod_t, bf1_k4_mod_vt>(m); break;
+            case 5: wrapper._construct_and_bind<bf1_k5_mod_t, bf1_k5_mod_vt>(m); break;
+            case 6: wrapper._construct_and_bind<bf1_k6_mod_t, bf1_k6_mod_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          // Instantiate a Bloom filter with two hash functions.
+          switch (wrapper.k) {
+            // k must be > 1, otherwise bf1 should be used.
+            case 2: wrapper._construct_and_bind<bf2_k2_mod_t, bf2_k2_mod_vt>(m); break;
+            case 3: wrapper._construct_and_bind<bf2_k3_mod_t, bf2_k3_mod_vt>(m); break;
+            case 4: wrapper._construct_and_bind<bf2_k4_mod_t, bf2_k4_mod_vt>(m); break;
+            case 5: wrapper._construct_and_bind<bf2_k5_mod_t, bf2_k5_mod_vt>(m); break;
+            case 6: wrapper._construct_and_bind<bf2_k6_mod_t, bf2_k6_mod_vt>(m); break;
+            case 7: wrapper._construct_and_bind<bf2_k7_mod_t, bf2_k7_mod_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
     }
     return wrapper;
   }
@@ -267,33 +335,66 @@ struct bloomfilter_runtime {
     copy.h = h;
     copy.k = k;
     copy.m = m;
-    switch (h) {
-      case 1:
-        switch (k) {
-          case 1: _copy_and_bind<bf1_k1_t, bf1_k1_vt>(copy, allocator_config); break;
-          case 2: _copy_and_bind<bf1_k2_t, bf1_k2_vt>(copy, allocator_config); break;
-          case 3: _copy_and_bind<bf1_k3_t, bf1_k3_vt>(copy, allocator_config); break;
-          case 4: _copy_and_bind<bf1_k4_t, bf1_k4_vt>(copy, allocator_config); break;
-          case 5: _copy_and_bind<bf1_k5_t, bf1_k5_vt>(copy, allocator_config); break;
-          case 6: _copy_and_bind<bf1_k6_t, bf1_k6_vt>(copy, allocator_config); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      case 2:
-        switch (k) {
-          case 2: _copy_and_bind<bf2_k2_t, bf2_k2_vt>(copy, allocator_config); break;
-          case 3: _copy_and_bind<bf2_k3_t, bf2_k3_vt>(copy, allocator_config); break;
-          case 4: _copy_and_bind<bf2_k4_t, bf2_k4_vt>(copy, allocator_config); break;
-          case 5: _copy_and_bind<bf2_k5_t, bf2_k5_vt>(copy, allocator_config); break;
-          case 6: _copy_and_bind<bf2_k6_t, bf2_k6_vt>(copy, allocator_config); break;
-          case 7: _copy_and_bind<bf2_k7_t, bf2_k7_vt>(copy, allocator_config); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      default:
-        throw std::invalid_argument("The given 'h' is not supported.");
+    if (dtl::is_power_of_two(m)) {
+      switch (h) {
+        case 1:
+          switch (k) {
+            case 1: _copy_and_bind<bf1_k1_t, bf1_k1_vt>(copy, allocator_config); break;
+            case 2: _copy_and_bind<bf1_k2_t, bf1_k2_vt>(copy, allocator_config); break;
+            case 3: _copy_and_bind<bf1_k3_t, bf1_k3_vt>(copy, allocator_config); break;
+            case 4: _copy_and_bind<bf1_k4_t, bf1_k4_vt>(copy, allocator_config); break;
+            case 5: _copy_and_bind<bf1_k5_t, bf1_k5_vt>(copy, allocator_config); break;
+            case 6: _copy_and_bind<bf1_k6_t, bf1_k6_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          switch (k) {
+            case 2: _copy_and_bind<bf2_k2_t, bf2_k2_vt>(copy, allocator_config); break;
+            case 3: _copy_and_bind<bf2_k3_t, bf2_k3_vt>(copy, allocator_config); break;
+            case 4: _copy_and_bind<bf2_k4_t, bf2_k4_vt>(copy, allocator_config); break;
+            case 5: _copy_and_bind<bf2_k5_t, bf2_k5_vt>(copy, allocator_config); break;
+            case 6: _copy_and_bind<bf2_k6_t, bf2_k6_vt>(copy, allocator_config); break;
+            case 7: _copy_and_bind<bf2_k7_t, bf2_k7_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
+    }
+    else {
+      // m is not a power of two. pick a (slightly) slower implementation
+      switch (h) {
+        case 1:
+          switch (k) {
+            case 1: _copy_and_bind<bf1_k1_mod_t, bf1_k1_mod_vt>(copy, allocator_config); break;
+            case 2: _copy_and_bind<bf1_k2_mod_t, bf1_k2_mod_vt>(copy, allocator_config); break;
+            case 3: _copy_and_bind<bf1_k3_mod_t, bf1_k3_mod_vt>(copy, allocator_config); break;
+            case 4: _copy_and_bind<bf1_k4_mod_t, bf1_k4_mod_vt>(copy, allocator_config); break;
+            case 5: _copy_and_bind<bf1_k5_mod_t, bf1_k5_mod_vt>(copy, allocator_config); break;
+            case 6: _copy_and_bind<bf1_k6_mod_t, bf1_k6_mod_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          switch (k) {
+            case 2: _copy_and_bind<bf2_k2_mod_t, bf2_k2_mod_vt>(copy, allocator_config); break;
+            case 3: _copy_and_bind<bf2_k3_mod_t, bf2_k3_mod_vt>(copy, allocator_config); break;
+            case 4: _copy_and_bind<bf2_k4_mod_t, bf2_k4_mod_vt>(copy, allocator_config); break;
+            case 5: _copy_and_bind<bf2_k5_mod_t, bf2_k5_mod_vt>(copy, allocator_config); break;
+            case 6: _copy_and_bind<bf2_k6_mod_t, bf2_k6_mod_vt>(copy, allocator_config); break;
+            case 7: _copy_and_bind<bf2_k7_mod_t, bf2_k7_mod_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
     }
     return copy;
   }
@@ -303,33 +404,66 @@ struct bloomfilter_runtime {
   void
   destruct() {
     if (!is_initialized()) return;
-    switch (h) {
-      case 1:
-        switch (k) {
-          case 1: _destruct<bf1_k1_t, bf1_k1_vt>(); break;
-          case 2: _destruct<bf1_k2_t, bf1_k2_vt>(); break;
-          case 3: _destruct<bf1_k3_t, bf1_k3_vt>(); break;
-          case 4: _destruct<bf1_k4_t, bf1_k4_vt>(); break;
-          case 5: _destruct<bf1_k5_t, bf1_k5_vt>(); break;
-          case 6: _destruct<bf1_k6_t, bf1_k6_vt>(); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      case 2:
-        switch (k) {
-          case 2: _destruct<bf2_k2_t, bf2_k2_vt>(); break;
-          case 3: _destruct<bf2_k3_t, bf2_k3_vt>(); break;
-          case 4: _destruct<bf2_k4_t, bf2_k4_vt>(); break;
-          case 5: _destruct<bf2_k5_t, bf2_k5_vt>(); break;
-          case 6: _destruct<bf2_k6_t, bf2_k6_vt>(); break;
-          case 7: _destruct<bf2_k7_t, bf2_k7_vt>(); break;
-          default:
-            throw std::invalid_argument("The given 'k' is not supported.");
-        }
-        break;
-      default:
-        throw std::invalid_argument("The given 'h' is not supported.");
+    if (dtl::is_power_of_two(m)) {
+      switch (h) {
+        case 1:
+          switch (k) {
+            case 1: _destruct<bf1_k1_t, bf1_k1_vt>(); break;
+            case 2: _destruct<bf1_k2_t, bf1_k2_vt>(); break;
+            case 3: _destruct<bf1_k3_t, bf1_k3_vt>(); break;
+            case 4: _destruct<bf1_k4_t, bf1_k4_vt>(); break;
+            case 5: _destruct<bf1_k5_t, bf1_k5_vt>(); break;
+            case 6: _destruct<bf1_k6_t, bf1_k6_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          switch (k) {
+            case 2: _destruct<bf2_k2_t, bf2_k2_vt>(); break;
+            case 3: _destruct<bf2_k3_t, bf2_k3_vt>(); break;
+            case 4: _destruct<bf2_k4_t, bf2_k4_vt>(); break;
+            case 5: _destruct<bf2_k5_t, bf2_k5_vt>(); break;
+            case 6: _destruct<bf2_k6_t, bf2_k6_vt>(); break;
+            case 7: _destruct<bf2_k7_t, bf2_k7_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
+    }
+    else {
+      // m is not a power of two. pick a (slightly) slower implementation
+      switch (h) {
+        case 1:
+          switch (k) {
+            case 1: _destruct<bf1_k1_mod_t, bf1_k1_mod_vt>(); break;
+            case 2: _destruct<bf1_k2_mod_t, bf1_k2_mod_vt>(); break;
+            case 3: _destruct<bf1_k3_mod_t, bf1_k3_mod_vt>(); break;
+            case 4: _destruct<bf1_k4_mod_t, bf1_k4_mod_vt>(); break;
+            case 5: _destruct<bf1_k5_mod_t, bf1_k5_mod_vt>(); break;
+            case 6: _destruct<bf1_k6_mod_t, bf1_k6_mod_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 2:
+          switch (k) {
+            case 2: _destruct<bf2_k2_mod_t, bf2_k2_mod_vt>(); break;
+            case 3: _destruct<bf2_k3_mod_t, bf2_k3_mod_vt>(); break;
+            case 4: _destruct<bf2_k4_mod_t, bf2_k4_mod_vt>(); break;
+            case 5: _destruct<bf2_k5_mod_t, bf2_k5_mod_vt>(); break;
+            case 6: _destruct<bf2_k6_mod_t, bf2_k6_mod_vt>(); break;
+            case 7: _destruct<bf2_k7_mod_t, bf2_k7_mod_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        default:
+          throw std::invalid_argument("The given 'h' is not supported.");
+      }
     }
 
   }

@@ -4,7 +4,8 @@
 #include <vector>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2_mod.hpp>
+#include <dtl/div.hpp>
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
@@ -12,6 +13,7 @@
 #include "immintrin.h"
 
 namespace dtl {
+
 
 template<
     typename Tk,
@@ -23,9 +25,9 @@ template<
     u1 Sectorized = false,
     u32 UnrollFactor = 4
 >
-struct bloomfilter_h2_vec {
+struct bloomfilter_h2_mod_vec {
 
-  using bf_t = dtl::bloomfilter_h2<Tk, hash_fn, hash_fn2, Tw, Alloc, K, Sectorized>;
+  using bf_t = dtl::bloomfilter_h2_mod<Tk, hash_fn, hash_fn2, Tw, Alloc, K, Sectorized>;
   const bf_t& bf;
 
   using key_t = typename bf_t::key_t;
@@ -40,7 +42,7 @@ struct bloomfilter_h2_vec {
   __forceinline__
   vec<size_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
-    const vec<size_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
+    const vec<size_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
     return word_idx;
   }
 

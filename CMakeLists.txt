@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
 include_directories(SYTEM ../)
 
 add_subdirectory(simd)
-add_subdirectory(storage)
+#add_subdirectory(storage)
 
 set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
@@ -15,9 +15,13 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_h1.hpp
-        bloomfilter/bloomfilter_h2.hpp
         bloomfilter/bloomfilter_h1_vec.hpp
+        bloomfilter/bloomfilter_h1_mod.hpp
+        bloomfilter/bloomfilter_h1_mod_vec.hpp
+        bloomfilter/bloomfilter_h2.hpp
         bloomfilter/bloomfilter_h2_vec.hpp
+        bloomfilter/bloomfilter_h2_mod.hpp
+        bloomfilter/bloomfilter_h2_mod_vec.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp

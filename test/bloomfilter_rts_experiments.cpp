@@ -161,7 +161,9 @@ void run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
       // make a copy
       std::cout << "replicate bloomfilter_h1 to node " << dst_node_id << std::endl;
       auto alloc_config = dtl::mem::allocator_config::on_node(dst_node_id);
+      dtl::mem::numa_allocator<bf::word_t> allocator(alloc_config);
       bf_rts_t replica = bloomfilter_replicas[0].make_copy(alloc_config);
+//      bf_rts_t replica(bloomfilter_replicas[0], allocator);
       bloomfilter_replicas.push_back(std::move(replica));
       // update mapping
       bloomfilter_node_map[dst_node_id] = bloomfilter_replicas.size() - 1;
