@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
-#include "../adept.hpp"
-#include "../simd.hpp"
+#include <dtl/dtl.hpp>
+#include <dtl/div.hpp>
+#include <dtl/simd.hpp>
 
 using namespace dtl;
 
@@ -120,28 +121,85 @@ TEST(vec, bitwise) {
   }
 }
 
-TEST(vec, gather) {
-  u64 vec_len = simd::lane_count<$i32> * 2;
-  using vec_t = v<$i32, vec_len>;
 
-  u64 arr_len = 128;
-  std::array<$i32, arr_len> arr;
-  for ($i32 i = 0; i < arr_len; i++) {
-    arr[i] = i;
-  }
+// --- custom SIMD function ---
+namespace custom {
+namespace simd {
 
-  vec_t exp = vec_t::make_index_vector() * 4;
-  vec_t act = dtl::gather(&arr[0], exp);
-  for ($u64 i = 0; i < vec_len; i++) {
-    ASSERT_EQ(exp[i], act[i]);
-  }
+template<typename primitive_t, typename vector_t, typename argument_t>
+struct mulhi_u32 : dtl::simd::vector_fn<primitive_t, vector_t, argument_t> {};
 
-  act = act + 1;
-  dtl::scatter(act, &arr[0], exp);
-  for ($u64 i = 0; i < vec_len; i++) {
-    ASSERT_EQ(exp[i] + 1, act[i]);
+template<>
+struct mulhi_u32<$u32, __m256i, __m256i> : dtl::simd::vector_fn<$u32, __m256i, __m256i> {
+  inline __m256i operator()(const __m256i& a, const __m256i& b) const noexcept {
+    return dtl::mulhi_u32(a, b);
   }
+};
+
+#if defined(__AVX512F__)
+template<>
+struct mulhi_u32<$u32, __m512i, __m512i> : dtl::simd::vector_fn<$u32, __m512i, __m512i> {
+  inline __m512i operator()(const __m512i& a, const __m512i& b) const noexcept {
+    return dtl::mulhi_u32(a, b);
+  }
+};
+#endif // defined(__AVX512F__)
+
+} // namespace simd
+} // namespace custom
+
+namespace dtl {
+
+template<typename Tv>
+Tv
+mulhi_u32(const Tv& a, const Tv& b) {
+  using mulhi = custom::simd::mulhi_u32<typename Tv::scalar_type, typename Tv::nested_type, typename Tv::nested_type>;
+  const Tv c = a.template map<mulhi>(b);
+  return c;
 }
+
+} // namespace dtl
+// --- ---
+
+TEST(vec, custom_vector_function) {
+  u64 vec_len = simd::lane_count<uint32_t> * 4;
+
+  using vec_t = v<uint32_t, vec_len>;
+  const vec_t a = vec_t::make_index_vector();
+  const vec_t b = vec_t::make_index_vector() << 10;
+
+  const vec_t c = dtl::mulhi_u32(a, b);
+
+  for ($u64 i = 0; i < vec_len; i++) {
+    ASSERT_EQ(dtl::mulhi_u32(a[i], b[i]), c[i]);
+  }
+
+}
+
+
+// TODO implement scatter
+//TEST(vec, gather) {
+//  u64 vec_len = simd::lane_count<$i32> * 2;
+//  using vec_t = v<$i32, vec_len>;
+//
+//  u64 arr_len = 128;
+//  std::array<$i32, arr_len> arr;
+//  for ($i32 i = 0; i < arr_len; i++) {
+//    arr[i] = i;
+//  }
+//
+//  vec_t exp = vec_t::make_index_vector() * 4;
+//  vec_t act = dtl::gather(&arr[0], exp);
+//  for ($u64 i = 0; i < vec_len; i++) {
+//    ASSERT_EQ(exp[i], act[i]);
+//  }
+//
+//  act = act + 1;
+//  dtl::scatter(act, &arr[0], exp);
+//  for ($u64 i = 0; i < vec_len; i++) {
+//    ASSERT_EQ(exp[i] + 1, act[i]);
+//  }
+//}
 
 
 //// TODO implement gather of non 64-bit types
