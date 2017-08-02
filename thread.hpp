@@ -24,7 +24,7 @@ namespace this_thread {
 
 
 /// pins the current thread to the specified CPU(s)
-void
+static void
 set_cpu_affinity(dtl::cpu_mask& cpu_mask) {
   cpu_set_t mask;
   CPU_ZERO(&mask);
@@ -41,7 +41,7 @@ set_cpu_affinity(dtl::cpu_mask& cpu_mask) {
 }
 
 /// pins the current thread to a specific CPU
-void
+static void
 set_cpu_affinity(u32 cpu_id) {
   //TODO consider using pthread_setaffinity_np
   cpu_set_t mask;
@@ -54,7 +54,7 @@ set_cpu_affinity(u32 cpu_id) {
 }
 
 /// reset the CPU affinity of the current thread
-void
+static void
 reset_cpu_affinity() {
   dtl::cpu_mask m;
   for ($u64 i = 0; i < std::thread::hardware_concurrency(); i++) {
@@ -64,7 +64,7 @@ reset_cpu_affinity() {
 }
 
 /// returns the CPU affinity of the current thread
-dtl::cpu_mask
+static dtl::cpu_mask
 get_cpu_affinity() {
   cpu_set_t mask;
   CPU_ZERO(&mask);
@@ -83,12 +83,12 @@ namespace detail {
 
 
 // used to assign unique ids
-std::atomic<$u64> thread_cntr(0);
-thread_local $u64 uid = ~0ull;
-thread_local $u64 id = ~0ull;
+static std::atomic<$u64> thread_cntr(0);
+static thread_local $u64 uid = ~0ull;
+static thread_local $u64 id = ~0ull;
 
 
-void
+static void
 init(u32 thread_id, std::function<void()> fn) {
   // affinitize thread
   dtl::this_thread::set_cpu_affinity(thread_id);
@@ -105,14 +105,14 @@ init(u32 thread_id, std::function<void()> fn) {
 
 
 /// returns the given id of the current thread
-u64
+static u64
 get_id() {
   return detail::id;
 }
 
 
 /// returns the unique id of the current thread
-u64
+static u64
 get_uid() {
   return detail::uid;
 }
@@ -122,14 +122,14 @@ get_uid() {
 
 
 /// spawn a new thread
-std::thread
+static std::thread
 thread(u32 thread_id, std::function<void()> fn) {
   return std::thread(dtl::this_thread::detail::init, thread_id, fn);
 }
 
 /// spawn a new thread
 template<typename Fn, typename... Args>
-std::thread
+static std::thread
 thread(u32 thread_id, Fn&& fn, Args&&... args) {
   return std::thread(dtl::this_thread::detail::init, thread_id,
                      std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...));
@@ -144,7 +144,7 @@ thread_affinitize(u32 thread_id) {
   dtl::this_thread::set_cpu_affinity(thread_id);
 }
 
-void
+static void
 run_in_parallel(std::function<void()> fn,
                 u32 thread_cnt = std::thread::hardware_concurrency()) {
 
@@ -163,7 +163,8 @@ run_in_parallel(std::function<void()> fn,
   }
 }
 
-void
+
+static void
 run_in_parallel(std::function<void(u32 thread_id)> fn,
                 u32 thread_cnt = std::thread::hardware_concurrency()) {
 
@@ -183,7 +184,7 @@ run_in_parallel(std::function<void(u32 thread_id)> fn,
 }
 
 
-void
+static void
 run_in_parallel_async(std::function<void()> fn,
                       std::vector<std::thread>& workers,
                       u32 thread_cnt = std::thread::hardware_concurrency()) {
@@ -199,7 +200,7 @@ run_in_parallel_async(std::function<void()> fn,
   }
 }
 
-void
+static void
 wait_for_threads(std::vector<std::thread>& workers) {
   for (auto& worker : workers) {
     worker.join();

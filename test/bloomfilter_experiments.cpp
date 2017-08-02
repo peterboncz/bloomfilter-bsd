@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "../adept.hpp"
-#include "dtl/bloomfilter/bloomfilter.hpp"
-#include "dtl/bloomfilter/bloomfilter_vec.hpp"
+#include "dtl/bloomfilter/bloomfilter_h1.hpp"
+#include "dtl/bloomfilter/bloomfilter_h1_vec.hpp"
 #include "../hash.hpp"
 #include "../mem.hpp"
 #include "../simd.hpp"
@@ -146,10 +146,10 @@ struct bf {
 };
 
 //template<typename Alloc = bf::word_alloc>
-using bf_t = dtl::bloomfilter<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
+using bf_t = dtl::bloomfilter_h1<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
 
 //template<typename Alloc = bf::word_alloc>
-using bf_vt = dtl::bloomfilter_vec<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
+using bf_vt = dtl::bloomfilter_h1_vec<bf::key_t, dtl::hash::knuth, bf::word_t, bf::word_alloc>;
 
 static const u64 vec_unroll_factor = 4;
 
@@ -158,7 +158,7 @@ static const u64 vec_unroll_factor = 4;
 // the grain size for parallel experiments
 static u64 preferred_grain_size = 1ull << dtl::env<$i32>::get("GRAIN_SIZE", 16);
 
-// set the bloomfilter size: m in [2^lo, 2^hi]
+// set the bloomfilter_h1 size: m in [2^lo, 2^hi]
 static i32 bf_size_lo_exp = dtl::env<$i32>::get("BF_SIZE_LO", 11);
 static i32 bf_size_hi_exp = dtl::env<$i32>::get("BF_SIZE_HI", 31);
 
@@ -177,9 +177,9 @@ static u64 key_cnt_per_thread = 1ull << dtl::env<$i32>::get("KEY_CNT", 24);
 static u64 repeat_cnt = dtl::env<$i32>::get("REPEAT_CNT", 16);;
 
 
-// place bloomfilter in HBM?
+// place bloomfilter_h1 in HBM?
 static u1 use_hbm = dtl::env<$i32>::get("HBM", 1);
-// replicate bloomfilter in HBM?
+// replicate bloomfilter_h1 in HBM?
 static u1 replicate_bloomfilter = dtl::env<$i32>::get("REPL", 1);
 
 
@@ -241,7 +241,7 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   bf::word_alloc bf_hbm_interleaved_alloc(dtl::mem::allocator_config::interleave_hbm());
 
   if (use_hbm) {
-    std::cout << "Using HBM for bloomfilter" << std::endl;
+    std::cout << "Using HBM for bloomfilter_h1" << std::endl;
   }
   bf_t bf(bf_size, use_hbm ? bf_hbm_interleaved_alloc : bf_cpu_interleaved_alloc);
   {
@@ -273,17 +273,17 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
   std::vector<bf_t> bloomfilter_replicas;
   // maps node_id -> replica_id
   std::vector<$u64> bloomfilter_node_map;
-  // insert the already existing bloomfilter (as a fallback when numa/hbm is not available)
+  // insert the already existing bloomfilter_h1 (as a fallback when numa/hbm is not available)
   bloomfilter_replicas.push_back(bf);
   // initially, let all nodes refer to the first replica
   bloomfilter_node_map.resize(dtl::mem::get_node_count(), 0);
 
   if (replicate_bloomfilter) {
-    // replicate the bloomfilter to all HBM nodes
+    // replicate the bloomfilter_h1 to all HBM nodes
     if (dtl::mem::hbm_available()) {
       for (auto hbm_node_id : dtl::mem::get_hbm_nodes()) {
         // make a copy
-        std::cout << "replicate bloomfilter to HBM node " << hbm_node_id << std::endl;
+        std::cout << "replicate bloomfilter_h1 to HBM node " << hbm_node_id << std::endl;
         bf::word_alloc on_node_alloc(dtl::mem::allocator_config::on_node(hbm_node_id));
         bf_t replica = bf.make_copy(on_node_alloc);
         bloomfilter_replicas.push_back(std::move(replica));
@@ -303,7 +303,7 @@ void run_filter_benchmark_in_parallel(u64 bf_size, u64 thread_cnt) {
     // determine nearest HBM node (returns numa_node_id if HBM is not available)
     const auto hbm_node_id = dtl::mem::get_nearest_hbm_node(numa_node_id);
 
-    // obtain the local bloomfilter instance
+    // obtain the local bloomfilter_h1 instance
 //    std::cout << "thread " << thread_id << " using BF instance #" << bloomfilter_node_map[hbm_node_id] << std::endl;
     const bf_t& _bf = bloomfilter_replicas[bloomfilter_node_map[hbm_node_id]];
 //    dtl::mem::get_node_of_address(&_bf.word_array[0]);
@@ -362,7 +362,7 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   bf::word_alloc bf_hbm_interleaved_alloc(dtl::mem::allocator_config::interleave_hbm());
 
   if (use_hbm) {
-    std::cout << "Using HBM for bloomfilter" << std::endl;
+    std::cout << "Using HBM for bloomfilter_h1" << std::endl;
   }
   bf_t bf(bf_size, use_hbm ? bf_hbm_interleaved_alloc : bf_cpu_interleaved_alloc);
   {
@@ -386,20 +386,20 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
   std::vector<bf_t> bloomfilter_replicas;
   // maps node_id -> replica_id
   std::vector<$u64> bloomfilter_node_map;
-  // insert the already existing bloomfilter (as a fallback when numa/hbm is not available)
+  // insert the already existing bloomfilter_h1 (as a fallback when numa/hbm is not available)
   bloomfilter_replicas.push_back(bf);
   // initially, let all nodes refer to the first replica
   bloomfilter_node_map.resize(dtl::mem::get_node_count(), 0);
 
   if (replicate_bloomfilter) {
-    // replicate the bloomfilter to all HBM nodes
+    // replicate the bloomfilter_h1 to all HBM nodes
     auto replica_nodes = (use_hbm && dtl::mem::hbm_available())
                          ? dtl::mem::get_hbm_nodes()
                          : dtl::mem::get_cpu_nodes();
 
     for (auto dst_node_id : replica_nodes) {
       // make a copy
-      std::cout << "replicate bloomfilter to node " << dst_node_id << std::endl;
+      std::cout << "replicate bloomfilter_h1 to node " << dst_node_id << std::endl;
       bf::word_alloc on_node_alloc(dtl::mem::allocator_config::on_node(dst_node_id));
       bf_t replica = bf.make_copy(on_node_alloc);
       bloomfilter_replicas.push_back(std::move(replica));
@@ -425,7 +425,7 @@ void run_filter_benchmark_in_parallel_vec(u64 bf_size, u64 thread_cnt) {
     // determine nearest HBM node (returns numa_node_id if HBM is not available)
     const auto hbm_node_id = dtl::mem::get_nearest_hbm_node(numa_node_id);
 
-    // obtain the local bloomfilter instance
+    // obtain the local bloomfilter_h1 instance
 //    std::cout << "thread " << thread_id << " using BF instance #" << bloomfilter_node_map[hbm_node_id] << std::endl;
     const bf_t& _bf = bloomfilter_replicas[bloomfilter_node_map[hbm_node_id]];
 //    dtl::mem::get_node_of_address(&_bf.word_array[0]);

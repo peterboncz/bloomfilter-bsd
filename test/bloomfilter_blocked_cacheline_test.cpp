@@ -5,6 +5,7 @@
 #include <random>
 
 #include <dtl/dtl.hpp>
+#include <dtl/div.hpp>
 #include <dtl/env.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
@@ -422,7 +423,8 @@ static auto inc_thread_cnt = [&](u64 i) {
 
 
 
-void run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
+static void
+run_filter_benchmark_in_parallel_vec(u32 k, u32 m, u64 thread_cnt) {
   dtl::thread_affinitize(std::thread::hardware_concurrency() - 1);
   u64 key_cnt = key_cnt_per_thread * thread_cnt;
 

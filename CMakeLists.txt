@@ -14,10 +14,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bits.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
-        bloomfilter/bloomfilter.hpp
-        bloomfilter/bloomfilter2.hpp
-        bloomfilter/bloomfilter_vec.hpp
-        bloomfilter/bloomfilter2_vec.hpp
+        bloomfilter/bloomfilter_h1.hpp
+        bloomfilter/bloomfilter_h2.hpp
+        bloomfilter/bloomfilter_h1_vec.hpp
+        bloomfilter/bloomfilter_h2_vec.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp

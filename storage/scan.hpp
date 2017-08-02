@@ -1,21 +1,28 @@
 #pragma once
 
-#include <bitset>
+#ifndef _DTL_STORAGE_INCLUDED
+#error "Never use <dtl/storage/scan.hpp> directly; include <dtl/storage.hpp> instead."
+#endif
+
 #include <vector>
 
 #include <dtl/dtl.hpp>
+#include <dtl/bitset.hpp>
 #include <dtl/index.hpp>
+#include <dtl/zone_mask.hpp>
 
-#include "column.hpp"
+#include "column_block.hpp"
 #include "types.hpp"
 
 namespace dtl {
 
+//TODO should go somewhere else
 template<u64 N>
-using selection_mask = std::bitset<N>;
+using selection_mask = dtl::bitset<N>;
 using selection_vector = std::vector<$u32>;
 
 
+//TODO should go somewhere else
 template<u64 N>
 selection_mask<N>
 to_mask(const dtl::range& r) {
@@ -109,7 +116,7 @@ select(const dtl::column_block<T, N>& col,
       second_value = *reinterpret_cast<T*>(p.second_value_ptr);
       return detail::select_between(dtl::between_open<T>(), logical_op, value, col, second_value, m);
   }
-  unreachable();
+//  unreachable();
 };
 
 /// evaluates a given predicate on the column and updates the selection mask
@@ -124,7 +131,7 @@ select(const dtl::column_block<T, N>& col,
     case dtl::logical_op::OR:
       return detail::select(col, pred, std::logical_or<$u1>(), mask);
   }
-  unreachable();
+//  unreachable();
 };
 
 

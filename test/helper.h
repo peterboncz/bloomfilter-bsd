@@ -9,7 +9,7 @@
 #include <dtl/color.hpp>
 
 // --- helper ---
-std::string
+static std::string
 to_string_u64(const __m512i values, const __mmask8 m, const __mmask8 p = 0) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier protect(dtl::color::light_blue);
@@ -28,7 +28,7 @@ to_string_u64(const __m512i values, const __mmask8 m, const __mmask8 p = 0) {
   return str.str();
 }
 
-std::string
+static std::string
 to_string_u32(const __m256i values, const __mmask8 m, const __mmask8 p = 0) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier protect(dtl::color::light_blue);
@@ -47,7 +47,7 @@ to_string_u32(const __m256i values, const __mmask8 m, const __mmask8 p = 0) {
   return str.str();
 }
 
-std::string
+static std::string
 to_string_u32(const __m512i values, const __mmask16 m, const __mmask16 p = 0) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier protect(dtl::color::light_blue);
@@ -66,7 +66,7 @@ to_string_u32(const __m512i values, const __mmask16 m, const __mmask16 p = 0) {
   return str.str();
 }
 
-std::string
+static std::string
 to_string_u32_b16(const __m512i values, const __mmask16 m, const __mmask16 p = 0) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier protect(dtl::color::light_blue);
@@ -85,7 +85,7 @@ to_string_u32_b16(const __m512i values, const __mmask16 m, const __mmask16 p = 0
   return str.str();
 }
 
-std::string
+static std::string
 to_string_m8(const __mmask8 m) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier inactive(dtl::color::gray);
@@ -101,7 +101,7 @@ to_string_m8(const __mmask8 m) {
   return str.str();
 }
 
-std::string
+static std::string
 to_string_m16(const __mmask16 m) {
   dtl::color_modifier active(dtl::color::light_green);
   dtl::color_modifier inactive(dtl::color::gray);
@@ -117,7 +117,7 @@ to_string_m16(const __mmask16 m) {
   return str.str();
 }
 
-std::string
+static std::string
 to_csv_m8(const __mmask8 m) {
   auto b = std::bitset<8>(m);
   std::stringstream str;
@@ -128,7 +128,7 @@ to_csv_m8(const __mmask8 m) {
   return str.str();
 }
 
-std::string
+static std::string
 to_csv_m8(const __mmask8 m, const __mmask8 p) {
   auto mb = std::bitset<8>(m);
   auto pb = std::bitset<8>(p);

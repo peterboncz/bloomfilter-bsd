@@ -28,3 +28,8 @@ on the target platform.
   the type of the gathered elements. Especially, if 32-bit elements are 
   gathered from 64-bit addresses, the function is considered as 
   *type-narrowing*.
+
+# Known Issues
+- gather/scatter from absolute addresses works works only for 64-bit types.
+  It is not possible to gather values of other types, such as i32 etc.
+  

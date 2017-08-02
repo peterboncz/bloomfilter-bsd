@@ -5,9 +5,9 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/bloomfilter/bloomfilter_runtime_types.hpp>
-#include <dtl/bloomfilter/bloomfilter.hpp>
-#include <dtl/bloomfilter/bloomfilter_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter2_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 
@@ -109,13 +109,13 @@ struct bloomfilter_runtime {
 
 
   // The supported Bloom filter vectorization extensions.
-  using bf1_k1_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false, unroll_factors_bf1[1]>;
+  using bf1_k1_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false, unroll_factors_bf1[1]>;
 #ifndef USE_BF2
-  using bf1_k2_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf1[2]>;
-  using bf1_k3_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf1[3]>;
-  using bf1_k4_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf1[4]>;
-  using bf1_k5_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf1[5]>;
-  using bf1_k6_vt = dtl::bloomfilter_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf1[6]>;
+  using bf1_k2_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf1[2]>;
+  using bf1_k3_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf1[3]>;
+  using bf1_k4_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf1[4]>;
+  using bf1_k5_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf1[5]>;
+  using bf1_k6_vt = dtl::bloomfilter_h1_vec<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf1[6]>;
 #else
   using bf1_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
   using bf1_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
@@ -124,17 +124,17 @@ struct bloomfilter_runtime {
   using bf1_k6_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
 #endif
 
-  using bf2_k2_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
-  using bf2_k3_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
-  using bf2_k4_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
-  using bf2_k5_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
-  using bf2_k6_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
-  using bf2_k7_vt = dtl::bloomfilter2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[7]>;
+  using bf2_k2_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false, unroll_factors_bf2[2]>;
+  using bf2_k3_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false, unroll_factors_bf2[3]>;
+  using bf2_k4_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false, unroll_factors_bf2[4]>;
+  using bf2_k5_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false, unroll_factors_bf2[5]>;
+  using bf2_k6_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
+  using bf2_k7_vt = dtl::bloomfilter_h2_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[7]>;
 
 
   template<
-      typename bf_t, // the scalar bloomfilter type
-      typename bf_vt // the vector extension for the bloomfilter
+      typename bf_t, // the scalar bloomfilter_h1 type
+      typename bf_vt // the vector extension for the bloomfilter_h1
   >
   void
   _construct_and_bind(u64 m) {
@@ -162,8 +162,8 @@ struct bloomfilter_runtime {
 
 
   template<
-      typename bf_t, // the scalar bloomfilter type
-      typename bf_vt // the vector extension for the bloomfilter
+      typename bf_t, // the scalar bloomfilter_h1 type
+      typename bf_vt // the vector extension for the bloomfilter_h1
   >
   void
   _copy_and_bind(bloomfilter_runtime& copy,
@@ -193,8 +193,8 @@ struct bloomfilter_runtime {
 
 
   template<
-      typename bf_t, // the scalar bloomfilter type
-      typename bf_vt // the vector extension for the bloomfilter
+      typename bf_t, // the scalar bloomfilter_h1 type
+      typename bf_vt // the vector extension for the bloomfilter_h1
   >
   void
   _destruct() {

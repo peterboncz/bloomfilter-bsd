@@ -5,10 +5,10 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/bloomfilter/bloomfilter_runtime.hpp>
-#include <dtl/bloomfilter/bloomfilter.hpp>
-#include <dtl/bloomfilter/bloomfilter_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter2.hpp>
-#include <dtl/bloomfilter/bloomfilter2_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1.hpp>
+#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2.hpp>
+#include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
@@ -26,33 +26,33 @@ using word_t = $u32;
 
 TEST(bloomfilter, sectorization_compile_time_asserts) {
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 1, true>;
     static_assert(bf_t::sector_cnt == bf_t::k, "Sector count must equal to k.");
   }
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 2, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 2, true>;
     static_assert(bf_t::sector_cnt == bf_t::k, "Sector count must equal to k.");
   }
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 3, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 3, true>;
     static_assert(bf_t::sector_cnt >= bf_t::k, "Sector count must be greater or equal to k.");
   }
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, true>;
     static_assert(bf_t::sector_cnt == bf_t::k, "Sector count must equal to k.");
   }
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 5, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 5, true>;
     static_assert(bf_t::sector_cnt >= bf_t::k, "Sector count must be greater or equal to k.");
   }
   {
-    using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
+    using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
     static_assert(bf_t::sector_cnt >= bf_t::k, "Sector count must be greater or equal to k.");
   }
 }
 
 TEST(bloomfilter, k1) {
-  using bf_t = dtl::bloomfilter<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
+  using bf_t = dtl::bloomfilter_h1<key_t, dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
   bf_t bf(1024);
   bf.print_info();
 }
@@ -68,8 +68,8 @@ struct null_hash {
 };
 
 TEST(bloomfilter, k2) {
-  using bf_t = dtl::bloomfilter2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
-//  using bf_t = dtl::bloomfilter<key_t,dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf_t = dtl::bloomfilter_h2<key_t,dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, 6, true>;
+//  using bf_t = dtl::bloomfilter_h1<key_t,dtl::hash::knuth, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
   u32 m = 1024;
   bf_t bf(m);
   bf.print_info();
@@ -92,8 +92,8 @@ TEST(bloomfilter, k2) {
 TEST(bloomfilter, vectorized_probe) {
   u32 k = 6;
   u1 sectorize = true;
-  using bf_t = dtl::bloomfilter2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
-  using bf_vt = dtl::bloomfilter2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
+  using bf_t = dtl::bloomfilter_h2<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
+  using bf_vt = dtl::bloomfilter_h2_vec<key_t, dtl::hash::knuth, dtl::hash::knuth_alt, word_t, dtl::mem::numa_allocator<word_t>, k, sectorize>;
 
   u32 key_cnt = 1000000u;
   u32 m = key_cnt * k * 2;
@@ -180,7 +180,7 @@ TEST(bloomfilter, init) {
   u64 begin = 0;
   u64 end = 200000000;
   u64 modulus = 1000;
-  u32 m = 199999002;
+  u32 m = 1999002;
   auto bf = dtl::bloomfilter_runtime::construct(k, m);
   for ($u64 i = begin; i < end; i++) {
     if (i % modulus == 0) {

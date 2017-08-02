@@ -219,49 +219,49 @@ struct gather<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256
 
 
 // Store
-template<>
-struct scatter<$i32, __m256i, __m256i> : vector_fn<$i32, __m256i, __m256i, __m256i> {
-  inline __m256i operator()($i32* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
-    i32* i = reinterpret_cast<i32*>(&idxs);
-    i32* w = reinterpret_cast<i32*>(&what);
-    for ($u64 j = 0; j < 8; j++) {
-      base_addr[i[j]] = w[j];
-    }
-  }
-};
-
-template<>
-struct scatter<$u32, __m256i, __m256i> : vector_fn<$u32, __m256i, __m256i, __m256i> {
-  inline __m256i operator()($u32* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
-    u32* i = reinterpret_cast<u32*>(&idxs);
-    u32* w = reinterpret_cast<u32*>(&what);
-    for ($u64 j = 0; j < 8; j++) {
-      base_addr[i[j]] = w[j];
-    }
-  }
-};
-
-template<>
-struct scatter<$i64, __m256i, __m256i> : vector_fn<$i64, __m256i, __m256i, __m256i> {
-  inline __m256i operator()($i64* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
-    i64* i = reinterpret_cast<i64*>(&idxs);
-    i64* w = reinterpret_cast<i64*>(&what);
-    for ($u64 j = 0; j < 4; j++) {
-      base_addr[i[j]] = w[j];
-    }
-  }
-};
-
-template<>
-struct scatter<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256i> {
-  inline __m256i operator()($u64* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
-    u64* i = reinterpret_cast<u64*>(&idxs);
-    u64* w = reinterpret_cast<u64*>(&what);
-    for ($u64 j = 0; j < 4; j++) {
-      base_addr[i[j]] = w[j];
-    }
-  }
-};
+//template<>
+//struct scatter<$i32, __m256i, __m256i> : vector_fn<$i32, __m256i, __m256i, __m256i> {
+//  inline __m256i operator()($i32* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
+//    i32* i = reinterpret_cast<i32*>(&idxs);
+//    i32* w = reinterpret_cast<i32*>(&what);
+//    for ($u64 j = 0; j < 8; j++) {
+//      base_addr[i[j]] = w[j];
+//    }
+//  }
+//};
+//
+//template<>
+//struct scatter<$u32, __m256i, __m256i> : vector_fn<$u32, __m256i, __m256i, __m256i> {
+//  inline __m256i operator()($u32* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
+//    u32* i = reinterpret_cast<u32*>(&idxs);
+//    u32* w = reinterpret_cast<u32*>(&what);
+//    for ($u64 j = 0; j < 8; j++) {
+//      base_addr[i[j]] = w[j];
+//    }
+//  }
+//};
+//
+//template<>
+//struct scatter<$i64, __m256i, __m256i> : vector_fn<$i64, __m256i, __m256i, __m256i> {
+//  inline __m256i operator()($i64* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
+//    i64* i = reinterpret_cast<i64*>(&idxs);
+//    i64* w = reinterpret_cast<i64*>(&what);
+//    for ($u64 j = 0; j < 4; j++) {
+//      base_addr[i[j]] = w[j];
+//    }
+//  }
+//};
+//
+//template<>
+//struct scatter<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256i> {
+//  inline __m256i operator()($u64* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
+//    u64* i = reinterpret_cast<u64*>(&idxs);
+//    u64* w = reinterpret_cast<u64*>(&what);
+//    for ($u64 j = 0; j < 4; j++) {
+//      base_addr[i[j]] = w[j];
+//    }
+//  }
+//};
 
 
 
