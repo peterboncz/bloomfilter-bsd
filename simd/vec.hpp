@@ -68,19 +68,18 @@ struct vs<T, 32> {
 template<typename Tp, u64 N>
 struct v {
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
-  static_assert(!std::is_const<Tp>::value, "Template parameter 'Tp' must not be const."); // TODO remove restriction
   // TODO assert fundamental type
   // TODO unroll loops in compound types - __attribute__((optimize("unroll-loops")))
 
   /// The scalar type
-  using scalar_type = Tp;
+  using scalar_type = typename std::remove_cv<Tp>::type;
 
   /// The overall length of the vector, in terms of number of elements.
   static constexpr u64 length = N;
 
   /// The native vector wrapper that is used under the hood.
   /// Note: The wrapper determines the largest available native vector type.
-  using nested_vector = vs<Tp, N>; // TODO (maybe) make it a template parameter. give the user the possibility to specify the native vector type
+  using nested_vector = vs<scalar_type, N>; // TODO (maybe) make it a template parameter. give the user the possibility to specify the native vector type
 
   /// The length of the native vector, in terms of number of elements.
   static constexpr u64 nested_vector_length = nested_vector::value;
@@ -416,28 +415,28 @@ struct v {
     //   3) argument type
     //   4) return type (defaults to vector type)
 
-    using broadcast = dtl::simd::broadcast<Tp, nested_type, Tp>;
-    using set = dtl::simd::set<Tp, nested_type, nested_type>;
-    using blend = dtl::simd::blend<Tp, nested_type, nested_type>;
+    using broadcast = dtl::simd::broadcast<scalar_type, nested_type, scalar_type>;
+    using set = dtl::simd::set<scalar_type, nested_type, nested_type>;
+    using blend = dtl::simd::blend<scalar_type, nested_type, nested_type>;
 
-    using plus = dtl::simd::plus<Tp, nested_type>;
-    using minus = dtl::simd::minus<Tp, nested_type>;
-    using multiplies = dtl::simd::multiplies<Tp, nested_type>;
+    using plus = dtl::simd::plus<scalar_type, nested_type>;
+    using minus = dtl::simd::minus<scalar_type, nested_type>;
+    using multiplies = dtl::simd::multiplies<scalar_type, nested_type>;
 
-    using shift_left = dtl::simd::shift_left<Tp, nested_type, i32>;
-    using shift_left_var = dtl::simd::shift_left_var<Tp, nested_type, nested_type>;
-    using shift_right = dtl::simd::shift_right<Tp, nested_type, i32>;
-    using shift_right_var = dtl::simd::shift_right_var<Tp, nested_type, nested_type>;
+    using shift_left = dtl::simd::shift_left<scalar_type, nested_type, i32>;
+    using shift_left_var = dtl::simd::shift_left_var<scalar_type, nested_type, nested_type>;
+    using shift_right = dtl::simd::shift_right<scalar_type, nested_type, i32>;
+    using shift_right_var = dtl::simd::shift_right_var<scalar_type, nested_type, nested_type>;
 
-    using bit_and = dtl::simd::bit_and<Tp, nested_type>;
-    using bit_or = dtl::simd::bit_or<Tp, nested_type>;
-    using bit_xor = dtl::simd::bit_xor<Tp, nested_type>;
-    using bit_not = dtl::simd::bit_not<Tp, nested_type>;
+    using bit_and = dtl::simd::bit_and<scalar_type, nested_type>;
+    using bit_or = dtl::simd::bit_or<scalar_type, nested_type>;
+    using bit_xor = dtl::simd::bit_xor<scalar_type, nested_type>;
+    using bit_not = dtl::simd::bit_not<scalar_type, nested_type>;
 
-    using less = dtl::simd::less<Tp, nested_type, nested_type, nested_mask_type>;
-    using equal = dtl::simd::equal<Tp, nested_type, nested_type, nested_mask_type>;
-    using not_equal = dtl::simd::not_equal<Tp, nested_type, nested_type, nested_mask_type>;
-    using greater = dtl::simd::greater<Tp, nested_type, nested_type, nested_mask_type>; // TODO remove
+    using less = dtl::simd::less<scalar_type, nested_type, nested_type, nested_mask_type>;
+    using equal = dtl::simd::equal<scalar_type, nested_type, nested_type, nested_mask_type>;
+    using not_equal = dtl::simd::not_equal<scalar_type, nested_type, nested_type, nested_mask_type>;
+    using greater = dtl::simd::greater<scalar_type, nested_type, nested_type, nested_mask_type>; // TODO remove
 
   };
 
@@ -446,7 +445,7 @@ struct v {
 
   v() = default;
 
-  v(Tp scalar_value) {
+  v(const scalar_type scalar_value) {
     *this = scalar_value;
   }
 
@@ -477,14 +476,14 @@ struct v {
 
   /// Assigns the given scalar value to all vector components.
   inline v&
-  operator=(const Tp& scalar_value) noexcept {
+  operator=(const scalar_type& scalar_value) noexcept {
     data = unary_op<is_compound>(typename op::broadcast(), data, scalar_value);
     return *this;
   }
 
   /// Assigns the given scalar value to the vector components specified by the mask.
   inline v&
-  mask_assign(const Tp& scalar_value, const m& mask) noexcept {
+  mask_assign(const scalar_type& scalar_value, const m& mask) noexcept {
     data = unary_op<is_compound>(typename op::blend(), /*data,*/ make(scalar_value).data, data, (!mask).data);
     return *this;
   }
@@ -498,7 +497,7 @@ struct v {
 
   /// Creates a vector where all components are set to the given scalar value.
   static inline v
-  make(const Tp& scalar_value) {
+  make(const scalar_type& scalar_value) {
     v result;
     result = scalar_value;
     return std::move(result);
@@ -515,7 +514,7 @@ struct v {
   /// Creates a nested vector with all components set to the given scalar value.
   /// In other words, the given value is broadcasted to all vector components.
   static inline nested_type
-  make_nested(const Tp& scalar_value) {
+  make_nested(const scalar_type& scalar_value) {
     auto fn = typename op::broadcast();
     return fn(scalar_value);
   }
@@ -734,39 +733,39 @@ struct v {
 
 
   inline v operator+(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, o.data) }; }
-  inline v operator+(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(s)) }; }
+  inline v operator+(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(s)) }; }
   inline v operator+() const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(0)) }; }
   inline v& operator+=(const v& o) noexcept { data = binary_op<is_compound>(typename op::plus(), data, o.data); return *this; }
-  inline v& operator+=(const Tp& s) noexcept  { data = binary_op<is_compound>(typename op::plus(), data, make_nested(s)); return *this; }
+  inline v& operator+=(const scalar_type& s) noexcept  { data = binary_op<is_compound>(typename op::plus(), data, make_nested(s)); return *this; }
 
   inline v mask_plus(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, o.data, data, op_mask.data) }; }
-  inline v mask_plus(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_plus(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(s), data, op_mask.data) }; }
   inline v mask_plus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(0), data, op_mask.data) }; }
   inline v& mask_assign_plus(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::plus(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_plus(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::plus(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_plus(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::plus(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator-(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, o.data) }; }
-  inline v operator-(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, make_nested(s)) }; }
+  inline v operator-(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, make_nested(s)) }; }
   inline v operator-() const noexcept { return v { binary_op<is_compound>(typename op::minus(), make_nested(0), data) }; }
   inline v& operator-=(const v& o) noexcept { data = binary_op<is_compound>(typename op::minus(), data, o.data); return (*this); }
-  inline v& operator-=(const Tp& s) noexcept  { data = binary_op<is_compound>(typename op::minus(), data, make_nested(s)); return (*this); }
+  inline v& operator-=(const scalar_type& s) noexcept  { data = binary_op<is_compound>(typename op::minus(), data, make_nested(s)); return (*this); }
 
   inline v mask_minus(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, o.data, data, op_mask.data) }; }
-  inline v mask_minus(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_minus(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data) }; }
 //  inline v mask_minus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), make_nested(0), data, data, op_mask.data) }; }
   inline v mask_minus(const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::minus(), make(0).data, data, data, op_mask.data) }; }
   inline v& mask_assign_minus(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::minus(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_minus(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_minus(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::minus(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator*(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, o.data) }; }
-  inline v operator*(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, make_nested(s)) }; }
+  inline v operator*(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, make_nested(s)) }; }
   inline v& operator*=(const v& o) noexcept { data = binary_op<is_compound>(typename op::multiplies(), data, o.data); return (*this); }
-  inline v& operator*=(const Tp& s) noexcept  { data = binary_op<is_compound>(typename op::multiplies(), data, make_nested(s)); return (*this); }
+  inline v& operator*=(const scalar_type& s) noexcept  { data = binary_op<is_compound>(typename op::multiplies(), data, make_nested(s)); return (*this); }
 
   inline v mask_multiplies(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, o.data, data, op_mask.data) }; }
-  inline v mask_multiplies(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_multiplies(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::multiplies(), data, make_nested(s), data, op_mask.data) }; }
   inline v& mask_assign_multiplies(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::multiplies(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_multiplies(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::multiplies(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_multiplies(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::multiplies(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator<<(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data) }; }
   inline v operator<<(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)) }; } // TODO optimize
@@ -789,66 +788,66 @@ struct v {
   inline v& mask_assign_shift_right(const i32& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::shift_right(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator&(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, o.data) }; }
-  inline v operator&(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, make_nested(s)) }; }
+  inline v operator&(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, make_nested(s)) }; }
   inline v& operator&=(const v& o) noexcept { data = binary_op<is_compound>(typename op::bit_and(), data, o.data); return (*this); }
-  inline v& operator&=(const Tp& s) noexcept  { data = binary_op<is_compound>(typename op::bit_and(), data, make_nested(s)); return (*this); }
+  inline v& operator&=(const scalar_type& s) noexcept  { data = binary_op<is_compound>(typename op::bit_and(), data, make_nested(s)); return (*this); }
 
   inline v mask_bit_and(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, o.data, data, op_mask.data) }; }
-  inline v mask_bit_and(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_bit_and(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_and(), data, make_nested(s), data, op_mask.data) }; }
   inline v& mask_assign_bit_and(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_and(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_bit_and(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_and(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_bit_and(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_and(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator|(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, o.data) }; }
-  inline v operator|(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, make_nested(s)) }; }
+  inline v operator|(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, make_nested(s)) }; }
   inline v& operator|=(const v& o) noexcept { data = binary_op<is_compound>(typename op::bit_or(), data, o.data); return (*this); }
   inline v& operator|=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::bit_or(), data, make_nested(s)); return (*this); }
 
   inline v mask_bit_or(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, o.data, data, op_mask.data) }; }
-  inline v mask_bit_or(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_bit_or(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_or(), data, make_nested(s), data, op_mask.data) }; }
   inline v& mask_assign_bit_or(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_or(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_bit_or(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_or(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_bit_or(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_or(), data, make_nested(s), data, op_mask.data ); return *this; }
 
   inline v operator^(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, o.data) }; }
-  inline v operator^(const Tp& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s)) }; }
+  inline v operator^(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s)) }; }
   inline v& operator^=(const v& o) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, o.data); return (*this); }
-  inline v& operator^=(const Tp& s) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s)); return (*this); }
+  inline v& operator^=(const scalar_type& s) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s)); return (*this); }
 
   inline v mask_bit_xor(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, o.data, data, op_mask.data) }; }
-  inline v mask_bit_xor(const Tp& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data) }; }
+  inline v mask_bit_xor(const scalar_type& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data) }; }
   inline v& mask_assign_bit_xor(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, o.data, data, op_mask.data ); return *this; }
-  inline v& mask_assign_bit_xor(const Tp& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data ); return *this; }
+  inline v& mask_assign_bit_xor(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data ); return *this; }
 
 
-  static inline Tp
+  static inline scalar_type
   extract(const nested_type& native_vector, u64 idx) noexcept {
-    return reinterpret_cast<const Tp*>(&native_vector)[idx]; // TODO improve performance
+    return reinterpret_cast<const scalar_type*>(&native_vector)[idx]; // TODO improve performance
   }
 
   template<typename T, typename = std::enable_if_t<(sizeof(T), is_compound)>>
-  static inline Tp
+  static inline scalar_type
   extract(const T& compound_vector, u64 idx) noexcept {
     return extract(compound_vector[idx / nested_vector_length], idx % nested_vector_length);
   }
 
   template<u1 Compound = false>
   static inline void
-  insert(nested_type& native_vector, const Tp& value, u64 idx) noexcept {
-    reinterpret_cast<Tp*>(&native_vector)[idx] = value; // TODO improve performance
+  insert(nested_type& native_vector, const scalar_type& value, u64 idx) noexcept {
+    reinterpret_cast<scalar_type*>(&native_vector)[idx] = value; // TODO improve performance
   }
 
   template<u1 Compound, typename = std::enable_if_t<Compound>>
   static inline void
-  insert(compound_type& compound_vector, const Tp& value, u64 idx) noexcept {
+  insert(compound_type& compound_vector, const scalar_type& value, u64 idx) noexcept {
     insert<!Compound>(compound_vector[idx / nested_vector_length], value, idx % nested_vector_length);
   }
 
   inline void
-  insert(const Tp& value, u64 idx) noexcept {
+  insert(const scalar_type& value, u64 idx) noexcept {
     insert<is_compound>(data, value, idx);
   }
 
   /// Read-only access to the individual vector components
-  Tp operator[](u64 idx) const noexcept {
+  scalar_type operator[](u64 idx) const noexcept {
     return extract(data, idx);
   }
   // ---
@@ -861,7 +860,7 @@ struct v {
   }
 
   inline m
-  operator<(const Tp& s) const noexcept {
+  operator<(const scalar_type& s) const noexcept {
     return m { binary_op<is_compound>(typename op::less(), data, make_nested(s)) };
   }
 
@@ -871,7 +870,7 @@ struct v {
   }
 
   inline m
-  operator>(const Tp& s) const noexcept {
+  operator>(const scalar_type& s) const noexcept {
     return m { binary_op<is_compound>(typename op::less(), make_nested(s), data) };
   }
 
@@ -881,7 +880,7 @@ struct v {
   }
 
   inline m
-  operator==(const Tp& s) const noexcept {
+  operator==(const scalar_type& s) const noexcept {
     return m { binary_op<is_compound>(typename op::equal(), data, make_nested(s)) };
   }
 
@@ -891,7 +890,7 @@ struct v {
   }
 
   inline m
-  operator!=(const Tp& s) const noexcept {
+  operator!=(const scalar_type& s) const noexcept {
     return m { binary_op<is_compound>(typename op::not_equal(), data, make_nested(s)) };
   }
   // ---
@@ -900,9 +899,9 @@ struct v {
   // load
   // TODO rename to gather
 
-//  template<u1 Compound, typename Tp>
+//  template<u1 Compound, typename scalar_type>
 //  static inline nested_type
-//  __gather__(const Tp* const base_addr,
+//  __gather__(const scalar_type* const base_addr,
 //             const typename Tiv& idxs) {
 //    return gather<scalar_type, typename Tiv::nested_type, typename Tiv::nested_type>()(base_addr, idxs.data);
 //  }
@@ -951,7 +950,7 @@ struct v {
   store(T* const base_addr,
         const nested_type& where_idxs,
         const typename v<T, N>::nested_type what) {
-    return scatter<Tp, nested_type, T>()(base_addr, where_idxs, what);
+    return scatter<scalar_type, nested_type, T>()(base_addr, where_idxs, what);
   }
 
   template<u1 Compound = false, typename T>
@@ -960,7 +959,7 @@ struct v {
         const nested_type& where_idxs,
         const typename v<T, N>::nested_type what,
         const nested_mask_type& mask) {
-    return scatter<Tp, nested_type, T>()(base_addr, where_idxs, what, mask);
+    return scatter<scalar_type, nested_type, T>()(base_addr, where_idxs, what, mask);
   }
 
   template<u1 Compound, typename T, typename = std::enable_if_t<Compound>>
@@ -1011,14 +1010,14 @@ struct v {
 
   template<u64... Idxs>
   static constexpr v
-  make_index_vector(std::array<Tp, N>* const arr, integer_sequence<Idxs...>) {
+  make_index_vector(std::array<scalar_type, N>* const arr, integer_sequence<Idxs...>) {
     *arr = { Idxs... };
   }
 
   static constexpr v
   make_index_vector() {
     v result = make(0);
-    std::array<Tp, N>* const arr = reinterpret_cast<std::array<Tp, N>*>(&result.data);
+    std::array<scalar_type, N>* const arr = reinterpret_cast<std::array<scalar_type, N>*>(&result.data);
     make_index_vector(arr, make_integer_sequence<N>());
     return result;
   };
@@ -1046,41 +1045,41 @@ struct v {
     m mask;
 
     inline v& operator=(const v& o) { vector.mask_assign(o, mask); return vector; }
-    inline v& operator=(const Tp& s) { vector.mask_assign(s, mask); return vector; }
+    inline v& operator=(const scalar_type& s) { vector.mask_assign(s, mask); return vector; }
     inline v operator+(const v& o) const noexcept { return vector.mask_plus(o, mask); }
-    inline v operator+(const Tp& s) const noexcept { return vector.mask_plus(s, mask); }
+    inline v operator+(const scalar_type& s) const noexcept { return vector.mask_plus(s, mask); }
     inline v operator+() const noexcept { return vector.mask_plus(mask); }
     inline v& operator+=(const v& o) noexcept { vector.mask_assign_plus(o,mask); return vector; }
-    inline v& operator+=(const Tp& s) noexcept { vector.mask_assign_plus(s,mask); return vector; }
+    inline v& operator+=(const scalar_type& s) noexcept { vector.mask_assign_plus(s,mask); return vector; }
     inline v operator-(const v& o) const noexcept { return vector.mask_minus(o, mask); }
-    inline v operator-(const Tp& s) const noexcept { return vector.mask_minus(s, mask); }
+    inline v operator-(const scalar_type& s) const noexcept { return vector.mask_minus(s, mask); }
     inline v operator-() const noexcept { return vector.mask_minus(mask); }
     inline v& operator-=(const v& o) noexcept { vector.mask_assign_minus(o, mask); return vector; }
-    inline v& operator-=(const Tp& s) noexcept { vector.mask_assign_minus(s, mask); return vector; }
+    inline v& operator-=(const scalar_type& s) noexcept { vector.mask_assign_minus(s, mask); return vector; }
     inline v operator*(const v& o) const noexcept { return vector.mask_multiplies(o, mask); }
-    inline v operator*(const Tp& s) const noexcept { return vector.mask_multiplies(s, mask); }
+    inline v operator*(const scalar_type& s) const noexcept { return vector.mask_multiplies(s, mask); }
     inline v& operator*=(const v& o) noexcept { vector.mask_assign_multiplies(o, mask); return vector; }
-    inline v& operator*=(const Tp& s) noexcept { vector.mask_assign_multiplies(s, mask); return vector; }
+    inline v& operator*=(const scalar_type& s) noexcept { vector.mask_assign_multiplies(s, mask); return vector; }
     inline v operator<<(const v& o) const noexcept { return vector.mask_shift_left(o, mask); }
-    inline v operator<<(const Tp& s) const noexcept { return vector.mask_shift_left(s, mask); }
+    inline v operator<<(const scalar_type& s) const noexcept { return vector.mask_shift_left(s, mask); }
     inline v& operator<<=(const v& o) noexcept { vector.mask_assign_shift_left(o, mask); return vector; }
-    inline v& operator<<=(const Tp& s) noexcept { vector.mask_assign_shift_left(s, mask); return vector; }
+    inline v& operator<<=(const scalar_type& s) noexcept { vector.mask_assign_shift_left(s, mask); return vector; }
     inline v operator>>(const v& o) const noexcept { return vector.mask_shift_right(o, mask); }
-    inline v operator>>(const Tp& s) const noexcept { return vector.mask_shift_right(s, mask); }
+    inline v operator>>(const scalar_type& s) const noexcept { return vector.mask_shift_right(s, mask); }
     inline v& operator>>=(const v& o) noexcept { vector.mask_assign_shift_right(o, mask); return vector; }
-    inline v& operator>>=(const Tp& s) noexcept { vector.mask_assign_shift_right(s, mask); return vector; }
+    inline v& operator>>=(const scalar_type& s) noexcept { vector.mask_assign_shift_right(s, mask); return vector; }
     inline v operator&(const v& o) const noexcept { return vector.mask_bit_and(o, mask); }
-    inline v operator&(const Tp& s) const noexcept { return vector.mask_bit_and(s, mask); }
+    inline v operator&(const scalar_type& s) const noexcept { return vector.mask_bit_and(s, mask); }
     inline v& operator&=(const v& o) noexcept { vector.mask_assign_bit_and(o, mask); return vector; }
-    inline v& operator&=(const Tp& s) noexcept { vector.mask_assign_bit_and(s, mask); return vector; }
+    inline v& operator&=(const scalar_type& s) noexcept { vector.mask_assign_bit_and(s, mask); return vector; }
     inline v operator|(const v& o) const noexcept { return vector.mask_bit_or(o, mask); }
-    inline v operator|(const Tp& s) const noexcept { return vector.mask_bit_or(s, mask); }
+    inline v operator|(const scalar_type& s) const noexcept { return vector.mask_bit_or(s, mask); }
     inline v& operator|=(const v& o) noexcept { vector.mask_assign_bit_or(o, mask); return vector; }
-    inline v& operator|=(const Tp& s) noexcept { vector.mask_assign_bit_or(s, mask); return vector; }
+    inline v& operator|=(const scalar_type& s) noexcept { vector.mask_assign_bit_or(s, mask); return vector; }
     inline v operator^(const v& o) const noexcept { return vector.mask_bit_xor(o, mask); }
-    inline v operator^(const Tp& s) const noexcept { return vector.mask_bit_xor(s, mask); }
+    inline v operator^(const scalar_type& s) const noexcept { return vector.mask_bit_xor(s, mask); }
     inline v& operator^=(const v& o) noexcept { vector.mask_assign_bit_xor(o, mask); return vector; }
-    inline v& operator^=(const Tp& s) noexcept { vector.mask_assign_bit_xor(s, mask); return vector; }
+    inline v& operator^=(const scalar_type& s) noexcept { vector.mask_assign_bit_xor(s, mask); return vector; }
   };
 
   inline masked_reference

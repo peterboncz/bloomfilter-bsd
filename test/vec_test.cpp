@@ -9,14 +9,14 @@ template<typename T, u64 N>
 using v = typename simd::v<T, N>;
 
 TEST(vec, ensure_native_implementation) {
-  using vec_t = v<$i32, simd::lane_count<$i32>>;
-  if (simd::lane_count<$i32> > 1) {
+  using vec_t = v<i32, simd::lane_count<i32>>;
+  if (simd::lane_count<i32> > 1) {
     ASSERT_FALSE(vec_t::is_compound) << "Missing implementation of native vector type.";
   }
 }
 
 TEST(vec, make_from_scalar_value) {
-  using vec_t = v<$i32, simd::lane_count<$i32>>;
+  using vec_t = v<i32, simd::lane_count<i32>>;
   vec_t a = vec_t::make(42);
   for ($u64 i = 0; i < vec_t::length; i++) {
     ASSERT_EQ(42, a[i]);
@@ -24,7 +24,7 @@ TEST(vec, make_from_scalar_value) {
 }
 
 TEST(vec, make_from_vector) {
-  using vec_t = v<$i32, simd::lane_count<$i32>>;
+  using vec_t = v<i32, simd::lane_count<i32>>;
   vec_t a = vec_t::make(42);
   vec_t b = vec_t::make(a);
   for ($u64 i = 0; i < vec_t::length; i++) {
@@ -33,7 +33,7 @@ TEST(vec, make_from_vector) {
 }
 
 TEST(vec, make_from_integer_sequence) {
-  using vec_t = v<$i32, simd::lane_count<$i32> * 4>;
+  using vec_t = v<i32, simd::lane_count<i32> * 4>;
   vec_t act = vec_t::make_index_vector();
   for ($i32 i = 0; i < vec_t::length; i++) {
     ASSERT_EQ(i, act[i]);
@@ -41,7 +41,7 @@ TEST(vec, make_from_integer_sequence) {
 }
 
 TEST(vec, make_compound_vector) {
-  using vec_t = v<$i32, 4 * simd::lane_count<$i32>>;
+  using vec_t = v<i32, 4 * simd::lane_count<i32>>;
   vec_t a = vec_t::make(42);
   for ($u64 i = 0; i < vec_t::length; i++) {
     ASSERT_EQ(42, a[i]);
@@ -49,7 +49,7 @@ TEST(vec, make_compound_vector) {
 }
 
 TEST(vec, move_assignment) {
-  using vec_t = v<$i32, 32>;
+  using vec_t = v<i32, 32>;
   vec_t a = vec_t::make(41);
   vec_t b = a + 1;
   vec_t exp = vec_t::make(42);
@@ -59,7 +59,7 @@ TEST(vec, move_assignment) {
 }
 
 TEST(vec, comparison_and_mask) {
-  using vec_t = v<$i32, 32>;
+  using vec_t = v<i32, 32>;
   const vec_t a = vec_t::make(41);
   vec_t b = a + 1;
   auto m = a < b;
@@ -83,8 +83,8 @@ TEST(vec, comparison_and_mask) {
 }
 
 TEST(vec, var_shift) {
-  u64 vec_len = simd::lane_count<$i32>;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32>;
+  using vec_t = v<i32, vec_len>;
   vec_t rhs;
   for ($u64 i = 0; i < vec_len; i++) {
     rhs.insert(i, i);
@@ -96,8 +96,8 @@ TEST(vec, var_shift) {
 }
 
 TEST(vec, make_mask) {
-  u64 vec_len = simd::lane_count<$i32> * 4;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 4;
+  using vec_t = v<i32, vec_len>;
 
   auto all_ones = vec_t::mask_t::make_all_mask();
   for ($u64 i = 0; i < vec_len; i++) {
@@ -111,8 +111,8 @@ TEST(vec, make_mask) {
 }
 
 TEST(vec, bitwise) {
-  u64 vec_len = simd::lane_count<$i32> * 4;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 4;
+  using vec_t = v<i32, vec_len>;
   vec_t a = vec_t::make(42);
   vec_t act = a & 2;
 
@@ -162,9 +162,9 @@ mulhi_u32(const Tv& a, const Tv& b) {
 // --- ---
 
 TEST(vec, custom_vector_function) {
-  u64 vec_len = simd::lane_count<uint32_t> * 4;
+  u64 vec_len = simd::lane_count<u32> * 4;
 
-  using vec_t = v<uint32_t, vec_len>;
+  using vec_t = v<u32, vec_len>;
   const vec_t a = vec_t::make_index_vector();
   const vec_t b = vec_t::make_index_vector() << 10;
 
@@ -231,8 +231,8 @@ TEST(vec, custom_vector_function) {
 //}
 
 TEST(vec, masked_operation_assign) {
-  u64 vec_len = simd::lane_count<$i32> * 2;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 2;
+  using vec_t = v<i32, vec_len>;
   vec_t a = vec_t::make_index_vector();
   vec_t b = vec_t::make(2);
 
@@ -248,8 +248,8 @@ TEST(vec, masked_operation_assign) {
 }
 
 TEST(vec, masked_operation_assign_arithmetic) {
-  u64 vec_len = simd::lane_count<$i32> * 2;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 2;
+  using vec_t = v<i32, vec_len>;
   vec_t a = vec_t::make_index_vector();
   vec_t b = vec_t::make(2);
 
@@ -264,8 +264,8 @@ TEST(vec, masked_operation_assign_arithmetic) {
 }
 
 TEST(vec, masked_operation_arithmetic) {
-  u64 vec_len = simd::lane_count<$i32> * 2;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 2;
+  using vec_t = v<i32, vec_len>;
   vec_t a = vec_t::make_index_vector();
   vec_t b = vec_t::make(2);
 
@@ -279,8 +279,8 @@ TEST(vec, masked_operation_arithmetic) {
 }
 
 TEST(vec, masked_unary_operation) {
-  u64 vec_len = simd::lane_count<$i32> * 2;
-  using vec_t = v<$i32, vec_len>;
+  u64 vec_len = simd::lane_count<i32> * 2;
+  using vec_t = v<i32, vec_len>;
   vec_t a = vec_t::make_index_vector();
   vec_t b = vec_t::make(2);
 
@@ -294,7 +294,7 @@ TEST(vec, masked_unary_operation) {
 }
 
 TEST(vec, mask_to_32bit_positions) {
-  constexpr u64 vec_len = simd::lane_count<$i32> * 2;
+  constexpr u64 vec_len = simd::lane_count<i32> * 2;
 
   $u32 positions[vec_len];
   alignas(64) $i32 input[vec_len];
@@ -302,7 +302,7 @@ TEST(vec, mask_to_32bit_positions) {
     input[i] = i;
   }
 
-  using vec_t = v<$i32, vec_len>;
+  using vec_t = v<i32, vec_len>;
   vec_t& a = reinterpret_cast<vec_t&>(input);
   vec_t b = vec_t::make(2);
 
