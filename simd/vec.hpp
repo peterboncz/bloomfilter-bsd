@@ -113,6 +113,8 @@ struct v {
       make_compound<nested_mask_type, nested_vector_cnt>,
       nested_mask_type>::type;
 
+  //===----------------------------------------------------------------------===//
+
   /// The mask type (template) of the surrounding vector.
   ///
   /// As the vector can be a composition of multiple (smaller) native
@@ -404,6 +406,7 @@ struct v {
   // --- end of mask
 
 
+  //===----------------------------------------------------------------------===//
 
 
   // Specialize function objects for the current native vector type. (reduces verboseness later on)
@@ -441,7 +444,9 @@ struct v {
   };
 
 
-  // --- C'tors
+  //===----------------------------------------------------------------------===//
+  // C'tors
+  //===----------------------------------------------------------------------===//
 
   v() = default;
 
@@ -458,10 +463,13 @@ struct v {
   // brace-initializer list c'tor
   template<typename ...T>
   explicit
-  v(T&&... t) : data{ std::forward<T>(t)... } { }
+  v(T&&... t) : data { std::forward<T>(t)... } { }
 
 //  explicit
 //  v(v&& other) : data(std::move(other.data)) { }
+
+
+  //===----------------------------------------------------------------------===//
 
 
   /// Assignment
@@ -495,6 +503,9 @@ struct v {
   }
 
 
+  //===----------------------------------------------------------------------===//
+
+
   /// Creates a vector where all components are set to the given scalar value.
   static inline v
   make(const scalar_type& scalar_value) {
@@ -520,7 +531,9 @@ struct v {
   }
 
 
-  // --- Unary functions ---
+  //===----------------------------------------------------------------------===//
+  // Unary functions
+  //===----------------------------------------------------------------------===//
 
   template<u1 Compound = false, typename Fn>
   static inline nested_type
@@ -616,7 +629,9 @@ struct v {
 //  }
 
 
-  // --- Binary functions ---
+  //===----------------------------------------------------------------------===//
+  // Binary functions
+  //===----------------------------------------------------------------------===//
 
   /// Applies a binary operation to a NON-compound (native) vector type.
   template<u1 Compound = false, typename Fn>
@@ -731,6 +746,10 @@ struct v {
 //  }
 
 
+  template<typename VECTOR_FN>
+  inline v map(const v& o) const noexcept { return v { binary_op<is_compound, VECTOR_FN>(VECTOR_FN(), data, o.data) }; }
+  template<typename VECTOR_FN>
+  inline v map(const scalar_type& s) const noexcept { return v { binary_op<is_compound, VECTOR_FN>(VECTOR_FN(), data, make_nested(s)) }; }
 
   inline v operator+(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, o.data) }; }
   inline v operator+(const scalar_type& s) const noexcept { return v { binary_op<is_compound>(typename op::plus(), data, make_nested(s)) }; }

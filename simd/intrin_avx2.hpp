@@ -322,6 +322,17 @@ struct minus<$i32, __m256i> : vector_fn<$i32, __m256i> {
 };
 
 template<>
+struct minus<$u32, __m256i> : vector_fn<$u32, __m256i> {
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return _mm256_sub_epi32(lhs, rhs);
+  }
+  inline __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask& m) const noexcept {
+    return _mm256_blendv_epi8(src, _mm256_sub_epi32(lhs, rhs), m.data);
+  }
+};
+
+template<>
 struct multiplies<$i32, __m256i> : vector_fn<$i32, __m256i> {
   inline __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return _mm256_mullo_epi32(lhs, rhs);

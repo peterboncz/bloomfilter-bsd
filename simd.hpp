@@ -47,6 +47,7 @@ namespace simd {
 
 #include "simd/types.hpp"
 #include "simd/vec.hpp"
+#include "simd/extensions.hpp"
 
 
 // populate the dlt namespace

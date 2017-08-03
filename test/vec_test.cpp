@@ -121,59 +121,31 @@ TEST(vec, bitwise) {
   }
 }
 
-
-// --- custom SIMD function ---
-namespace custom {
-namespace simd {
-
-template<typename primitive_t, typename vector_t, typename argument_t>
-struct mulhi_u32 : dtl::simd::vector_fn<primitive_t, vector_t, argument_t> {};
-
-template<>
-struct mulhi_u32<$u32, __m256i, __m256i> : dtl::simd::vector_fn<$u32, __m256i, __m256i> {
-  inline __m256i operator()(const __m256i& a, const __m256i& b) const noexcept {
-    return dtl::mulhi_u32(a, b);
-  }
-};
-
-#if defined(__AVX512F__)
-template<>
-struct mulhi_u32<$u32, __m512i, __m512i> : dtl::simd::vector_fn<$u32, __m512i, __m512i> {
-  inline __m512i operator()(const __m512i& a, const __m512i& b) const noexcept {
-    return dtl::mulhi_u32(a, b);
-  }
-};
-#endif // defined(__AVX512F__)
-
-} // namespace simd
-} // namespace custom
-
-namespace dtl {
-
-template<typename Tv>
-Tv
-mulhi_u32(const Tv& a, const Tv& b) {
-  using mulhi = custom::simd::mulhi_u32<typename Tv::scalar_type, typename Tv::nested_type, typename Tv::nested_type>;
-  const Tv c = a.template map<mulhi>(b);
-  return c;
-}
-
-} // namespace dtl
-// --- ---
-
 TEST(vec, custom_vector_function) {
   u64 vec_len = simd::lane_count<u32> * 4;
 
   using vec_t = v<u32, vec_len>;
   const vec_t a = vec_t::make_index_vector();
-  const vec_t b = vec_t::make_index_vector() << 10;
+  const vec_t b = vec_t::make_index_vector() << 27;
 
-  const vec_t c = dtl::mulhi_u32(a, b);
+  const vec_t c = dtl::mulhi_u32(a, b); // defined in simd/extensions.hpp
 
   for ($u64 i = 0; i < vec_len; i++) {
     ASSERT_EQ(dtl::mulhi_u32(a[i], b[i]), c[i]);
   }
+}
 
+TEST(vec, custom_vector_function_with_scalar_argument) { // uniform? reduces register pressure with compound vector types
+  u64 vec_len = simd::lane_count<u32> * 4;
+
+  using vec_t = v<u32, vec_len>;
+  const vec_t a = vec_t::make_index_vector();
+  const uint32_t b = 1ul << 27;
+  const vec_t c = dtl::mulhi_u32(a, b); // defined in simd/extensions.hpp
+
+  for ($u64 i = 0; i < vec_len; i++) {
+    ASSERT_EQ(dtl::mulhi_u32(a[i], b), c[i]);
+  }
 }
 
 

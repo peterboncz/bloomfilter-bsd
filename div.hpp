@@ -184,7 +184,7 @@ mulhi_u32(const __m256i a, const __m256i b) {
   // multiply
   const __m256i p_odd_u64 = _mm256_mul_epu32(a_odd_u64, b_odd_u64);
   const __m256i p_even_u64 =_mm256_mul_epu32(a_even_u64, b_even_u64);
-  // merge the higher 32-bits of products back into a single ZMM register
+  // merge the higher 32-bits of products back into a single YMM register
   const __m256i p_even_hi_u64 = _mm256_srli_epi64(p_even_u64, 32);
   return _mm256_blend_epi32(p_odd_u64, p_even_hi_u64, 0b01010101);
 }
@@ -215,7 +215,7 @@ static __m256i
 fast_mod_u32(const __m256i dividend, const fast_divisor_u32_t& divisor) {
   const __m256i floor_div = fast_div_u32(dividend, divisor.magic, divisor.shift_amount);
   const __m256i t = _mm256_mullo_epi32(floor_div, _mm256_set1_epi32(divisor.divisor));
-  return dividend - t ;
+  return dividend - t;
 }
 
 #endif // defined(__AVX2__)
