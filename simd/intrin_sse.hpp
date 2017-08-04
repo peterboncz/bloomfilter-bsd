@@ -23,14 +23,14 @@ struct vs<$i32, 4> : base<$i32, 4> {
 
 template<>
 struct set<$i32, __m128i, $i32> : vector_fn<$i32, __m128i, $i32> {
-  inline __m128i operator()(i32& a) const noexcept {
+  __forceinline__ __m128i operator()(i32& a) const noexcept {
     return _mm_set1_epi32(a);
   }
 };
 
 template<>
 struct plus<$i32, __m128i> : vector_fn<$i32, __m128i> {
-  inline __m128i operator()(const __m128i& lhs, const __m128i& rhs) const noexcept {
+  __forceinline__ __m128i operator()(const __m128i& lhs, const __m128i& rhs) const noexcept {
     return _mm_add_epi16(lhs, rhs);
   }
 };

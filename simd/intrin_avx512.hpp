@@ -17,24 +17,24 @@ namespace avx512 {
 
 struct mask16 {
   __mmask16 data;
-  inline u1 all() const { return data == __mmask16(-1); };
-  inline u1 any() const { return data != __mmask16(0); };
-  inline u1 none() const { return data == __mmask16(0); };
-  inline void set(u1 value) {
+  __forceinline__ u1 all() const { return data == __mmask16(-1); };
+  __forceinline__ u1 any() const { return data != __mmask16(0); };
+  __forceinline__ u1 none() const { return data == __mmask16(0); };
+  __forceinline__ void set(u1 value) {
     data = __mmask16(0) - value;
   }
-  inline void set(u64 idx, u1 value) {
+  __forceinline__ void set(u64 idx, u1 value) {
     data = __mmask16(1) << idx;
   }
-  inline u1 get(u64 idx) const {
+  __forceinline__ u1 get(u64 idx) const {
     return (data & (__mmask16(1) << idx)) != __mmask16(0);
   }
-  inline mask16 bit_and(const mask16& o) const { return mask16 { _mm512_kand(data, o.data) }; }
-  inline mask16 bit_or(const mask16& o) const { return mask16 { _mm512_kor(data, o.data) }; }
-  inline mask16 bit_xor(const mask16& o) const { return mask16 { _mm512_kxor(data, o.data) }; }
-  inline mask16 bit_not() const { return mask16 { _mm512_knot(data) }; }
+  __forceinline__ mask16 bit_and(const mask16& o) const { return mask16 { _mm512_kand(data, o.data) }; }
+  __forceinline__ mask16 bit_or(const mask16& o) const { return mask16 { _mm512_kor(data, o.data) }; }
+  __forceinline__ mask16 bit_xor(const mask16& o) const { return mask16 { _mm512_kxor(data, o.data) }; }
+  __forceinline__ mask16 bit_not() const { return mask16 { _mm512_knot(data) }; }
 
-  inline $u64
+  __forceinline__ $u64
   to_positions($u32* positions, $u32 offset) const {
     if (data == 0) return 0;
     static const __m512i sequence = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
@@ -106,11 +106,11 @@ struct vs<$u64, 8> : base<$u64, 8> {
 template<>                                             \
 struct broadcast<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::value_type& a) const noexcept { \
     return IntrinFn(a);                                \
   }                                                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::value_type& a,         \
              const typename fn::vector_type& src,      \
              const mask16 mask) const noexcept {       \
@@ -129,7 +129,7 @@ __GENERATE($u64, __m512i, $u64, _mm512_set1_epi64, _mm512_mask_set1_epi64)
 template<>                                             \
 struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {     \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::vector_type& b,        \
              const mask16 mask) const noexcept {       \
@@ -151,7 +151,7 @@ template<>                                             \
 struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> {\
   using fn = vector_fn<Tp, Tv, Ta, Tv>;                \
   using ptr = std::conditional<sizeof(Tp) == 8, long long int, std::make_signed<Tp>::type>::type; \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const Tp* const base_addr, const typename fn::argument_type& idx) const noexcept { \
     int scale = base_addr ? Scale : 1;                 \
     switch(scale) {                                    \
@@ -161,7 +161,7 @@ struct gather<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta, Tv> {\
       case 8: return IntrinFn(idx, reinterpret_cast<const ptr*>(base_addr), 8); \
     }                                                  \
   }                                                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const Tp* const base_addr,                \
              const typename fn::argument_type& idx,    \
              const typename fn::vector_type& src,      \
@@ -191,13 +191,13 @@ template<>                                             \
 struct scatter<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {   \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
   using ptr = std::conditional<sizeof(Tp) == 8, long long int, std::make_signed<Tp>::type>::type; \
-  inline void                                          \
+  __forceinline__ void                                          \
   operator()(Tp* base_addr,                            \
              const typename fn::vector_type& idx,      \
              const typename fn::vector_type& a) const noexcept { \
     IntrinFn(reinterpret_cast<ptr*>(base_addr), idx, a, Scale); \
   }                                                    \
-  inline void                                          \
+  __forceinline__ void                                          \
   operator()(Tp* base_addr,                            \
              const typename fn::vector_type& idx,      \
              const typename fn::vector_type& a,        \
@@ -220,12 +220,12 @@ __GENERATE($u64, 8, __m512i, __m512i, _mm512_i64scatter_epi64, _mm512_mask_i64sc
 template<>                                             \
 struct Op<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {        \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs) const noexcept { \
     return IntrinFn(lhs, rhs);                         \
   }                                                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs,      \
              const typename fn::vector_type& src,      \
@@ -281,12 +281,12 @@ __GENERATE_ARITH(multiplies, $u64, __m512i, $u64, _mm512_mul_epi64, _mm512_mask_
 template<>                                             \
 struct Op<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {        \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::argument_type& count) const noexcept { \
     return IntrinFn(a, count);                         \
   }                                                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::argument_type& count,  \
              const typename fn::vector_type& src,      \
@@ -321,12 +321,12 @@ __GENERATE_SHIFT(shift_right_var, $u64, __m512i, __m512i, _mm512_srlv_epi64, _mm
 template<>                                             \
 struct Op<Tp, Tv> : vector_fn<Tp, Tv> {                \
   using fn = vector_fn<Tp, Tv>;                        \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs) const noexcept { \
     return IntrinFn(lhs, rhs);                         \
   }                                                    \
-  inline typename fn::vector_type                      \
+  __forceinline__ typename fn::vector_type                      \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs,      \
              const typename fn::vector_type& src,      \
@@ -358,12 +358,12 @@ __GENERATE_BITWISE(bit_xor, $u64, __m512i, _mm512_xor_epi64, _mm512_mask_xor_epi
 template<>                                             \
 struct Op<Tp, Tv, Tv, mask16> : vector_fn<Tp, Tv, Tv, mask16> { \
   using fn = vector_fn<Tp, Tv, Tv, mask16>;            \
-  inline mask16                                        \
+  __forceinline__ mask16                                        \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs) const noexcept { \
     return mask16{ IntrinFn(lhs, rhs) };               \
   }                                                    \
-  inline mask16                                        \
+  __forceinline__ mask16                                        \
   operator()(const typename fn::vector_type& lhs,      \
              const typename fn::vector_type& rhs,      \
              const mask16 mask) const noexcept {       \

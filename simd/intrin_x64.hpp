@@ -23,25 +23,25 @@ namespace {
 /// The mask is a single boolean in that case.
 struct mask {
   $u1 data;
-  inline u1 all() const { return data; };
-  inline u1 any() const { return data; };
-  inline u1 none() const { return !data; };
-  inline void set(u1 value) {
+  __forceinline__ u1 all() const { return data; };
+  __forceinline__ u1 any() const { return data; };
+  __forceinline__ u1 none() const { return !data; };
+  __forceinline__ void set(u1 value) {
     data = value;
   }
-  inline void set(u64 /* idx */, u1 value) {
+  __forceinline__ void set(u64 /* idx */, u1 value) {
     data = value;
   };
-  inline void set(u64 bits) {
+  __forceinline__ void set(u64 bits) {
     data = bits != 0;
   };
-  inline u1 get(u64 /* idx */) const {
+  __forceinline__ u1 get(u64 /* idx */) const {
     return data;
   };
-  inline mask bit_and(const mask& o) const { return mask { data & o.data }; };
-  inline mask bit_or(const mask& o) const { return mask { data | o.data }; };
-  inline mask bit_xor(const mask& o) const { return mask { data ^ o.data }; };
-  inline mask bit_not() const { return mask { !data }; };
+  __forceinline__ mask bit_and(const mask& o) const { return mask { data & o.data }; };
+  __forceinline__ mask bit_or(const mask& o) const { return mask { data | o.data }; };
+  __forceinline__ mask bit_xor(const mask& o) const { return mask { data ^ o.data }; };
+  __forceinline__ mask bit_not() const { return mask { !data }; };
 };
 
 } // anonymous namespace
@@ -61,11 +61,11 @@ using native_mask_t = mask;
 template<typename Tp>
 struct broadcast<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
   using fn = vector_fn<Tp, Tp, Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::value_type& a) const noexcept {
     return a;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::value_type& a,
              // merge masking
              const typename fn::vector_type& src,
@@ -77,11 +77,11 @@ struct broadcast<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
 template<typename Tp>
 struct set<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
   using fn = vector_fn<Tp, Tp, Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& a) const noexcept {
     return a;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& a,
              // merge masking
              const typename fn::vector_type& src,
@@ -93,7 +93,7 @@ struct set<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
 template<typename Tp>
 struct blend<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
   using fn = vector_fn<Tp, Tp, Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& a,
              const typename fn::vector_type& b,
              const native_mask_t mask) const noexcept {
@@ -106,7 +106,7 @@ struct blend<Tp, Tp, Tp> : vector_fn<Tp, Tp, Tp> {
 template<typename Tp, typename Ta>
 struct gather<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const Tp* const base_addr,
              const typename fn::argument_type& idxs) const noexcept {
 //    return *reinterpret_cast<typename fn::vector_type*>(idxs);
@@ -118,7 +118,7 @@ struct gather<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
 template<typename Tp, typename Ti>
 struct scatter<Tp, Tp, Ti> : vector_fn<Tp, Tp, Ti> {
   using fn = vector_fn<Tp, Tp, Ti>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(Tp* base_addr,
              const typename fn::argument_type& idxs,
              const typename fn::vector_type& what) const noexcept {
@@ -131,12 +131,12 @@ struct scatter<Tp, Tp, Ti> : vector_fn<Tp, Tp, Ti> {
 template<typename Tp>
 struct plus<Tp, Tp> : vector_fn<Tp, Tp> {
   using fn = vector_fn<Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs + rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -149,12 +149,12 @@ struct plus<Tp, Tp> : vector_fn<Tp, Tp> {
 template<typename Tp>
 struct minus<Tp, Tp> : vector_fn<Tp, Tp> {
   using fn = vector_fn<Tp, Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs - rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -167,12 +167,12 @@ struct minus<Tp, Tp> : vector_fn<Tp, Tp> {
 template<typename Tp>
 struct multiplies<Tp, Tp> : vector_fn<Tp, Tp> {
   using fn = vector_fn<Tp, Tp>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs * rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -187,12 +187,12 @@ struct multiplies<Tp, Tp> : vector_fn<Tp, Tp> {
 template<typename Tp, typename Ta>
 struct shift_left<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::argument_type& count) const noexcept {
     return lhs << count;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -205,12 +205,12 @@ struct shift_left<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
 template<typename Tp, typename Ta>
 struct shift_left_var<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::argument_type& count) const noexcept {
     return lhs << count;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -223,12 +223,12 @@ struct shift_left_var<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
 template<typename Tp, typename Ta>
 struct shift_right<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::argument_type& count) const noexcept {
     return lhs >> count;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -241,12 +241,12 @@ struct shift_right<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
 template<typename Tp, typename Ta>
 struct shift_right_var<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
   using fn = vector_fn<Tp, Tp, Ta>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::argument_type& count) const noexcept {
     return lhs >> count;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -261,12 +261,12 @@ struct shift_right_var<Tp, Tp, Ta> : vector_fn<Tp, Tp, Ta> {
 template<typename Tp, typename Tv>
 struct bit_and<Tp, Tv> : vector_fn<Tp, Tv> {
   using fn = vector_fn<Tp, Tv>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs & rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -279,12 +279,12 @@ struct bit_and<Tp, Tv> : vector_fn<Tp, Tv> {
 template<typename Tp, typename Tv>
 struct bit_or<Tp, Tv> : vector_fn<Tp, Tv> {
   using fn = vector_fn<Tp, Tv>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs | rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -297,12 +297,12 @@ struct bit_or<Tp, Tv> : vector_fn<Tp, Tv> {
 template<typename Tp, typename Tv>
 struct bit_xor<Tp, Tv> : vector_fn<Tp, Tv> {
   using fn = vector_fn<Tp, Tv>;
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return lhs ^ rhs;
   }
-  inline typename fn::vector_type
+  __forceinline__ typename fn::vector_type
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs,
              // merge masking
@@ -317,7 +317,7 @@ struct bit_xor<Tp, Tv> : vector_fn<Tp, Tv> {
 template<typename Tp>
 struct less<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
   using fn = vector_fn<Tp, Tp, Tp, mask>;
-  inline mask
+  __forceinline__ mask
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return mask { lhs < rhs };
@@ -327,7 +327,7 @@ struct less<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
 template<typename Tp>
 struct greater<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
   using fn = vector_fn<Tp, Tp, Tp, mask>;
-  inline mask
+  __forceinline__ mask
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return mask { lhs > rhs };
@@ -337,7 +337,7 @@ struct greater<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
 template<typename Tp>
 struct equal<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
   using fn = vector_fn<Tp, Tp, Tp, mask>;
-  inline mask
+  __forceinline__ mask
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return mask { lhs == rhs };
@@ -347,7 +347,7 @@ struct equal<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
 template<typename Tp>
 struct not_equal<Tp, Tp, Tp, mask> : vector_fn<Tp, Tp, Tp, mask> {
   using fn = vector_fn<Tp, Tp, Tp, mask>;
-  inline mask
+  __forceinline__ mask
   operator()(const typename fn::vector_type& lhs,
              const typename fn::vector_type& rhs) const noexcept {
     return mask { lhs != rhs };

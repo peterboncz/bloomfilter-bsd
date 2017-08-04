@@ -25,7 +25,8 @@ struct mulhi_u32 : dtl::simd::vector_fn<primitive_t, vector_t, argument_t> {};
 #if defined(__AVX2__)
 template<>
 struct mulhi_u32<$u32, __m256i, __m256i> : dtl::simd::vector_fn<$u32, __m256i, __m256i> {
-  inline __m256i operator()(const __m256i& a, const __m256i& b) const noexcept {
+  __forceinline__
+  __m256i operator()(const __m256i& a, const __m256i& b) const noexcept {
     return dtl::mulhi_u32(a, b);
   }
 };
@@ -34,7 +35,8 @@ struct mulhi_u32<$u32, __m256i, __m256i> : dtl::simd::vector_fn<$u32, __m256i, _
 #if defined(__AVX512F__)
 template<>
 struct mulhi_u32<$u32, __m512i, __m512i> : dtl::simd::vector_fn<$u32, __m512i, __m512i> {
-  inline __m512i operator()(const __m512i& a, const __m512i& b) const noexcept {
+  __forceinline__
+  __m512i operator()(const __m512i& a, const __m512i& b) const noexcept {
     return dtl::mulhi_u32(a, b);
   }
 };
