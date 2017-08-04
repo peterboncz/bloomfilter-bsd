@@ -46,7 +46,7 @@ next_cheap_magic(uint32_t n) {
     if (div.more & LIBDIVIDE_U32_SHIFT_PATH) { continue; }
     // only "algo 1"
     assert(d >= n);
-    return {div.magic, (div.more & LIBDIVIDE_32_SHIFT_MASK), d};
+    return {div.magic, (div.more & static_cast<uint32_t>(LIBDIVIDE_32_SHIFT_MASK)), d};
   }
   throw "Failed to find a cheap magic number.";
 }
