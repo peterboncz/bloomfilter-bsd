@@ -45,7 +45,7 @@ struct bloomfilter_h2 {
   static_assert(
       std::is_same<decltype(HashFn<key_t>::hash(0)), decltype(HashFn2<key_t>::hash(0))>::value,
       "The two hash functions must return the same type.");
-  using hash_value_t = decltype(HashFn<key_t>::hash(0));
+  using hash_value_t = $u32; //decltype(HashFn<key_t>::hash(0)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
   static constexpr u32 hash_fn_cnt = 2;

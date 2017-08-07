@@ -22,8 +22,8 @@ namespace dtl {
 /// filter is somewhat limited (depending on K and whether Sectorization is enabled).
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the hash function to use
-    typename Tw = u64,     // the word type to use for the bit array. Note: one word = one block.
-    typename Alloc = std::allocator<Tw>,
+    typename Tw/* = u64*/,     // the word type to use for the bit array. Note: one word = one block.
+    typename Alloc /* = std::allocator<Tw> */,
     u32 K = 2,             // the number of bits set per inserted element
     u1 Sectorized = false  //
 >
@@ -44,7 +44,7 @@ struct bloomfilter_h1 {
 
 
   // Inspect the given hash function
-  using hash_value_t = decltype(HashFn<key_t>::hash(0));
+  using hash_value_t = $u32; //decltype(HashFn<key_t>::hash(0)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
   static constexpr u32 hash_fn_cnt = 1;
@@ -149,7 +149,7 @@ struct bloomfilter_h1 {
 
   __forceinline__ __host__ __device__
   static size_t
-  which_word(const hash_value_t hash_val,
+  which_word(const uint32_t /*hash_value_t*/ hash_val,
              const size_t length_mask,
              const size_t word_cnt_log2) noexcept {
     const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
@@ -160,6 +160,7 @@ struct bloomfilter_h1 {
 
   __forceinline__ __unroll_loops__ __host__ __device__
   static word_t
+//  which_bits(const uint32_t /*hash_value_t*/ hash_val,
   which_bits(const hash_value_t hash_val,
              const size_t word_cnt_log2) noexcept {
     word_t word = 0;
