@@ -149,10 +149,10 @@ get_cpu_nodes() {
   cpus_on_node_cnt.resize(node_cnt, 0);
 
   i32 cpu_cnt = numa_num_configured_cpus();
-  for ($u32 i = 0; i < cpu_cnt; i++) {
+  for ($i32 i = 0; i < cpu_cnt; i++) {
     cpus_on_node_cnt[numa_node_of_cpu(i)]++;
   }
-  for ($u32 i = 0; i < node_cnt; i++) {
+  for ($i32 i = 0; i < node_cnt; i++) {
     if (cpus_on_node_cnt[i] > 0) {
       // we assume that all *memory-only* NUMA nodes are HBM nodes.
       cpu_nodes.push_back(i);
@@ -173,10 +173,10 @@ get_hbm_nodes() {
   cpus_on_node_cnt.resize(node_cnt, 0);
 
   i32 cpu_cnt = numa_num_configured_cpus();
-  for ($u32 i = 0; i < cpu_cnt; i++) {
+  for ($i32 i = 0; i < cpu_cnt; i++) {
     cpus_on_node_cnt[numa_node_of_cpu(i)]++;
   }
-  for ($u32 i = 0; i < node_cnt; i++) {
+  for ($i32 i = 0; i < node_cnt; i++) {
     if (cpus_on_node_cnt[i] == 0) {
       // we assume that all *memory-only* NUMA nodes are HBM nodes.
       hbm_nodes.push_back(i);
