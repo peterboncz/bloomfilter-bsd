@@ -579,7 +579,7 @@ struct bitset {
       str[length - 1 - *it] = one;
     }
     return str;
-  };
+  }
 
 };
 

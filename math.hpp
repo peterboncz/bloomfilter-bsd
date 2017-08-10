@@ -259,6 +259,16 @@ namespace ct {
     };
   };
 
+  template<u64 n>
+  struct lz_count_u32 {
+    static constexpr u64 value = __builtin_clz(n);
+  };
+
+  template<u64 n>
+  struct lz_count_u64 {
+    static constexpr u64 value = __builtin_clzll(n);
+  };
+
   template<size_t n>
   struct log_2{
     enum : size_t {
@@ -269,15 +279,26 @@ namespace ct {
   template<u32 n>
   struct log_2_u32{
     enum : u32 {
-      value = 8 * sizeof(u32) - dtl::bits::lz_count(n) - 1
+      value = 8 * sizeof(u32) - lz_count_u32<n>::value - 1
     };
   };
 
   template<u64 n>
   struct log_2_u64{
     enum : u64 {
-      value = 8 * sizeof(u64) - dtl::bits::lz_count(n) - 1
+      value = 8 * sizeof(u64) - lz_count_u64<n>::value - 1
     };
+  };
+
+
+  template<u64 n>
+  struct pop_count {
+    static constexpr u64 value = (n & 1) + pop_count<(n >> 1)>::value;
+  };
+
+  template<>
+  struct pop_count<0ull> {
+    static constexpr u64 value = 0;
   };
 
 }
