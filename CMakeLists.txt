@@ -20,6 +20,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h1_mod.hpp
         bloomfilter/bloomfilter_h1_mod_vec.hpp
         bloomfilter/bloomfilter_h2.hpp
+        bloomfilter/bloomfilter_h2_logic.hpp
         bloomfilter/bloomfilter_h2_vec.hpp
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
