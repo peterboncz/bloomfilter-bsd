@@ -88,21 +88,8 @@ struct bloomfilter_h1_logic {
   }
 
 
-  __forceinline__
-  size_t
-  length() const noexcept {
-    return length_mask + 1;
-  }
-
-
-  __forceinline__ __host__ __device__
-  size_t
-  word_cnt() const noexcept {
-    return (length_mask + 1) / sizeof(word_t);
-  }
-
-
   /// C'tor
+  explicit
   bloomfilter_h1_logic(const size_t length)
       : length_mask(determine_actual_length(length) - 1),
         word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)) {
@@ -164,6 +151,20 @@ struct bloomfilter_h1_logic {
     word_t word = word_array[word_idx];
     word |= which_bits(hash_val);
     word_array[word_idx] = word;
+  }
+
+
+  __forceinline__
+  size_t
+  length() const noexcept {
+    return length_mask + 1;
+  }
+
+
+  __forceinline__ __host__ __device__
+  size_t
+  word_cnt() const noexcept {
+    return (length_mask + 1) / sizeof(word_t);
   }
 
 
