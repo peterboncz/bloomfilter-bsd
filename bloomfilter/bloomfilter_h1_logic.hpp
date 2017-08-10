@@ -11,6 +11,8 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 
+#include <cub/cub.cuh>
+
 #include "immintrin.h"
 
 namespace dtl {
@@ -145,7 +147,12 @@ struct bloomfilter_h1_logic {
     const hash_value_t hash_val = hash(key);
     u32 word_idx = which_word(hash_val);
     const word_t search_mask = which_bits(hash_val);
-    return (word_array[word_idx] & search_mask) == search_mask;
+#if defined(__CUDA_ARCH__)
+    const word_t word = cub::ThreadLoad<cub::LOAD_CS>(word_array + word_idx);
+#else
+    const word_t word = word_array[word_idx];
+#endif // defined(__CUDA_ARCH__)
+    return (word & search_mask) == search_mask;
   }
 
 
