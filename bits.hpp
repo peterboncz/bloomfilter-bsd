@@ -90,7 +90,7 @@ bit_test(u32 a, u32 i) {
 
 __forceinline__ __host__ __device__
 u1
-bit_test(u64 a, u64 i) {
+bit_test(u64 a, u32 i) {
   return a & (u64(1) << i);
 }
 

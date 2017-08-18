@@ -14,6 +14,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bits.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
+        bloomfilter/bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_h1.hpp
         bloomfilter/bloomfilter_h1_logic.hpp
         bloomfilter/bloomfilter_h1_vec.hpp
@@ -21,6 +22,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h1_mod_vec.hpp
         bloomfilter/bloomfilter_h2.hpp
         bloomfilter/bloomfilter_h2_logic.hpp
+#        bloomfilter/bloomfilter_h2_mb_logic.hpp
         bloomfilter/bloomfilter_h2_vec.hpp
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
