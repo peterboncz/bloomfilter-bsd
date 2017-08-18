@@ -279,14 +279,14 @@ namespace ct {
   template<u32 n>
   struct log_2_u32{
     enum : u32 {
-      value = 8 * sizeof(u32) - lz_count_u32<n>::value - 1
+      value = n == 0 ? 0 : 8 * sizeof(u32) - lz_count_u32<n>::value - 1
     };
   };
 
   template<u64 n>
   struct log_2_u64{
     enum : u64 {
-      value = 8 * sizeof(u64) - lz_count_u64<n>::value - 1
+      value = n == 0 ? 0 : 8 * sizeof(u64) - lz_count_u64<n>::value - 1
     };
   };
 
