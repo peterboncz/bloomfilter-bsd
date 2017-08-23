@@ -83,13 +83,13 @@ extract(u64 a, u32 start, u32 len) {
 
 /// return the i-th bit in a
 __forceinline__ __host__ __device__
-u1
+constexpr u1
 bit_test(u32 a, u32 i) {
   return a & (u32(1) << i);
 }
 
 __forceinline__ __host__ __device__
-u1
+constexpr u1
 bit_test(u64 a, u32 i) {
   return a & (u64(1) << i);
 }
