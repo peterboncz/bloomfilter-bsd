@@ -14,6 +14,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bits.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
+        bloomfilter/bloomfilter_logic.hpp
         bloomfilter/bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_h1.hpp
         bloomfilter/bloomfilter_h1_logic.hpp

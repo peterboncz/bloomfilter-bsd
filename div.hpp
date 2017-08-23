@@ -55,7 +55,7 @@ next_cheap_magic(uint32_t n) {
 // Scalar
 //===----------------------------------------------------------------------===//
 
-__forceinline__
+__forceinline__ __host__ __device__
 static uint32_t
 mulhi_u32(const uint32_t a, const uint32_t b) {
   const uint64_t prod = static_cast<uint64_t>(a) * static_cast<uint64_t>(b);
@@ -63,20 +63,20 @@ mulhi_u32(const uint32_t a, const uint32_t b) {
 }
 
 // works only for "cheap" magic numbers
-__forceinline__
+__forceinline__ __host__ __device__
 static uint32_t
 fast_div_u32(const uint32_t dividend, const uint32_t magic, const uint32_t shift_amount) {
   const uint32_t quotient = mulhi_u32(dividend, magic);
   return quotient >> shift_amount;
 }
 
-__forceinline__
+__forceinline__ __host__ __device__
 static uint32_t
 fast_div_u32(const uint32_t dividend, const fast_divisor_u32_t& divisor) {
   return fast_div_u32(dividend, divisor.magic, divisor.shift_amount);
 }
 
-__forceinline__
+__forceinline__ __host__ __device__
 static uint32_t
 fast_mod_u32(const uint32_t dividend, const fast_divisor_u32_t& divisor) {
   return dividend - fast_div_u32(dividend, divisor.magic, divisor.shift_amount) * divisor.divisor;
