@@ -11,7 +11,7 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 
-//#include <cub/cub.cuh>
+#include <cub/cub.cuh>
 
 #include "immintrin.h"
 
@@ -95,6 +95,8 @@ struct bloomfilter_block_logic {
                                : dtl::ct::log_2_u32<word_cnt / sector_cnt>::value;
 
 
+  static constexpr cub::CacheLoadModifier cache_load_modifier = cub::LOAD_CG;
+
 private:
 
   //===----------------------------------------------------------------------===//
@@ -148,7 +150,11 @@ private:
       auto r = true;
       for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
         // consume the high order bits
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
+#else
         const word_t word = word_array[word_idx];
+#endif // defined(__CUDA_ARCH__)
         u32 bit_idx = h >> (hash_value_bitlength - sector_bitlength_log2);
         r &= dtl::bits::bit_test(word, bit_idx);
         h <<= required_hash_bits_per_k;
@@ -163,7 +169,11 @@ private:
       auto h = hash_val;
       auto r = true;
       for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
+#else
         const word_t word = word_array[word_idx];
+#endif // defined(__CUDA_ARCH__)
         word_t search_mask = 0;
         for (size_t in_word_sector_idx = 0; in_word_sector_idx < sector_cnt_per_word; in_word_sector_idx++) {
           // consume the high order bits
@@ -184,7 +194,11 @@ private:
         u32 sector_idx = i & sector_cnt_mask;
         u32 bit_idx_in_sector = h >> (hash_value_bitlength - sector_bitlength_log2);
         u32 word_idx = (sector_idx << shift) + (bit_idx_in_sector >> word_bitlength_log2);
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
+#else
         const word_t word = word_array[word_idx];
+#endif // defined(__CUDA_ARCH__)
         u32 bit_idx_in_word = bit_idx_in_sector & word_bitlength_log2_mask;
         r &= dtl::bits::bit_test(word, bit_idx_in_word);
         h <<= required_hash_bits_per_k;
@@ -224,11 +238,20 @@ private:
     if (word_cnt == 1) {
       if (k == 1) {
         u32 bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2);
-        return dtl::bits::bit_test(*word_array, bit_idx);
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array);
+#else
+        const word_t word = *word_array;
+#endif // defined(__CUDA_ARCH__)
+        return dtl::bits::bit_test(word, bit_idx);
       }
       else {
         // test all bits in one go
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array);
+#else
         const word_t word = word_array[0];
+#endif // defined(__CUDA_ARCH__)
         word_t search_mask = 0;
         for (size_t i = 0; i < k; i++) {
           // consume the high order bits
@@ -244,7 +267,11 @@ private:
       for (size_t i = 0; i < k; i++) {
         // consume the high order bits
         u32 word_idx = word_cnt == 1 ? 0u : h >> (hash_value_bitlength - word_cnt_log2);
-        word_t word = word_array[word_idx];
+#if defined(__CUDA_ARCH__)
+        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
+#else
+        const word_t word = word_array[word_idx];
+#endif // defined(__CUDA_ARCH__)
         u32 bit_idx = (h >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & ((hash_value_t(1) << sector_bitlength_log2) - 1);
         r &= dtl::bits::bit_test(word, bit_idx);
         h <<= required_hash_bits_per_k;
