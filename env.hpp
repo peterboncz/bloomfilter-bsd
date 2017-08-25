@@ -36,4 +36,18 @@ struct env<$i32> {
 
 };
 
+template<>
+struct env<$i64> {
+
+  static $i64
+  get(const std::string name, const $i64 default_value = 0) {
+    $i64 value = default_value;
+    if (const char* env = std::getenv(name.c_str())) {
+      value = std::stoll(env);
+    }
+    return value;
+  }
+
+};
+
 } // namespace dtl

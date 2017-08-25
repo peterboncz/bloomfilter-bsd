@@ -257,7 +257,7 @@ private:
 
 public:
 
-  __forceinline__ __unroll_loops__ __host__ __device__
+  __forceinline__ __unroll_loops__ __host__ //__device__
   static void
   insert(const hash_value_t& hash_val, word_t* __restrict word_array) noexcept {
     if (sectorized) {
