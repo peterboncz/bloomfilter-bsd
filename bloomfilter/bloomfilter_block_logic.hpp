@@ -20,8 +20,8 @@ namespace dtl {
 /// A multi-word block. The k bits are distributed among all words of the block (optionally in a sectorized manner).
 template<typename Tk,      // the key type
     typename Tw = u32,     // the word type to use for the bitset
-    typename Th = u32,     // the hash value type7
-    u32 K = 3,             // the number of bits to set
+    typename Th = u32,     // the hash value type
+    u32 K = 4,             // the number of bits to set
     u32 B = 2,             // the number of words per block (block size)
     u1 Sectorized = false
 >
