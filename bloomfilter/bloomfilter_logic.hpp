@@ -100,7 +100,7 @@ struct bloomfilter_logic {
   }
 
 
-  __forceinline__ __host__ //__device__
+  __forceinline__ __host__
   void
   insert(const key_t& key, typename block_t::word_t* __restrict__ word_array) const noexcept {
     const hash_value_t hash_val_1 = hash1(key);

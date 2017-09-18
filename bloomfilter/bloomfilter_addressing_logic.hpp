@@ -13,11 +13,24 @@
 
 namespace dtl {
 
+enum class block_addressing {
+  POWER_OF_TWO,
+  MAGIC
+};
+
+template<
+    block_addressing,          // the block addressing mode
+    typename _hash_value_t,    // the hash value type
+    typename _block_t          // the block type
+>
+struct bloomfilter_addressing_logic {};
+
+
 template<
     typename _hash_value_t,    // the hash value type
     typename _block_t          // the block type
 >
-struct bloomfilter_addressing_logic {
+struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _block_t> {
 
   using block_t = _block_t;
   using size_t = $u32;
@@ -99,7 +112,7 @@ template<
     typename _hash_value_t,    // the hash value type
     typename _block_t          // the block type
 >
-struct bloomfilter_addressing_logic_pow2 {
+struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_t, _block_t> {
 
   using block_t = _block_t;
   using size_t = $u32;
@@ -129,14 +142,14 @@ struct bloomfilter_addressing_logic_pow2 {
  public:
 
   explicit
-  bloomfilter_addressing_logic_pow2(const std::size_t length) noexcept
+  bloomfilter_addressing_logic(const std::size_t length) noexcept
       : block_cnt(determine_block_cnt(length)),
         block_cnt_log2(dtl::log_2(block_cnt)),
         block_cnt_mask(block_cnt - 1) { }
 
-  bloomfilter_addressing_logic_pow2(const bloomfilter_addressing_logic_pow2&) noexcept = default;
+  bloomfilter_addressing_logic(const bloomfilter_addressing_logic&) noexcept = default;
 
-  bloomfilter_addressing_logic_pow2(bloomfilter_addressing_logic_pow2&&) noexcept = default;
+  bloomfilter_addressing_logic(bloomfilter_addressing_logic&&) noexcept = default;
 
 
   __forceinline__ __host__ __device__

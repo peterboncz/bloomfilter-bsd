@@ -18,12 +18,13 @@
 namespace dtl {
 
 /// A multi-word block. The k bits are distributed among all words of the block (optionally in a sectorized manner).
-template<typename Tk,      // the key type
+template<
+    typename Tk,           // the key type
     typename Tw = u32,     // the word type to use for the bitset
     typename Th = u32,     // the hash value type
-    u32 K = 4,             // the number of bits to set
-    u32 B = 2,             // the number of words per block (block size)
-    u1 Sectorized = false
+    u32 K = 2,             // the number of bits to set per sector
+    u32 B = 4,             // the block size in bytes
+    u32 S = 4              // the sector size in bytes
 >
 struct bloomfilter_block_logic {
 
@@ -34,6 +35,9 @@ struct bloomfilter_block_logic {
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
 
+  static_assert(B >= sizeof(word_t), "The block size must be greater or equal to the word size.");
+  static_assert(S <= B, "The sector size must not exceed the block size.");
+  static_assert(is_power_of_two(S), "The sector size must be a power of two.");
 
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
   static constexpr u32 word_bitlength_log2 = dtl::ct::log_2_u32<word_bitlength>::value;
@@ -41,9 +45,9 @@ struct bloomfilter_block_logic {
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
   // The number of words per block.
-  static constexpr u32 word_cnt = B;
-  static_assert(is_power_of_two(B), "The number of words per block must be a power of two.");
-  // The number of bits needed to address the individual word within a block.
+  static constexpr u32 word_cnt = B / sizeof(word_t);
+  static_assert(is_power_of_two(word_cnt), "The number of words per block must be a power of two.");
+  // The number of bits needed to address the individual words within a block.
   static constexpr u32 word_cnt_log2 = dtl::ct::log_2_u32<word_cnt>::value;
   static constexpr u32 word_cnt_mask = word_cnt - 1;
 
@@ -52,19 +56,15 @@ struct bloomfilter_block_logic {
   static constexpr u32 block_bitlength_mask = word_cnt - 1;
 
 
-  // The number of bits to set per element.
+  // The number of bits to set per element per sector.
   static constexpr u32 k = K;
   static_assert(k > 0, "Parameter 'k' must be at least '1'.");
 
 
   // Split the block into multiple sectors (or sub-blocks) with a length of a power of two.
   // Note that sectorization is a specialization. Having only one sector = no sectorization.
-  static constexpr u1 sectorized = Sectorized;
-  static_assert(!sectorized || ((block_bitlength / dtl::next_power_of_two(k)) != 0),
-                "The number of sectors must be greater than zero. Probably the given k is set to high.");
-
-  static constexpr u32 sector_cnt = (!sectorized) ? 1
-                                                  : block_bitlength / (block_bitlength / static_cast<u32>(dtl::next_power_of_two(k)));
+  static constexpr u1 sectorized = S < B;
+  static constexpr u32 sector_cnt = B / S;
   static constexpr u32 sector_cnt_mask = sector_cnt - 1;
   static constexpr u32 sector_bitlength = block_bitlength / sector_cnt;
   // The number of bits needed to address the individual bits within a sector.
@@ -82,12 +82,7 @@ struct bloomfilter_block_logic {
   static constexpr size_t required_hash_bits_per_k = sector_bitlength_log2;
 
   // The number of hash bits required per element.
-  static constexpr size_t required_hash_bits_per_element = k * required_hash_bits_per_k;
-
-  static constexpr size_t max_k = hash_value_bitlength / required_hash_bits_per_k;
-
-  static_assert(required_hash_bits_per_element <= hash_value_bitlength,
-                "The required hash bits exceed the number of bits provided by the hash function.");
+  static constexpr size_t required_hash_bits_per_element = k * required_hash_bits_per_k * sector_cnt;
 
 
   static constexpr u32 shift = sector_cnt >= word_cnt
@@ -95,9 +90,21 @@ struct bloomfilter_block_logic {
                                : dtl::ct::log_2_u32<word_cnt / sector_cnt>::value;
 
 
-  static constexpr cub::CacheLoadModifier cache_load_modifier = cub::LOAD_CG;
 
 private:
+
+  template<typename T>
+  __forceinline__ __unroll_loops__ __host__ __device__
+  static T load(T const *ptr) {
+#if defined(__CUDA_ARCH__)
+    static constexpr cub::CacheLoadModifier cache_load_modifier = cub::LOAD_CG;
+    return cub::ThreadLoad<cache_load_modifier>(word_array);
+#else
+    return *ptr;
+#endif // defined(__CUDA_ARCH__)
+  }
+
+
 
   //===----------------------------------------------------------------------===//
   // Sectorization
@@ -150,11 +157,7 @@ private:
       auto r = true;
       for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
         // consume the high order bits
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
-#else
-        const word_t word = word_array[word_idx];
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array + word_idx);
         u32 bit_idx = h >> (hash_value_bitlength - sector_bitlength_log2);
         r &= dtl::bits::bit_test(word, bit_idx);
         h <<= required_hash_bits_per_k;
@@ -169,11 +172,7 @@ private:
       auto h = hash_val;
       auto r = true;
       for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
-#else
-        const word_t word = word_array[word_idx];
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array + word_idx);
         word_t search_mask = 0;
         for (size_t in_word_sector_idx = 0; in_word_sector_idx < sector_cnt_per_word; in_word_sector_idx++) {
           // consume the high order bits
@@ -194,11 +193,7 @@ private:
         u32 sector_idx = i & sector_cnt_mask;
         u32 bit_idx_in_sector = h >> (hash_value_bitlength - sector_bitlength_log2);
         u32 word_idx = (sector_idx << shift) + (bit_idx_in_sector >> word_bitlength_log2);
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
-#else
-        const word_t word = word_array[word_idx];
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array + word_idx);
         u32 bit_idx_in_word = bit_idx_in_sector & word_bitlength_log2_mask;
         r &= dtl::bits::bit_test(word, bit_idx_in_word);
         h <<= required_hash_bits_per_k;
@@ -238,20 +233,12 @@ private:
     if (word_cnt == 1) {
       if (k == 1) {
         u32 bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2);
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array);
-#else
-        const word_t word = *word_array;
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array);
         return dtl::bits::bit_test(word, bit_idx);
       }
       else {
         // test all bits in one go
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array);
-#else
-        const word_t word = word_array[0];
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array);
         word_t search_mask = 0;
         for (size_t i = 0; i < k; i++) {
           // consume the high order bits
@@ -267,11 +254,7 @@ private:
       for (size_t i = 0; i < k; i++) {
         // consume the high order bits
         u32 word_idx = word_cnt == 1 ? 0u : h >> (hash_value_bitlength - word_cnt_log2);
-#if defined(__CUDA_ARCH__)
-        const word_t word = cub::ThreadLoad<cache_load_modifier>(word_array + word_idx);
-#else
-        const word_t word = word_array[word_idx];
-#endif // defined(__CUDA_ARCH__)
+        const word_t word = load(word_array + word_idx);
         u32 bit_idx = (h >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & ((hash_value_t(1) << sector_bitlength_log2) - 1);
         r &= dtl::bits::bit_test(word, bit_idx);
         h <<= required_hash_bits_per_k;
@@ -284,7 +267,7 @@ private:
 
 public:
 
-  __forceinline__ __unroll_loops__ __host__ //__device__
+  __forceinline__ __unroll_loops__ __host__
   static void
   insert(const hash_value_t& hash_val, word_t* __restrict word_array) noexcept {
     if (sectorized) {

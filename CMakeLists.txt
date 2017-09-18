@@ -12,6 +12,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
         bits.hpp
+        bloomfilter/blocked_bloomfilter.hpp
+        bloomfilter/blocked_bloomfilter_b64.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_logic.hpp
@@ -28,6 +30,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h2_vec.hpp
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
+        bloomfilter/hash_family.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp
