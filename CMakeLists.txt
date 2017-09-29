@@ -31,6 +31,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
         bloomfilter/hash_family.hpp
+        bloomfilter/cuckoo_filter.hpp
+        bloomfilter/cuckoo_filter_word_table.hpp
+        bloomfilter/cuckoo_filter_cacheline_table.hpp
+        bloomfilter/cuckoo_filter_helper.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp

@@ -11,9 +11,11 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 
+#if defined(__CUDA_ARCH__)
 #include <cub/cub.cuh>
+#endif // defined(__CUDA_ARCH__)
 
-#include "immintrin.h"
+#include "hash_family.hpp"
 
 namespace dtl {
 
@@ -84,6 +86,9 @@ struct bloomfilter_block_logic {
   // The number of hash bits required per element.
   static constexpr size_t required_hash_bits_per_element = k * required_hash_bits_per_k * sector_cnt;
 
+  // When do we have to hash again
+  static constexpr u32 hash_mod = hash_value_bitlength / required_hash_bits_per_k;
+
 
   static constexpr u32 shift = sector_cnt >= word_cnt
                                ? dtl::ct::log_2_u32<sector_cnt / word_cnt>::value
@@ -104,194 +109,67 @@ private:
 #endif // defined(__CUDA_ARCH__)
   }
 
+ public:
 
-
-  //===----------------------------------------------------------------------===//
-  // Sectorization
   //===----------------------------------------------------------------------===//
 
   __forceinline__ __unroll_loops__ __host__ __device__
   static void
-  insert_sectorized(const hash_value_t& hash_val, word_t* __restrict word_array) noexcept {
-    if (sector_cnt >= word_cnt) {
-      // a sector does not exceed a word
-      auto h = hash_val;
-      for (size_t i = 0; i < k; i++) {
-        // consume the high order bits
-        u32 sector_idx = i & sector_cnt_mask;
-        u32 word_idx = sector_idx >> shift;
-        u32 in_word_sector_idx = sector_idx & ((word_bitlength / sector_bitlength) - 1);
-        word_t word = word_array[word_idx];
-        u32 bit_idx = h >> (hash_value_bitlength - sector_bitlength_log2);
-        word |= word_t(1) << bit_idx + (in_word_sector_idx * sector_bitlength);
-        word_array[word_idx] = word;
-        h <<= required_hash_bits_per_k;
-      }
-      return;
-    }
-    else {
-      // a sector exceeds a word
-      auto h = hash_val;
-      for (size_t i = 0; i < k; i++) {
-        // consume the high order bits
-        u32 sector_idx = i & sector_cnt_mask;
-        u32 bit_idx_in_sector = h >> (hash_value_bitlength - sector_bitlength_log2);
-        u32 word_idx = (sector_idx << shift) + (bit_idx_in_sector >> word_bitlength_log2);
-        u32 bit_idx_in_word = bit_idx_in_sector & word_bitlength_log2_mask;
-        word_t word = word_array[word_idx];
-        word |= word_t(1) << bit_idx_in_word;
-        word_array[word_idx] = word;
-        h <<= required_hash_bits_per_k;
-      }
-      return;
-    }
-  }
-  //===----------------------------------------------------------------------===//
-
-  __forceinline__ __unroll_loops__ __host__ __device__
-  static u1
-  contains_sectorized(const hash_value_t& hash_val, const word_t* __restrict word_array) noexcept {
-    if (sector_cnt == word_cnt) {
-      // sector size == word size => 1 bit to test per word
-      auto h = hash_val;
-      auto r = true;
-      for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
-        // consume the high order bits
-        const word_t word = load(word_array + word_idx);
-        u32 bit_idx = h >> (hash_value_bitlength - sector_bitlength_log2);
-        r &= dtl::bits::bit_test(word, bit_idx);
-        h <<= required_hash_bits_per_k;
-      }
-      return r;
-    }
-    else if (sector_cnt > word_cnt) {
-      // a sector does not exceed a word
-      // further the numbers of sectors per word is >= 2
-      // => test sector_cnt/word_cnt bits at once
-      static constexpr u32 sector_cnt_per_word = sector_cnt / word_cnt;
-      auto h = hash_val;
-      auto r = true;
-      for (size_t word_idx = 0; word_idx < word_cnt; word_idx++) {
-        const word_t word = load(word_array + word_idx);
-        word_t search_mask = 0;
-        for (size_t in_word_sector_idx = 0; in_word_sector_idx < sector_cnt_per_word; in_word_sector_idx++) {
-          // consume the high order bits
-          u32 bit_idx = h >> (hash_value_bitlength - sector_bitlength_log2);
-          search_mask |= word_t(1) << (bit_idx + in_word_sector_idx * sector_bitlength);
-          h <<= required_hash_bits_per_k;
+  insert(const key_t& key, word_t* __restrict block) noexcept {
+    $u32 current_k = 0;
+    hash_value_t hash_val = 0;
+    // A very straight forward implementation (without any optimizations).
+    // In each sector, set K bits.
+    for ($u32 sec_idx = 0; sec_idx < sector_cnt; sec_idx++) {
+      for ($u32 k_idx = 0; k_idx < K; k_idx++) {
+        if (current_k % hash_mod == 0) {
+          hash_val = dtl::hash::dyn::mul32::hash(key, current_k + 1);
         }
-        r &= (word & search_mask) == search_mask;
+        u32 sector_offset = sector_bitlength * sec_idx;
+        u32 sector_bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2);
+        u32 block_bit_idx = sector_offset + sector_bit_idx;
+
+        u32 word_idx = block_bit_idx / word_bitlength;
+        u32 word_bit_idx = block_bit_idx & word_bitlength_log2_mask;
+
+        block[word_idx] |= word_t(1) << word_bit_idx;
+
+        hash_val <<= required_hash_bits_per_k;
+        current_k++;
       }
-      return r;
-    }
-    else {
-      // a sector exceeds a word
-      auto h = hash_val;
-      auto r = true;
-      for (size_t i = 0; i < k; i++) {
-        // consume the high order bits
-        u32 sector_idx = i & sector_cnt_mask;
-        u32 bit_idx_in_sector = h >> (hash_value_bitlength - sector_bitlength_log2);
-        u32 word_idx = (sector_idx << shift) + (bit_idx_in_sector >> word_bitlength_log2);
-        const word_t word = load(word_array + word_idx);
-        u32 bit_idx_in_word = bit_idx_in_sector & word_bitlength_log2_mask;
-        r &= dtl::bits::bit_test(word, bit_idx_in_word);
-        h <<= required_hash_bits_per_k;
-      }
-      return r;
     }
   }
   //===----------------------------------------------------------------------===//
-
-
-  //===----------------------------------------------------------------------===//
-  // Default (non-sectorized)
-  //===----------------------------------------------------------------------===//
-
-  /// Set k bits within the block
-  __forceinline__ __unroll_loops__ __host__ __device__
-  static void
-  insert_default(const hash_value_t& hash_val, word_t* __restrict word_array) noexcept {
-    auto h = hash_val;
-    for (size_t i = 0; i < k; i++) {
-      // consume the high order bits
-      u32 word_idx = word_cnt == 1 ? 0u : h >> (hash_value_bitlength - word_cnt_log2);
-      word_t word = word_array[word_idx];
-      u32 bit_idx = (h >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & ((hash_value_t(1) << sector_bitlength_log2) - 1);
-      word_t word1 = word_t(1) << bit_idx;
-      word |= word1;
-      word_array[word_idx] = word;
-      h <<= required_hash_bits_per_k;
-    }
-  }
-  //===----------------------------------------------------------------------===//
-
 
   __forceinline__ __unroll_loops__ __host__ __device__
   static u1
-  contains_default(const hash_value_t& hash_val, const word_t* __restrict word_array) noexcept {
-    if (word_cnt == 1) {
-      if (k == 1) {
-        u32 bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2);
-        const word_t word = load(word_array);
-        return dtl::bits::bit_test(word, bit_idx);
-      }
-      else {
-        // test all bits in one go
-        const word_t word = load(word_array);
-        word_t search_mask = 0;
-        for (size_t i = 0; i < k; i++) {
-          // consume the high order bits
-          u32 bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2 * (i + 1)) & ((hash_value_t(1) << sector_bitlength_log2) - 1);
-          search_mask |= word_t(1) << bit_idx;
+  contains(const key_t& key, const word_t* __restrict block) noexcept {
+    auto ret_val = true;
+    $u32 current_k = 0;
+    hash_value_t hash_val = 0;
+    // A very straight forward implementation (without any optimizations).
+    // In each sector, set K bits.
+    for ($u32 sec_idx = 0; sec_idx < sector_cnt; sec_idx++) {
+      for ($u32 k_idx = 0; k_idx < K; k_idx++) {
+        if (current_k % hash_mod == 0) {
+          hash_val = dtl::hash::dyn::mul32::hash(key, current_k + 1);
         }
-        return (word & search_mask) == search_mask;;
+        u32 sector_offset = sector_bitlength * sec_idx;
+        u32 sector_bit_idx = hash_val >> (hash_value_bitlength - sector_bitlength_log2);
+        u32 block_bit_idx = sector_offset + sector_bit_idx;
+
+        u32 word_idx = block_bit_idx / word_bitlength;
+        u32 word_bit_idx = block_bit_idx & word_bitlength_log2_mask;
+
+        ret_val &= dtl::bits::bit_test(block[word_idx], word_bit_idx);
+
+        hash_val <<= required_hash_bits_per_k;
+        current_k++;
       }
     }
-    else {
-      auto h = hash_val;
-      auto r = true;
-      for (size_t i = 0; i < k; i++) {
-        // consume the high order bits
-        u32 word_idx = word_cnt == 1 ? 0u : h >> (hash_value_bitlength - word_cnt_log2);
-        const word_t word = load(word_array + word_idx);
-        u32 bit_idx = (h >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & ((hash_value_t(1) << sector_bitlength_log2) - 1);
-        r &= dtl::bits::bit_test(word, bit_idx);
-        h <<= required_hash_bits_per_k;
-      }
-      return r;
-    }
+    return ret_val;
   }
   //===----------------------------------------------------------------------===//
-
-
-public:
-
-  __forceinline__ __unroll_loops__ __host__
-  static void
-  insert(const hash_value_t& hash_val, word_t* __restrict word_array) noexcept {
-    if (sectorized) {
-      insert_sectorized(hash_val, word_array);
-    }
-    else {
-      insert_default(hash_val, word_array);
-    }
-  }
-  //===----------------------------------------------------------------------===//
-
-
-  __forceinline__ __unroll_loops__ __host__ __device__
-  static u1
-  contains(const hash_value_t& hash_val, const word_t* __restrict word_array) noexcept {
-    if (sectorized) {
-      return contains_sectorized(hash_val, word_array);
-    }
-    else {
-      return contains_default(hash_val, word_array);
-    }
-  }
-  //===----------------------------------------------------------------------===//
-
 
 };
 

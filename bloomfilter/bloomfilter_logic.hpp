@@ -13,11 +13,11 @@
 
 namespace dtl {
 
-template<typename Tk,      // the key type
+template<
+    typename Tk,           // the key type
     typename Taddr,        // the addressing logic
     typename Tblock,       // the block type
-    template<typename Ty> class HashFn1,    // the first hash function to use
-    template<typename Ty> class HashFn2     // the second hash function to use
+    typename HashFn,       // the hash function (family) to use
 >
 struct bloomfilter_logic {
 
@@ -29,9 +29,6 @@ struct bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Inspect the given hash functions
   //===----------------------------------------------------------------------===//
-  static_assert(
-      std::is_same<decltype(HashFn1<key_t>::hash(0)), decltype(HashFn2<key_t>::hash(0))>::value,
-      "The two hash functions must return the same type.");
 
   using hash_value_t = $u32; //decltype(HashFn<key_t>::hash(0)); // TODO find out why NVCC complains
 
@@ -41,12 +38,11 @@ struct bloomfilter_logic {
 
   static_assert(hash_value_bitlength == block_t::hash_value_bitlength, "Hash value bitlength mismatch.");
 
-  static constexpr u32 hash_fn_cnt = 2;
-
 
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
+  /// The block addressing scheme.
   const addr_t addr;
   //===----------------------------------------------------------------------===//
 
@@ -70,7 +66,7 @@ struct bloomfilter_logic {
   }
 
 
-  /// Returns the number of blocks the bitvector consists of.
+  /// Returns the number of blocks the Bloom filter consists of.
   __forceinline__ __host__ __device__
   std::size_t
   block_cnt() const noexcept {
@@ -78,7 +74,7 @@ struct bloomfilter_logic {
   }
 
 
-  /// Returns the number of words the bitvector consists of.
+  /// Returns the number of words the Bloom filter consists of.
   __forceinline__ __host__ __device__
   std::size_t
   word_cnt() const noexcept {
@@ -86,38 +82,22 @@ struct bloomfilter_logic {
   }
 
 
-  __forceinline__ __host__ __device__
-  hash_value_t
-  hash1(const key_t key) const noexcept {
-    return HashFn1<key_t>::hash(key);
-  }
-
-
-  __forceinline__ __host__ __device__
-  hash_value_t
-  hash2(const key_t key) const noexcept {
-    return HashFn2<key_t>::hash(key);
-  }
-
-
   __forceinline__ __host__
   void
-  insert(const key_t& key, typename block_t::word_t* __restrict__ word_array) const noexcept {
-    const hash_value_t hash_val_1 = hash1(key);
-    const size_t word_idx = addr.get_word_idx(hash_val_1);
-    const hash_value_t hash_val_2 = hash2(key);
-    block_t::insert(hash_val_2, &word_array[word_idx]);
+  insert(const key_t& key, typename block_t::word_t* __restrict filter) const noexcept {
+    const hash_value_t hash_val = HashFn::hash(key, 0);
+    const size_t word_idx = addr.get_word_idx(hash_val);
+    block_t::insert(key, &filter[word_idx]);
   }
   //===----------------------------------------------------------------------===//
 
 
   __forceinline__ __host__ __device__
   u1
-  contains(const key_t& key, const typename block_t::word_t* __restrict__ word_array) const noexcept {
-    const hash_value_t hash_val_1 = hash1(key);
-    const size_t word_idx = addr.get_word_idx(hash_val_1);
-    const hash_value_t hash_val_2 = hash2(key);
-    return block_t::contains(hash_val_2, &word_array[word_idx]);
+  contains(const key_t& key, const typename block_t::word_t* __restrict filter) const noexcept {
+    const hash_value_t hash_val = HashFn::hash(key, 0);
+    const size_t word_idx = addr.get_word_idx(hash_val);
+    return block_t::contains(key, &filter[word_idx]);
   }
   //===----------------------------------------------------------------------===//
 
