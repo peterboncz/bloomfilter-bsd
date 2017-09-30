@@ -52,15 +52,31 @@ namespace {
 #define haszero8_u64(x) (((x)-0x0101010101010101ull) & (~(x)) & 0x8080808080808080ull)
 #define hasvalue8_u64(x, n) (haszero8_u64((x) ^ (0x0101010101010101ull * (n))))
 
-#define haszero10_u32(x) (((x)-0b01000000000100000000010000000001) & (~(x)) & 0b00100000000010000000001000000000)
-#define hasvalue10_u32(x, n) (haszero10_u32((x) ^ (0b01000000000100000000010000000001 * (n))))
+#define haszero10_u32(x) (((x)-0b00000000000100000000010000000001) & (~(x)) & 0b00100000000010000000001000000000)
+#define hasvalue10_u32(x, n) (haszero10_u32((x) ^ (0b00000000000100000000010000000001 * (n))))
 
-#define haszero12_u32(x) (((x)-0x001001001001ull) & (~(x)) & 0x800800800800ull)
-#define hasvalue12_u32(x, n) (haszero12_u32((x) ^ (0x001001001001ULL * (n))))
+#define haszero10_u64(x) (((x)-0b0000000000000100000000010000000001000000000100000000010000000001) & (~(x)) & 0b0000100000000010000000001000000000100000000010000000001000000000)
+#define hasvalue10_u64(x, n) (haszero10_u64((x) ^ (0b0000000000000100000000010000000001000000000100000000010000000001 * (n))))
+
+#define haszero12_u32(x) (((x)-0x00001001u) & (~(x)) & 0x00800800u)
+#define hasvalue12_u32(x, n) (haszero12_u32((x) ^ (0x00001001u * (n))))
+
+#define haszero12_u64(x) (((x)-0x001001001001001ull) & (~(x)) & 0x800800800800800ull)
+#define hasvalue12_u64(x, n) (haszero12_u64((x) ^ (0x001001001001001ull * (n))))
+
+#define haszero15_u32(x) (((x)-0b00000000000000001000000000000001) & (~(x)) & 0b100000000000000100000000000000)
+#define hasvalue15_u32(x, n) (haszero15_u32((x) ^ (0b00000000000000001000000000000001 * (n))))
+
+#define haszero15_u64(x) (((x)-0b000000000000001000000000000001000000000000001000000000000001) & (~(x)) & 0b100000000000000100000000000000100000000000000100000000000000)
+#define hasvalue15_u64(x, n) (haszero15_u64((x) ^ (0b000000000000001000000000000001000000000000001000000000000001 * (n))))
 
 #define haszero16_u32(x) \
   (((x)-0x0001000100010001ULL) & (~(x)) & 0x8000800080008000ULL)
 #define hasvalue16_u32(x, n) (haszero16_u32((x) ^ (0x0001000100010001ULL * (n))))
+
+#define haszero16_u64(x) \
+  (((x)-0x0001000100010001ULL) & (~(x)) & 0x8000800080008000ULL)
+#define hasvalue16_u64(x, n) (haszero16_u64((x) ^ (0x0001000100010001ULL * (n))))
 
 
 template<typename T, uint32_t bits_per_value>
@@ -75,7 +91,7 @@ struct packed_value<uint32_t, 2> {
 template<>
 struct packed_value<uint64_t, 2> {
   __forceinline__ static bool
-  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue2_u64(packed_value, search_value); }
+  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue2_u64(packed_value, search_value); }
 };
 
 template<>
@@ -158,14 +174,39 @@ struct packed_value<uint32_t, 10> {
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue10_u32(packed_value, search_value); }
 };
 template<>
+struct packed_value<uint64_t, 10> {
+  __forceinline__ static bool
+  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue10_u64(packed_value, search_value); }
+};
+template<>
 struct packed_value<uint32_t, 12> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue12_u32(packed_value, search_value); }
 };
 template<>
+struct packed_value<uint64_t, 12> {
+  __forceinline__ static bool
+  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue12_u64(packed_value, search_value); }
+};
+template<>
+struct packed_value<uint32_t, 15> {
+  __forceinline__ static bool
+  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue15_u32(packed_value, search_value); }
+};
+template<>
+struct packed_value<uint64_t, 15> {
+  __forceinline__ static bool
+  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue15_u64(packed_value, search_value); }
+};
+template<>
 struct packed_value<uint32_t, 16> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue16_u32(packed_value, search_value); }
+};
+template<>
+struct packed_value<uint64_t, 16> {
+  __forceinline__ static bool
+  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue16_u64(packed_value, search_value); }
 };
 
 

@@ -20,6 +20,7 @@ struct cuckoo_filter {
 //  using table_t = cuckoo_filter_word_table;
   using table_t = cuckoo_filter_cacheline_table;
   using hasher = dtl::hash::knuth_32<uint32_t>;
+//  using hasher = dtl::hash::murmur_32<uint32_t>;
   using key_t = uint32_t;
 
   static constexpr uint32_t capacity = table_t::capacity;
@@ -38,8 +39,8 @@ struct cuckoo_filter {
   __forceinline__
   uint32_t
   alternative_bucket_idx(const uint32_t bucket_idx, const uint32_t tag) const {
-//    return (bucket_idx ^ (tag * 0x5bd1e995u)) % table_t::bucket_count;
-    return (bucket_idx ^ tag) % table_t::bucket_count;
+    return (bucket_idx ^ (tag * 0x5bd1e995u)) % table_t::bucket_count;
+//    return (bucket_idx ^ tag) % table_t::bucket_count;
   }
 
 
@@ -75,13 +76,13 @@ struct cuckoo_filter {
       old_tag = table.insert_tag_kick_out(current_idx, current_tag);
       if (old_tag == table_t::null_tag) { return; } // successfully inserted
       if (old_tag == table_t::overflow_tag) { return; } // hit an overflowed bucket (always return true)
-//      std::cout << ".";
+      std::cout << ".";
       current_tag = old_tag;
       current_idx = alternative_bucket_idx(current_idx, current_tag);
     }
     // Failed to find a place for the current tag through partial-key cuckoo hashing.
     // Introduce an overflow bucket.
-//    std::cout << "!";
+    std::cout << "!";
     table.overflow(current_idx);
   }
 
@@ -133,8 +134,8 @@ struct blocked_cuckoo_filter {
   }
 
 
-  __forceinline__
-//  __attribute__((noinline))
+//  __forceinline__
+  __attribute__((noinline))
   bool
   contains(const key_t& key) const {
     auto h = hasher::hash(key);
