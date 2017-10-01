@@ -69,6 +69,8 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
 
   bloomfilter_addressing_logic(bloomfilter_addressing_logic&&) noexcept = default;
 
+  ~bloomfilter_addressing_logic() noexcept = default;
+
 
   __forceinline__ __host__ __device__
   std::size_t
@@ -101,6 +103,15 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
     const size_t word_idx = block_idx * block_t::word_cnt;
     return word_idx;
   }
+
+
+  /// Returns the number of bits required to address the individual blocks.
+  __forceinline__ __host__ __device__
+  uint32_t
+  get_required_addressing_bits() const noexcept {
+    return block_cnt_log2;
+  }
+
 
 };
 
@@ -151,6 +162,8 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
 
   bloomfilter_addressing_logic(bloomfilter_addressing_logic&&) noexcept = default;
 
+  ~bloomfilter_addressing_logic() noexcept = default;
+
 
   __forceinline__ __host__ __device__
   std::size_t
@@ -183,6 +196,15 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
     const size_t word_idx = block_idx * block_t::word_cnt;
     return word_idx;
   }
+
+
+  /// Returns the number of bits required to address the individual blocks.
+  __forceinline__ __host__ __device__
+  uint32_t
+  get_required_addressing_bits() const noexcept {
+    return block_cnt_log2;
+  }
+
 
 };
 

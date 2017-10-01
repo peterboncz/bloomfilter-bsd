@@ -6,12 +6,12 @@
 #include <dtl/hash.hpp>
 #include <dtl/math.hpp>
 
-#include <dtl/bloomfilter/bloomfilter_addressing_logic.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
 
 namespace dtl {
 
-
+//===----------------------------------------------------------------------===//
+/// A a tiny statically sized Cuckoo filter table that fits into a single word.
 struct cuckoo_filter_word_table {
 
   using word_t = uint64_t;
@@ -51,9 +51,10 @@ struct cuckoo_filter_word_table {
     return static_cast<uint32_t>(bucket);
   }
 
+
   __forceinline__
   void
-  overflow(const uint32_t bucket_idx) {
+  mark_overflow(const uint32_t bucket_idx) {
     auto existing_bucket = read_bucket(bucket_idx);
     auto b = word_t(overflow_bucket ^ existing_bucket) << (bucket_size_bits * bucket_idx);
     filter ^= b;
@@ -89,7 +90,7 @@ struct cuckoo_filter_word_table {
 
   __forceinline__
   uint32_t
-  insert_tag_kick_out(const uint32_t bucket_idx, const uint32_t tag) {
+  insert_tag_relocate(const uint32_t bucket_idx, const uint32_t tag) {
     // Check whether this is an overflow bucket.
     auto bucket = read_bucket(bucket_idx);
     if (bucket == overflow_bucket) {
@@ -148,7 +149,8 @@ struct cuckoo_filter_word_table {
          | packed_value<uint64_t, tag_size_bits>::contains(masked_buckets, bucket_mask); // overflow check
   }
 
-};
 
+};
+//===----------------------------------------------------------------------===//
 
 } // namespace dtl
