@@ -12,25 +12,32 @@ namespace dtl {
 
 //===----------------------------------------------------------------------===//
 /// A a tiny statically sized Cuckoo filter table that fits into a single word.
+template<
+    typename __word_t,               // The fundamental type used to store the table.
+    uint32_t __tag_size_bits,        // The number of bits per tag (aka fingerprints).
+    uint32_t __tags_per_bucket       // Aka associativity (should be at least 4).
+>
 struct cuckoo_filter_word_table {
 
   using word_t = uint64_t;
 
-  static constexpr uint32_t tag_size_bits = 6;
-  static constexpr uint32_t tags_per_bucket = 2;
+  static constexpr uint32_t tag_size_bits = __tag_size_bits;
+  static constexpr uint32_t tags_per_bucket = __tags_per_bucket;
 
-  static constexpr uint32_t tag_mask = (1u << tag_size_bits) - 1;
+  static constexpr word_t tag_mask = (1u << tag_size_bits) - 1;
   static constexpr uint32_t bucket_size_bits = tag_size_bits * tags_per_bucket;
-  static constexpr uint32_t bucket_mask = (1u << bucket_size_bits) - 1;
-  static constexpr uint32_t bucket_count = sizeof(word_t) * 8 / bucket_size_bits;
+  static constexpr word_t bucket_mask = (1u << bucket_size_bits) - 1;
+  static constexpr word_t bucket_count = sizeof(word_t) * 8 / bucket_size_bits;
   static constexpr uint32_t bucket_addressing_bits = dtl::ct::log_2_u32<dtl::next_power_of_two(bucket_count)>::value;
 
   static constexpr uint32_t capacity = bucket_count * tags_per_bucket;
+  static constexpr uint32_t required_hash_bits = tag_size_bits + bucket_addressing_bits;
+  static_assert(required_hash_bits <= 32, "The required hash bits must not exceed 32 bits.");
 
 
-  static constexpr uint32_t null_tag = 0;
+  static constexpr word_t null_tag = 0;
   static constexpr uint32_t overflow_tag = uint32_t(-1);
-  static constexpr uint32_t overflow_bucket = bucket_mask;
+  static constexpr word_t overflow_bucket = bucket_mask;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -45,7 +52,7 @@ struct cuckoo_filter_word_table {
 
 
   __forceinline__
-  uint32_t
+  word_t
   read_bucket(const uint32_t bucket_idx) const {
     auto bucket = filter >> (bucket_size_bits * bucket_idx);
     return static_cast<uint32_t>(bucket);
@@ -63,7 +70,7 @@ struct cuckoo_filter_word_table {
 
   __forceinline__
   uint32_t
-  read_tag_from_bucket(const uint32_t bucket, const uint32_t tag_idx) const {
+  read_tag_from_bucket(const word_t bucket, const uint32_t tag_idx) const {
     auto tag = (bucket >> (tag_size_bits * tag_idx)) & tag_mask;
     return static_cast<uint32_t>(tag);
   }
@@ -144,9 +151,8 @@ struct cuckoo_filter_word_table {
     const word_t mask = (word_t(bucket_mask) << (bucket_idx * bucket_size_bits))
                       | (word_t(bucket_mask) << (alternative_bucket_idx * bucket_size_bits));
     const auto masked_buckets = f & mask;
-//    return packed_value<uint64_t, tag_size_bits>::contains(masked_buckets, tag);
-    return packed_value<uint64_t, tag_size_bits>::contains(masked_buckets, tag)
-         | packed_value<uint64_t, tag_size_bits>::contains(masked_buckets, bucket_mask); // overflow check
+    return packed_value<word_t, tag_size_bits>::contains(masked_buckets, tag)
+         | packed_value<word_t, tag_size_bits>::contains(masked_buckets, bucket_mask); // overflow check
   }
 
 

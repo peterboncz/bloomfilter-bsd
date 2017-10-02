@@ -14,21 +14,54 @@ namespace dtl {
 
 
 //===----------------------------------------------------------------------===//
+namespace internal {
+
+
+//===----------------------------------------------------------------------===//
 // Specializations for finding tags in buckets.
 //===----------------------------------------------------------------------===//
-struct cuckoo_filter_multiword_table;
-
-namespace internal {
 
 // Optimized for the case where at least two buckets fit into a single word.
 template<uint32_t _bucket_cnt_per_word>
-bool _find_tag_in_buckets(const cuckoo_filter_multiword_table& table,
-                          uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag);
+struct find_tag {
+  template<class table_t>
+  __forceinline__ static bool
+  find_tag_in_buckets(const table_t& table,
+                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
+    const auto bucket = table.read_bucket(bucket_idx);
+    const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
+    bool found;
+    found = bucket == table_t::overflow_bucket;
+    found |= alternative_bucket == table_t::overflow_bucket;
+    // load both words and merge them into one word -> do only one search
+    const typename table_t::word_t merged_buckets = (bucket << table_t::bucket_size_bits) | alternative_bucket;
+    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(merged_buckets, tag);
+    return found;
+  };
+
+};
+
 
 // Optimized for the case where only one bucket fits into a word.
+// Both candidate buckets need to be checked one after another.
 template<>
-bool _find_tag_in_buckets<1>(const cuckoo_filter_multiword_table& table,
-                             uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag);
+struct find_tag<1> {
+  template<class table_t>
+  __forceinline__ static bool
+  find_tag_in_buckets(const table_t& table,
+                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
+    const auto bucket = table.read_bucket(bucket_idx);
+    const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
+    bool found;
+    found = packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(bucket, tag);
+    found |= bucket == table_t::overflow_bucket;
+    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
+    found |= alternative_bucket == table_t::overflow_bucket;
+    return found;
+  };
+
+};
+
 
 } // namespace internal
 //===----------------------------------------------------------------------===//
@@ -39,20 +72,25 @@ bool _find_tag_in_buckets<1>(const cuckoo_filter_multiword_table& table,
 /// The table has the following restrictions/properties:
 ///   - the bucket size must not exceed the size of a processor word
 ///   - buckets are aligned, so that a single bucket cannot wrap around word boundaries
+template<
+    typename __word_t,               // The fundamental type used to store the table.
+    uint32_t __table_size_bytes,     // Typically the size of a cache line (64 bytes).
+    uint32_t __tag_size_bits,        // The number of bits per tag (aka fingerprints).
+    uint32_t __tags_per_bucket       // Aka associativity (should be at least 4).
+>
 struct cuckoo_filter_multiword_table {
 
-  using word_t = uint64_t;
+  using word_t = __word_t;
   static constexpr uint32_t word_size_bits = sizeof(word_t) * 8;
+  static constexpr uint32_t table_size_bytes = __table_size_bytes;
 
-  static constexpr uint32_t cacheline_size_bytes = 64;
-  static constexpr uint32_t tag_size_bits = 16;
-  static constexpr uint32_t tags_per_bucket = word_size_bits / tag_size_bits;
-
+  static constexpr uint32_t tag_size_bits = __tag_size_bits;
   static constexpr uint32_t tag_mask = (1u << tag_size_bits) - 1;
+  static constexpr uint32_t tags_per_bucket = __tags_per_bucket;
   static constexpr uint32_t bucket_size_bits = tag_size_bits * tags_per_bucket;
   static_assert(bucket_size_bits <= (sizeof(word_t)*8), "The bucket size must not exceed a word.");
 
-  static constexpr uint32_t word_cnt = cacheline_size_bytes / sizeof(word_t);
+  static constexpr uint32_t word_cnt = table_size_bytes / sizeof(word_t);
   static constexpr uint32_t word_cnt_log2 = dtl::ct::log_2_u32<word_cnt>::value;
   static constexpr uint32_t bucket_cnt_per_word = word_size_bits / bucket_size_bits;
 
@@ -72,7 +110,7 @@ struct cuckoo_filter_multiword_table {
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
-  alignas(cacheline_size_bytes)
+  alignas(table_size_bytes)
   word_t filter[word_cnt];
   //===----------------------------------------------------------------------===//
 
@@ -180,7 +218,7 @@ struct cuckoo_filter_multiword_table {
     for (uint32_t tag_idx = 0; tag_idx < tags_per_bucket; tag_idx++) {
       auto t = read_tag_from_bucket(bucket, tag_idx);
       if (t == tag) {
-        std::cout << "d";
+//        std::cout << "d";
         return null_tag;
       }
       else if (t == 0) {
@@ -195,62 +233,12 @@ struct cuckoo_filter_multiword_table {
   __forceinline__
   bool
   find_tag_in_buckets(const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) const {
-    return internal::_find_tag_in_buckets<bucket_cnt_per_word>(*this, bucket_idx, alternative_bucket_idx, tag);
+    return internal::find_tag<bucket_cnt_per_word>::find_tag_in_buckets(*this, bucket_idx, alternative_bucket_idx, tag);
   }
 
 
 };
 //===----------------------------------------------------------------------===//
-
-
-//===----------------------------------------------------------------------===//
-// Specializations for finding tags in buckets.
-//===----------------------------------------------------------------------===//
-namespace internal {
-
-
-// Optimized for the case where at least two buckets fit into a single word.
-template<uint32_t _bucket_cnt_per_word>
-__forceinline__
-bool
-_find_tag_in_buckets(const cuckoo_filter_multiword_table& table,
-                     const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) {
-  using table_t = cuckoo_filter_multiword_table;
-  const auto bucket = table.read_bucket(bucket_idx);
-  const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
-  bool found = false;
-    found |= bucket == table_t::overflow_bucket;
-    found |= alternative_bucket == table_t::overflow_bucket;
-  // load both words and merge them into one word -> do only one search
-  const table_t::word_t merged_buckets = (bucket << table_t::bucket_size_bits) | alternative_bucket;
-  found |= packed_value<table_t::word_t, table_t::tag_size_bits>::contains(merged_buckets, tag);
-  return found;
-}
-
-
-// Optimized for the case where only one bucket fits into a word.
-// Both candidate buckets need to be checked one after another.
-template<>
-__forceinline__
-bool
-_find_tag_in_buckets<1>(const cuckoo_filter_multiword_table& table,
-                        const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) {
-  using table_t = cuckoo_filter_multiword_table;
-  const auto bucket = table.read_bucket(bucket_idx);
-  const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
-
-  bool found;
-  found = packed_value<table_t::word_t, table_t::tag_size_bits>::contains(bucket, tag);
-  found |= bucket == table_t::overflow_bucket;
-  found |= packed_value<table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
-  found |= alternative_bucket == table_t::overflow_bucket;
-  return found;
-}
-
-
-} // namespace internal
-//===----------------------------------------------------------------------===//
-
 
 
 } // namespace dtl
