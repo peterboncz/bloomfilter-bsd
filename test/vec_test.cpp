@@ -293,3 +293,12 @@ TEST(vec, mask_to_32bit_positions) {
     }
   }
 }
+
+TEST(vec, is_vector) {
+  using value_t = i32;
+  constexpr u64 vec_len = simd::lane_count<value_t> * 2;
+  using vec_t = v<value_t, vec_len>;
+  ASSERT_FALSE(is_vector<value_t>::value);
+  ASSERT_TRUE(is_vector<vec_t>::value);
+  ASSERT_EQ(vec_len, vector_length<vec_t>::value);
+}

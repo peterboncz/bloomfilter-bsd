@@ -57,7 +57,7 @@ struct vs<T, 32> {
 };
 */
 
-
+struct v_base {};
 
 /// The general vector class with N components of the (primitive) type T.
 ///
@@ -66,7 +66,8 @@ struct vs<T, 32> {
 /// available native vector type an instance will be a composition of multiple (smaller)
 /// native vectors.
 template<typename Tp, u64 N>
-struct v {
+struct v : v_base {
+  static constexpr u64 vector_marker = 938457231345ull;
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
   // TODO assert fundamental type
   // TODO unroll loops in compound types - __attribute__((optimize("unroll-loops")))
@@ -1238,5 +1239,31 @@ scatter(const Tvv& vals, Tp* base_addr, const Tiv& idxs) {
   __scatter<index_vec_t::is_compound, Tp, index_vec_t, value_vec_t>(base_addr, idxs.data, vals.data);
 }
 
+
+//===----------------------------------------------------------------------===//
+// Type support
+//===----------------------------------------------------------------------===//
+
+template<class T>
+struct is_vector {
+  static constexpr bool value = std::is_base_of<dtl::simd::v_base, T>::value;
+};
+
+
+namespace internal {
+
+template<typename Tv, std::size_t _vector_length = Tv::length>
+struct vector_len_helper {
+  static constexpr std::size_t value = _vector_length;
+};
+
+} // namespace internal
+
+template<typename Tv>
+struct vector_length {
+  static_assert(is_vector<Tv>::value, "The given type is not a vector.");
+  static constexpr std::size_t value = internal::vector_len_helper<Tv>::value;
+};
+//===----------------------------------------------------------------------===//
 
 } // namespace dtl
