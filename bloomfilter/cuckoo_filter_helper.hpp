@@ -76,7 +76,7 @@ namespace {
 
 #define haszero16_u64(x) \
   (((x)-0x0001000100010001ULL) & (~(x)) & 0x8000800080008000ULL)
-#define hasvalue16_u64(x, n) (haszero16_u64((x) ^ (0x0001000100010001ULL * (n))))
+#define hasvalue16_u64(x, n) (haszero16_u64((x) ^ ((n) * 0x0001000100010001ULL)))
 
 
 template<typename T, uint32_t bits_per_value>
@@ -166,47 +166,59 @@ struct packed_value<uint64_t, 8> {
   contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue8_u64(packed_value, search_value); }
 };
 
-
-
 template<>
 struct packed_value<uint32_t, 10> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue10_u32(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint64_t, 10> {
   __forceinline__ static bool
   contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue10_u64(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint32_t, 12> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue12_u32(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint64_t, 12> {
   __forceinline__ static bool
   contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue12_u64(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint32_t, 15> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue15_u32(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint64_t, 15> {
   __forceinline__ static bool
   contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue15_u64(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint32_t, 16> {
   __forceinline__ static bool
   contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue16_u32(packed_value, search_value); }
 };
+
 template<>
 struct packed_value<uint64_t, 16> {
   __forceinline__ static bool
   contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue16_u64(packed_value, search_value); }
+
+  template<std::size_t _vector_length>
+  __forceinline__ static auto
+  simd_contains(const dtl::vector<uint64_t, _vector_length>& packed_value,
+                const dtl::vector<uint64_t, _vector_length>& search_value) {
+    return hasvalue16_u64(packed_value, search_value) != 0;
+  }
 };
 
 

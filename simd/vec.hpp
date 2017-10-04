@@ -837,6 +837,7 @@ struct v : v_base {
   __forceinline__ v& mask_assign_bit_xor(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, o.data, data, op_mask.data ); return *this; }
   __forceinline__ v& mask_assign_bit_xor(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data ); return *this; }
 
+  __forceinline__ v operator~() const noexcept { return v { unary_op<is_compound>(typename op::bit_not(), data) }; }
 
   static __forceinline__ scalar_type
   extract(const nested_type& native_vector, u64 idx) noexcept {
@@ -1051,7 +1052,7 @@ struct v : v_base {
   cast() const {
     v<Tp_target, N> result;
     for ($u64 i = 0; i < N; i++) {
-      result.data[i] = data[i];
+      result.insert((*this)[i], i);
     }
     return result;
   }
