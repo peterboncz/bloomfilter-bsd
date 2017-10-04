@@ -365,6 +365,57 @@ struct v : v_base {
     }
 
 
+    /// Converts the mask into an integer.
+    template<u1 Compound = false>
+    static __forceinline__ $u64
+    to_int(const nested_mask_type& mask) {
+      return mask.to_int();
+    }
+
+    /// Converts the mask into an integer.
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static __forceinline__ $u64
+    to_int(const compound_mask_type& compound_mask) {
+      $u64 int_bitmask = 0;
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        u64 t = to_int<!Compound>(compound_mask[i]);
+        int_bitmask |= t << ((N/nested_vector_cnt) * i);
+      }
+      return int_bitmask;
+    }
+
+    /// Converts the mask into an integer.
+    __forceinline__ $u64
+    to_int() const {
+      static_assert(N <= 64, "Mask to integer conversion requires the vector length to be less or equal to 64.");
+      return to_int<is_compound>(data);
+    }
+
+
+
+    /// Converts the mask into an integer.
+    template<u1 Compound = false>
+    static __forceinline__ void
+    from_int(nested_mask_type& mask, u64 int_bitmask) {
+      mask.set_from_int(int_bitmask);
+    }
+
+    /// Converts the mask into an integer.
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static __forceinline__ void
+    from_int(compound_mask_type& compound_mask, u64 int_bitmask) {
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        from_int<!Compound>(compound_mask[i], int_bitmask >> ((N/nested_vector_cnt) * i));
+      }
+    }
+
+    static __forceinline__ m
+    from_int(u64 int_bitmask) {
+      m result;
+      from_int<is_compound>(result.data, int_bitmask);
+      return result;
+    }
+
 //    // Creates a mask instance from a bitset
 //    template<std::size_t Nb>
 //    static __forceinline__ m
@@ -729,6 +780,7 @@ struct v : v_base {
     return result;
   }
 
+
 //  template<typename Fn>
 //  static __forceinline__ nested_type
 //  binary_op(Fn op, const nested_type& lhs, i32& rhs) noexcept {
@@ -887,12 +939,12 @@ struct v : v_base {
 
   __forceinline__ m
   operator>(const v& o) const noexcept {
-    return m { binary_op<is_compound>(typename op::less(), o.data, data) };
+    return m { binary_op<is_compound>(typename op::greater(), data, o.data) };
   }
 
   __forceinline__ m
   operator>(const scalar_type& s) const noexcept {
-    return m { binary_op<is_compound>(typename op::less(), make_nested(s), data) };
+    return m { binary_op<is_compound>(typename op::greater(), data, make_nested(s)) };
   }
 
   __forceinline__ m
@@ -1242,6 +1294,29 @@ scatter(const Tvv& vals, Tp* base_addr, const Tiv& idxs) {
 
 
 //===----------------------------------------------------------------------===//
+// Type conversion
+//===----------------------------------------------------------------------===//
+//TODO implement casts in SIMD
+template<typename Tp_target, typename Tp_source, std::size_t N>
+__forceinline__ dtl::simd::v<Tp_target, N>
+cast(const dtl::simd::v<Tp_source, N> src) {
+  dtl::simd::v<Tp_target, N> result;
+  for ($u64 i = 0; i < N; i++) {
+    result.insert(src[i], i);
+  }
+  return result;
+}
+
+
+template<typename Tm_dst, typename Tm_src>
+__forceinline__ Tm_dst
+cast_mask(const Tm_src& src_mask) {
+  return Tm_dst::from_int(src_mask.to_int());
+};
+//===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
 // Type support
 //===----------------------------------------------------------------------===//
 
@@ -1249,7 +1324,6 @@ template<class T>
 struct is_vector {
   static constexpr bool value = std::is_base_of<dtl::simd::v_base, T>::value;
 };
-
 
 namespace internal {
 
