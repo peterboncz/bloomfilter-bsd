@@ -246,7 +246,7 @@ struct cuckoo_filter_multiword_table {
     const auto word_idxs = bucket_idxs & ((1u << word_cnt_log2) - 1);
     const auto word_addrs = block_addrs + (bucket_idxs * sizeof(word_t)).template cast<uint64_t>();
     auto words = dtl::gather<word_t>(word_addrs);
-    const auto in_word_bucket_idxs = bucket_idxs >> word_cnt_log2;
+    const auto in_word_bucket_idxs = dtl::cast<word_t>(bucket_idxs >> word_cnt_log2);
     const auto buckets = words >> (in_word_bucket_idxs * bucket_size_bits);
     return buckets;
   }
@@ -261,10 +261,10 @@ struct cuckoo_filter_multiword_table {
     const auto buckets = simd_read_bucket(block_addrs, bucket_idxs);
     const auto alternative_buckets = simd_read_bucket(block_addrs, alternative_bucket_idxs);
 
-    auto found = packed_value<word_t, tag_size_bits>::simd_contains(buckets, tags.template cast<word_t>());
-//    found |= bucket == table_t::overflow_bucket;
-//    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
-//    found |= alternative_bucket == table_t::overflow_bucket;
+    auto found = packed_value<word_t, tag_size_bits>::simd_contains(buckets, dtl::cast<word_t>(tags));
+    found |= buckets == static_cast<word_t>(overflow_bucket);
+    found |= packed_value<word_t, tag_size_bits>::simd_contains(alternative_buckets, dtl::cast<word_t>(tags));
+    found |= alternative_buckets == static_cast<word_t>(overflow_bucket);
     return found;
   }
 

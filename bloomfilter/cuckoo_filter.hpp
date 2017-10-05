@@ -130,7 +130,7 @@ public:
     static_assert(dtl::is_power_of_two(table_t::bucket_count), "Bucket count must be a power of two.");
     constexpr uint32_t bucket_count_mask = (1u << dtl::ct::log_2<table_t::bucket_count>::value) - 1;
     auto bucket_idxs = hash_values >> (32 - table_t::bucket_addressing_bits);
-    auto tags = (hash_values >> (32 - table_t::bucket_addressing_bits - table_t::tag_size_bits)) & table_t::tag_mask;
+    auto tags = (hash_values >> (32 - table_t::bucket_addressing_bits - table_t::tag_size_bits)) & static_cast<uint32_t>(table_t::tag_mask);
     tags[tags == 0] += 1; // tag must not be zero
     const auto alt_bucket_idxs = bucket_idxs ^ tags;
     return table_t::simd_find_tag_in_buckets(block_addrs, bucket_idxs, alt_bucket_idxs, tags);
@@ -214,7 +214,7 @@ struct blocked_cuckoo_filter {
 
   template<std::size_t _vector_length>
   __forceinline__ __host__
-  typename dtl::vector<key_t>::mask
+  auto
   simd_contains(const dtl::vector<key_t, _vector_length>& keys) const {
     using key_vt = dtl::vector<key_t, _vector_length>;
     key_vt h = keys * 370248451u; // Peter 2
@@ -253,7 +253,7 @@ struct blocked_cuckoo_filter {
     u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
       assert(dtl::mem::is_aligned(reader, 32));
-      const mask_t mask = simd_contains(*reinterpret_cast<const vec_t*>(reader));
+      const auto mask = simd_contains(*reinterpret_cast<const vec_t*>(reader));
       u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
       match_writer += match_cnt;
       reader += vector_len;
@@ -416,7 +416,7 @@ struct blocked_cuckoo_filter<8, 8> : blocked_cuckoo_filter_base<uint32_t, blocke
 template<>
 struct blocked_cuckoo_filter<8, 4> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<8, 4>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 8, 4>;
+  using table_type = cuckoo_filter_multiword_table<uint32_t, cuckoo_filter::internal::cache_line_size, 8, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
