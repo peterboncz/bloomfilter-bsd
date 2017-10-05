@@ -631,7 +631,7 @@ struct v : v_base {
            const compound_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = unary_op<!Compound>(op, a);
+      result[i] = unary_op<!Compound>(op, a[i]);
     }
     return result;
   }

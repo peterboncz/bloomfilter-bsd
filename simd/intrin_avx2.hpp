@@ -264,7 +264,7 @@ template<>
 struct gather<$i64, __m256i, __m256i> : vector_fn<$i64, __m256i, __m256i, __m256i> {
   __forceinline__ __m256i operator()(const i64* const base_addr, const __m256i& idxs) const noexcept {
     const auto b = reinterpret_cast<const long long int *>(base_addr);
-    return _mm256_i64gather_epi64(b, idxs, 8);
+    return _mm256_i64gather_epi64(b, idxs, 1); // danger!
   }
 };
 
@@ -272,7 +272,7 @@ template<>
 struct gather<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256i> {
   __forceinline__ __m256i operator()(const u64* const base_addr, const __m256i& idxs) const noexcept {
     const auto b = reinterpret_cast<const long long int *>(base_addr);
-    return _mm256_i64gather_epi64(b, idxs, 8);
+    return _mm256_i64gather_epi64(b, idxs, 1); // danger!
   }
 };
 
@@ -392,6 +392,28 @@ struct minus<$u32, __m256i> : vector_fn<$u32, __m256i> {
 };
 
 template<>
+struct minus<$i64, __m256i> : vector_fn<$i64, __m256i> {
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return _mm256_sub_epi64(lhs, rhs);
+  }
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask8& m) const noexcept {
+    return _mm256_blendv_epi8(src, _mm256_sub_epi64(lhs, rhs), m.data);
+  }
+};
+
+template<>
+struct minus<$u64, __m256i> : vector_fn<$u64, __m256i> {
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return _mm256_sub_epi64(lhs, rhs);
+  }
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask8& m) const noexcept {
+    return _mm256_blendv_epi8(src, _mm256_sub_epi64(lhs, rhs), m.data);
+  }
+};
+
+template<>
 struct multiplies<$i32, __m256i> : vector_fn<$i32, __m256i> {
   __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return _mm256_mullo_epi32(lhs, rhs);
@@ -415,6 +437,28 @@ struct multiplies<$u32, __m256i> : vector_fn<$u32, __m256i> {
 
 template<>
 struct multiplies<$i64, __m256i> : vector_fn<$i64, __m256i> {
+  __forceinline__ __m256i mul(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    const __m256i hi_lhs = _mm256_srli_epi64(lhs, 32);
+    const __m256i hi_rhs = _mm256_srli_epi64(rhs, 32);
+    const __m256i t1 = _mm256_mul_epu32(lhs, hi_rhs);
+    const __m256i t2 = _mm256_mul_epu32(lhs, rhs);
+    const __m256i t3 = _mm256_mul_epu32(hi_lhs, rhs);
+    const __m256i t4 = _mm256_add_epi64(_mm256_slli_epi64(t3, 32), t2);
+    const __m256i t5 = _mm256_add_epi64(_mm256_slli_epi64(t1, 32), t4);
+    return t5;
+  }
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mul(lhs, rhs);
+  }
+  __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs,
+                            const __m256i& src, const mask4& m) const noexcept {
+    return _mm256_blendv_epi8(src, mul(lhs, rhs), m.data);
+  }
+};
+
+
+template<>
+struct multiplies<$u64, __m256i> : vector_fn<$u64, __m256i> {
   __forceinline__ __m256i mul(const __m256i& lhs, const __m256i& rhs) const noexcept {
     const __m256i hi_lhs = _mm256_srli_epi64(lhs, 32);
     const __m256i hi_rhs = _mm256_srli_epi64(rhs, 32);
@@ -506,6 +550,13 @@ template<typename Tp /* ignored for bitwise operations */>
 struct bit_xor<Tp, __m256i> : vector_fn<Tp, __m256i> {
   __forceinline__ __m256i operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return _mm256_xor_si256(lhs, rhs);
+  }
+};
+
+template<typename Tp /* ignored for bitwise operations */>
+struct bit_not<Tp, __m256i> : vector_fn<Tp, __m256i> {
+  __forceinline__ __m256i operator()(const __m256i& lhs) const noexcept {
+    return _mm256_andnot_si256(lhs, _mm256_set1_epi64x(-1));
   }
 };
 
