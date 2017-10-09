@@ -12,6 +12,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
         bits.hpp
+        bloomfilter/bloom_filter_std.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_b64.hpp
         bloomfilter/bloomfilter_runtime.hpp
