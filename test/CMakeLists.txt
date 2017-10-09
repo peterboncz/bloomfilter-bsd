@@ -60,6 +60,7 @@ include_directories(SYTEM ../../)
 set(TEST_FILES
         bitmask_test.cpp
         div_test.cpp
+        cuckoofilter_test.cpp
 #        bitset_test.cpp
 #        bitpack_test.cpp
 
