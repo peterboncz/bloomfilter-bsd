@@ -9,6 +9,8 @@
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
 
 namespace dtl {
+namespace cuckoo_filter {
+
 
 //===----------------------------------------------------------------------===//
 /// A a tiny statically sized Cuckoo filter table that fits into a single word.
@@ -159,4 +161,6 @@ struct cuckoo_filter_word_table {
 };
 //===----------------------------------------------------------------------===//
 
+
+} // namespace cuckoo_filter
 } // namespace dtl

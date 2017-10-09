@@ -11,6 +11,7 @@
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
 
 namespace dtl {
+namespace cuckoo_filter {
 
 
 //===----------------------------------------------------------------------===//
@@ -241,4 +242,5 @@ struct cuckoo_filter_multiword_table {
 //===----------------------------------------------------------------------===//
 
 
+} // namespace cuckoo_filter
 } // namespace dtl

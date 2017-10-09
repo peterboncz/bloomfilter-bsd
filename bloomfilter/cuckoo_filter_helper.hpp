@@ -3,6 +3,7 @@
 #include <dtl/dtl.hpp>
 
 namespace dtl {
+namespace cuckoo_filter {
 
 
 namespace {
@@ -117,4 +118,5 @@ __GENERATE(64,16)
 } // anonymous namespace
 
 
+} // namespace cuckoo_filter
 } // namespace dtl

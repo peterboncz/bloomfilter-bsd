@@ -244,20 +244,24 @@ struct blocked_cuckoo_filter_base {
 
   using key_t = __key_t;
 
+
   __forceinline__ void
   insert(const key_t& key) {
     return static_cast<__derived*>(this)->filter.insert(key);
   }
+
 
   __forceinline__ uint64_t
   batch_insert(const key_t* keys, const uint32_t key_cnt) {
     return static_cast<__derived*>(this)->filter.batch_insert(keys, key_cnt);
   }
 
+
   __forceinline__ bool
   contains(const key_t& key) const {
     return static_cast<const __derived*>(this)->filter.contains(key);
   }
+
 
     __forceinline__ uint64_t
   batch_contains(const key_t* __restrict keys, const uint32_t key_cnt,
@@ -271,10 +275,11 @@ struct blocked_cuckoo_filter_base {
 template<uint32_t bits_per_element, uint32_t associativity>
 struct blocked_cuckoo_filter {};
 
+
 template<>
 struct blocked_cuckoo_filter<16, 4> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<16, 4>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 16, 4>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 16, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
@@ -283,11 +288,12 @@ struct blocked_cuckoo_filter<16, 4> : blocked_cuckoo_filter_base<uint32_t, block
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+
 
 template<>
 struct blocked_cuckoo_filter<16, 2> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<16, 2>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 16, 2>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 16, 2>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
@@ -296,11 +302,12 @@ struct blocked_cuckoo_filter<16, 2> : blocked_cuckoo_filter_base<uint32_t, block
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+
 
 template<>
 struct blocked_cuckoo_filter<12, 4> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<12, 4>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 12, 4>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 12, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
@@ -310,10 +317,11 @@ struct blocked_cuckoo_filter<12, 4> : blocked_cuckoo_filter_base<uint32_t, block
 
 };
 
+
 template<>
 struct blocked_cuckoo_filter<10, 6> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<10, 6>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 10, 6>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 10, 6>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
@@ -327,7 +335,7 @@ struct blocked_cuckoo_filter<10, 6> : blocked_cuckoo_filter_base<uint32_t, block
 template<>
 struct blocked_cuckoo_filter<8, 8> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<8, 8>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 8, 8>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, cuckoo_filter::internal::cache_line_size, 8, 8>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 
@@ -341,7 +349,7 @@ struct blocked_cuckoo_filter<8, 8> : blocked_cuckoo_filter_base<uint32_t, blocke
 template<>
 struct blocked_cuckoo_filter<8, 4> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<8, 4>> {
   using key_type = uint32_t;
-  using table_type = cuckoo_filter_multiword_table<uint32_t, cuckoo_filter::internal::cache_line_size, 8, 4>;
+  using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint32_t, cuckoo_filter::internal::cache_line_size, 8, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
   using filter_type = cuckoo_filter::internal::blocked_cuckoo_filter<uint32_t, block_type, block_addressing::POWER_OF_TWO>;
 

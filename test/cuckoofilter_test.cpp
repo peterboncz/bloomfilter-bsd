@@ -4,6 +4,7 @@
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
 
 using namespace dtl;
+using namespace dtl::cuckoo_filter;
 
 
 template<typename data_t, uint32_t bits_per_value>
