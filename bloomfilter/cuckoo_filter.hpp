@@ -122,19 +122,19 @@ public:
   }
 
 
-  template<std::size_t _vector_length>
-  __forceinline__ __host__
-  static auto
-  simd_contains_hash(const dtl::vector<uint64_t, _vector_length>& block_addrs,
-                     const dtl::vector<hash_value_t, _vector_length>& hash_values) {
-    static_assert(dtl::is_power_of_two(table_t::bucket_count), "Bucket count must be a power of two.");
-    constexpr uint32_t bucket_count_mask = (1u << dtl::ct::log_2<table_t::bucket_count>::value) - 1;
-    auto bucket_idxs = hash_values >> (32 - table_t::bucket_addressing_bits);
-    auto tags = (hash_values >> (32 - table_t::bucket_addressing_bits - table_t::tag_size_bits)) & static_cast<uint32_t>(table_t::tag_mask);
-    tags[tags == 0] += 1; // tag must not be zero
-    const auto alt_bucket_idxs = bucket_idxs ^ tags;
-    return table_t::simd_find_tag_in_buckets(block_addrs, bucket_idxs, alt_bucket_idxs, tags);
-  }
+//  template<std::size_t _vector_length>
+//  __forceinline__ __host__
+//  static auto
+//  simd_contains_hash(const dtl::vector<uint64_t, _vector_length>& block_addrs,
+//                     const dtl::vector<hash_value_t, _vector_length>& hash_values) {
+//    static_assert(dtl::is_power_of_two(table_t::bucket_count), "Bucket count must be a power of two.");
+//    constexpr uint32_t bucket_count_mask = (1u << dtl::ct::log_2<table_t::bucket_count>::value) - 1;
+//    auto bucket_idxs = hash_values >> (32 - table_t::bucket_addressing_bits);
+//    auto tags = (hash_values >> (32 - table_t::bucket_addressing_bits - table_t::tag_size_bits)) & static_cast<uint32_t>(table_t::tag_mask);
+//    tags[tags == 0] += 1; // tag must not be zero
+//    const auto alt_bucket_idxs = bucket_idxs ^ tags;
+//    return table_t::simd_find_tag_in_buckets(block_addrs, bucket_idxs, alt_bucket_idxs, tags);
+//  }
 
 };
 
@@ -212,61 +212,89 @@ struct blocked_cuckoo_filter {
   }
 
 
-  template<std::size_t _vector_length>
-  __forceinline__ __host__
-  auto
-  simd_contains(const dtl::vector<key_t, _vector_length>& keys) const {
-    using key_vt = dtl::vector<key_t, _vector_length>;
-    key_vt h = keys * 370248451u; // Peter 2
-    key_vt idx = addr.get_block_idx(h);
-    auto base_addr = dtl::vector<uint64_t, key_vt::length>::make(reinterpret_cast<uintptr_t>(&blocks[0]));
-    auto block_addr = base_addr + (idx * (sizeof(block_t))).template cast<uint64_t>();
-    auto is_contained = block_t::simd_contains_hash(block_addr, h << addr.get_required_addressing_bits());
-    return is_contained;
-  }
+//  template<std::size_t _vector_length>
+//  __forceinline__ __host__
+//  auto
+//  simd_contains(const dtl::vector<key_t, _vector_length>& keys) const {
+//    using key_vt = dtl::vector<key_t, _vector_length>;
+//    key_vt h = keys * 370248451u; // Peter 2
+//    key_vt idx = addr.get_block_idx(h);
+//    auto base_addr = dtl::vector<uint64_t, key_vt::length>::make(reinterpret_cast<uintptr_t>(&blocks[0]));
+//    auto block_addr = base_addr + (idx * (sizeof(block_t))).template cast<uint64_t>();
+//    auto is_contained = block_t::simd_contains_hash(block_addr, h << addr.get_required_addressing_bits());
+//    return is_contained;
+//  }
 
 
   /// Performs a batch-probe
   __forceinline__ __host__
   std::size_t
   batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
-    u64 vector_len = dtl::simd::lane_count<key_t>;
-    const key_t* reader = keys;
     $u32* match_writer = match_positions;
-
-    // determine the number of keys that need to be probed sequentially, due to alignment
-    u64 required_alignment_bytes = 64;
-    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)
-                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t)
-                            : key_cnt;
-    // process the unaligned keys sequentially
-    $u64 read_pos = 0;
-    for (; read_pos < unaligned_key_cnt; read_pos++) {
-      u1 is_match = contains(*reader);
-      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-      match_writer += is_match;
-      reader++;
+    if ((addr.get_required_addressing_bits() + block_t::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
+      for (uint32_t j = 0; j < key_cnt; j++) {
+        auto h = hasher::hash(keys[j]);
+        auto i = addr.get_block_idx(h);
+        auto is_contained = blocks[i].contains_hash(h << addr.get_required_addressing_bits());
+        *match_writer = j + match_offset;
+        match_writer += is_contained;
+      }
     }
-    // process the aligned keys vectorized
-    using vec_t = vec<key_t, vector_len>;
-    using mask_t = typename vec<key_t, vector_len>::mask;
-    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
-    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-      assert(dtl::mem::is_aligned(reader, 32));
-      const auto mask = simd_contains(*reinterpret_cast<const vec_t*>(reader));
-      u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
-      match_writer += match_cnt;
-      reader += vector_len;
-    }
-    // process remaining keys sequentially
-    for (; read_pos < key_cnt; read_pos++) {
-      u1 is_match = contains(*reader);
-      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-      match_writer += is_match;
-      reader++;
+    else {
+      for (uint32_t j = 0; j < key_cnt; j++) {
+        auto k = keys[j];
+        auto h = hasher::hash(k);
+        auto i = addr.get_block_idx(h);
+        auto is_contained = blocks[i].contains_key(k);
+        *match_writer = j + match_offset;
+        match_writer += is_contained;
+      }
     }
     return match_writer - match_positions;
   }
+
+
+//  /// Performs a batch-probe
+//  __forceinline__ __host__
+//  std::size_t
+//  batch_contains(const key_t* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+//    u64 vector_len = dtl::simd::lane_count<key_t>;
+//    const key_t* reader = keys;
+//    $u32* match_writer = match_positions;
+//
+//    // determine the number of keys that need to be probed sequentially, due to alignment
+//    u64 required_alignment_bytes = 64;
+//    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)
+//                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t)
+//                            : key_cnt;
+//    // process the unaligned keys sequentially
+//    $u64 read_pos = 0;
+//    for (; read_pos < unaligned_key_cnt; read_pos++) {
+//      u1 is_match = contains(*reader);
+//      *match_writer = static_cast<$u32>(read_pos) + match_offset;
+//      match_writer += is_match;
+//      reader++;
+//    }
+//    // process the aligned keys vectorized
+//    using vec_t = vec<key_t, vector_len>;
+//    using mask_t = typename vec<key_t, vector_len>::mask;
+//    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
+//    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
+//      assert(dtl::mem::is_aligned(reader, 32));
+//      const auto mask = contains(*reinterpret_cast<const vec_t*>(reader));
+//      u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
+//      match_writer += match_cnt;
+//      reader += vector_len;
+//    }
+//    // process remaining keys sequentially
+//    for (; read_pos < key_cnt; read_pos++) {
+//      u1 is_match = contains(*reader);
+//      *match_writer = static_cast<$u32>(read_pos) + match_offset;
+//      match_writer += is_match;
+//      reader++;
+//    }
+//    return match_writer - match_positions;
+//  }
 
 //  __forceinline__
 //  std::size_t

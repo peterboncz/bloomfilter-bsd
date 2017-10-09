@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
+//#include <dtl/simd.hpp>
 
 namespace dtl {
 
@@ -92,13 +93,14 @@ struct packed_value<uint##T##_t, B> {                                 \
     return hasvalue##B##_u##T(packed_value, search_value);                  \
   }                                                                     \
                                                                         \
-  template<std::size_t _vector_length>                                  \
-  __forceinline__ static auto                                           \
-  simd_contains(const dtl::vector<uint##T##_t, _vector_length>& packed_value,     \
-                const dtl::vector<uint##T##_t, _vector_length>& search_value) {   \
-    return hasvalue##B##_u##T (packed_value, search_value) != 0;             \
-  }                                                                     \
 };
+//  template<std::size_t _vector_length>                                  \
+//  __forceinline__ static auto                                           \
+//  simd_contains(const dtl::vector<uint##T##_t, _vector_length>& packed_value,     \
+//                const dtl::vector<uint##T##_t, _vector_length>& search_value) {   \
+//    return hasvalue##B##_u##T (packed_value, search_value) != 0;             \
+//  }                                                                     \
+//};
 __GENERATE(32,2)
 __GENERATE(64,2)
 __GENERATE(32,3)
