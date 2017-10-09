@@ -6,7 +6,6 @@
 #include <dtl/dtl.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/math.hpp>
-//#include <dtl/simd.hpp>
 
 #include <dtl/bloomfilter/bloomfilter_addressing_logic.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
@@ -236,37 +235,6 @@ struct cuckoo_filter_multiword_table {
   find_tag_in_buckets(const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) const {
     return internal::find_tag<bucket_cnt_per_word>::find_tag_in_buckets(*this, bucket_idx, alternative_bucket_idx, tag);
   }
-
-
-//  template<std::size_t _vector_length>
-//  __forceinline__
-//  static dtl::vector<word_t, _vector_length>
-//  simd_read_bucket(const dtl::vector<uint64_t, _vector_length>& block_addrs,
-//                   const dtl::vector<uint32_t, _vector_length>& bucket_idxs) {
-//    const auto word_idxs = bucket_idxs & ((1u << word_cnt_log2) - 1);
-//    const auto word_addrs = block_addrs + (bucket_idxs * sizeof(word_t)).template cast<uint64_t>();
-//    auto words = dtl::gather<word_t>(word_addrs);
-//    const auto in_word_bucket_idxs = dtl::cast<word_t>(bucket_idxs >> word_cnt_log2);
-//    const auto buckets = words >> (in_word_bucket_idxs * bucket_size_bits);
-//    return buckets;
-//  }
-//
-//  template<std::size_t _vector_length>
-//  __forceinline__ __host__
-//  static auto
-//  simd_find_tag_in_buckets(const dtl::vector<uint64_t, _vector_length>& block_addrs,
-//                           const dtl::vector<uint32_t, _vector_length>& bucket_idxs,
-//                           const dtl::vector<uint32_t, _vector_length>& alternative_bucket_idxs,
-//                           const dtl::vector<uint32_t, _vector_length>& tags) {
-//    const auto buckets = simd_read_bucket(block_addrs, bucket_idxs);
-//    const auto alternative_buckets = simd_read_bucket(block_addrs, alternative_bucket_idxs);
-//
-//    auto found = packed_value<word_t, tag_size_bits>::simd_contains(buckets, dtl::cast<word_t>(tags));
-//    found |= buckets == static_cast<word_t>(overflow_bucket);
-//    found |= packed_value<word_t, tag_size_bits>::simd_contains(alternative_buckets, dtl::cast<word_t>(tags));
-//    found |= alternative_buckets == static_cast<word_t>(overflow_bucket);
-//    return found;
-//  }
 
 
 };

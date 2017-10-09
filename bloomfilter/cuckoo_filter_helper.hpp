@@ -1,7 +1,6 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
-//#include <dtl/simd.hpp>
 
 namespace dtl {
 
@@ -85,22 +84,14 @@ namespace {
 template<typename T, uint32_t bits_per_value>
 struct packed_value { };
 
-#define __GENERATE(T,B)                                    \
-template<>                                                              \
-struct packed_value<uint##T##_t, B> {                                 \
-  __forceinline__ static bool                                           \
-  contains(const uint##T##_t packed_value, const uint32_t search_value) {  \
+#define __GENERATE(T,B)                                                     \
+template<>                                                                  \
+struct packed_value<uint##T##_t, B> {                                       \
+  __forceinline__ static bool                                               \
+  contains(const uint##T##_t packed_value, const uint32_t search_value) {   \
     return hasvalue##B##_u##T(packed_value, search_value);                  \
-  }                                                                     \
-                                                                        \
+  }                                                                         \
 };
-//  template<std::size_t _vector_length>                                  \
-//  __forceinline__ static auto                                           \
-//  simd_contains(const dtl::vector<uint##T##_t, _vector_length>& packed_value,     \
-//                const dtl::vector<uint##T##_t, _vector_length>& search_value) {   \
-//    return hasvalue##B##_u##T (packed_value, search_value) != 0;             \
-//  }                                                                     \
-//};
 __GENERATE(32,2)
 __GENERATE(64,2)
 __GENERATE(32,3)
@@ -122,147 +113,6 @@ __GENERATE(64,12)
 __GENERATE(32,16)
 __GENERATE(64,16)
 #undef __GENERATE
-
-
-//template<>
-//struct packed_value<uint32_t, 2> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue2_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 2> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue2_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 3> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue3_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 3> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue3_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 4> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue4_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 4> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue4_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 5> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue5_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 5> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue5_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 6> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue6_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 6> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue6_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 7> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue7_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 7> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue7_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 8> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue8_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 8> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue8_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 10> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue10_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 10> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue10_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 12> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue12_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 12> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue12_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 15> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue15_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 15> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue15_u64(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint32_t, 16> {
-//  __forceinline__ static bool
-//  contains(const uint32_t packed_value, const uint32_t search_value) { return hasvalue16_u32(packed_value, search_value); }
-//};
-//
-//template<>
-//struct packed_value<uint64_t, 16> {
-//  __forceinline__ static bool
-//  contains(const uint64_t packed_value, const uint32_t search_value) { return hasvalue16_u64(packed_value, search_value); }
-//
-//  template<std::size_t _vector_length>
-//  __forceinline__ static auto
-//  simd_contains(const dtl::vector<uint64_t, _vector_length>& packed_value,
-//                const dtl::vector<uint64_t, _vector_length>& search_value) {
-//    return hasvalue16_u64(packed_value, search_value) != 0; // TODO optimize
-//  }
-//};
-//
 
 } // anonymous namespace
 
