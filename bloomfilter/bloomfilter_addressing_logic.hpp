@@ -100,7 +100,7 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<size_t, dtl::vector_length<Tv>::value>
-  get_block_idx(const Tv hash_value) const noexcept {
+  get_block_idxs(const Tv& hash_value) const noexcept {
     const auto block_idx = dtl::fast_mod_u32(hash_value, fast_divisor);
     return block_idx;
   }
@@ -203,7 +203,7 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<size_t, dtl::vector_length<Tv>::value>
-  get_block_idx(const Tv hash_value) const noexcept {
+  get_block_idx(const Tv& hash_value) const noexcept {
     const auto block_idx = hash_value & block_cnt_mask;
     return block_idx;
   }

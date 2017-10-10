@@ -17,7 +17,7 @@ template<
     typename Tk,           // the key type
     typename Taddr,        // the addressing logic
     typename Tblock,       // the block type
-    typename HashFn,       // the hash function (family) to use
+    typename HashFn        // the hash function (family) to use
 >
 struct bloomfilter_logic {
 
