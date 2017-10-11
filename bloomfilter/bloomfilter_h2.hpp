@@ -113,6 +113,13 @@ struct bloomfilter_h2 {
   }
 
 
+  __forceinline__
+  size_t
+  length() const noexcept {
+    return length_mask + 1;
+  }
+
+
   /// C'tor
   bloomfilter_h2(const size_t length,
                const allocator_t allocator = allocator_t())

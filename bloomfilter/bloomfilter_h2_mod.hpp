@@ -114,6 +114,13 @@ struct bloomfilter_h2_mod {
   }
 
 
+  __forceinline__
+  size_t
+  length() const noexcept {
+    return word_array.size() * sizeof(word_t) * 8;
+  }
+
+
   /// C'tor
   bloomfilter_h2_mod(const size_t length,
                  const allocator_t allocator = allocator_t())

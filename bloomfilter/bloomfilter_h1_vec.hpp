@@ -53,7 +53,7 @@ struct bloomfilter_h1_vec {
     for (size_t i = 0; i < bf_t::k; i++) {
       const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
-      words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
+      words |= vec<word_t, n>::make(1) << (bit_idxs + sector_offset);
     }
     return words;
   }
@@ -61,7 +61,8 @@ struct bloomfilter_h1_vec {
 
   template<u64 n> // the vector length
   __forceinline__
-  typename vec<key_t, n>::mask_t
+//  typename vec<key_t, n>::mask_t
+  auto
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
@@ -103,7 +104,7 @@ struct bloomfilter_h1_vec {
     u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
       assert(dtl::mem::is_aligned(reader, 32));
-      const mask_t mask = contains<vector_len>(*reinterpret_cast<const vec_t*>(reader));
+      const auto mask = contains<vector_len>(*reinterpret_cast<const vec_t*>(reader));
       u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
       match_writer += match_cnt;
       reader += vector_len;

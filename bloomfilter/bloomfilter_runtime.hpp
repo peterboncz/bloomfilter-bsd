@@ -24,6 +24,8 @@ namespace dtl {
 /// Note: This wrapper should only be used if the parameters is NOT known at compile time.
 struct bloomfilter_runtime {
 
+  using word_t = dtl::word_t;
+
   /// The bit length of the Bloom filter.
   $u64 m;
   /// The number of hash functions.
@@ -54,6 +56,9 @@ struct bloomfilter_runtime {
   std::function<u32()>
   hash_function_count;
 
+  std::function<u32()>
+  length;
+
   std::function<void()>
   print_info;
 
@@ -73,6 +78,7 @@ struct bloomfilter_runtime {
         load_factor(std::move(src.load_factor)),
         pop_count(std::move(src.pop_count)),
         hash_function_count(std::move(src.hash_function_count)),
+        length(std::move(src.length)),
         print_info(std::move(src.print_info)),
         print(std::move(src.print)) {
     // invalidate pointers
@@ -93,6 +99,7 @@ struct bloomfilter_runtime {
     load_factor = std::move(src.load_factor);
     pop_count = std::move(src.pop_count);
     hash_function_count = std::move(src.hash_function_count);
+    length = std::move(src.length);
     print_info = std::move(src.print_info);
     print = std::move(src.print);
     // invalidate pointers
@@ -182,6 +189,7 @@ struct bloomfilter_runtime {
     load_factor = std::bind(&bf_t::load_factor, bf);
     pop_count = std::bind(&bf_t::popcnt, bf);
     hash_function_count = std::bind(&bf_t::hash_function_cnt, bf);
+    length = std::bind(&bf_t::length, bf);
     print_info = std::bind(&bf_t::print_info, bf);
     print = std::bind(&bf_t::print, bf);
   }
@@ -213,6 +221,7 @@ struct bloomfilter_runtime {
     copy.load_factor = std::bind(&bf_t::load_factor, bf_dst);
     copy.pop_count = std::bind(&bf_t::popcnt, bf_dst);
     copy.hash_function_count = std::bind(&bf_t::hash_function_cnt, bf_dst);
+    copy.length = std::bind(&bf_t::length, bf_dst);
     copy.print_info = std::bind(&bf_t::print_info, bf_dst);
     copy.print = std::bind(&bf_t::print, bf_dst);
   }
