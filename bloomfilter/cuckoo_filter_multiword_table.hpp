@@ -31,7 +31,7 @@ struct find_tag {
                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
     const auto bucket = table.read_bucket(bucket_idx);
     const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
-    bool found;
+    bool found = false;
     found = bucket == table_t::overflow_bucket;
     found |= alternative_bucket == table_t::overflow_bucket;
     // load both words and merge them into one word -> do only one search
@@ -53,7 +53,7 @@ struct find_tag<1> {
                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
     const auto bucket = table.read_bucket(bucket_idx);
     const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
-    bool found;
+    bool found = false;
     found = packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(bucket, tag);
     found |= bucket == table_t::overflow_bucket;
     found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
@@ -165,7 +165,7 @@ struct cuckoo_filter_multiword_table {
   read_tag(const uint32_t bucket_idx, const uint32_t tag_idx) const {
     auto bucket = read_bucket(bucket_idx);
     auto tag = read_tag_from_bucket(bucket, tag_idx);
-    return static_cast<uint32_t>(tag);
+    return tag;
   }
 
 
@@ -175,7 +175,7 @@ struct cuckoo_filter_multiword_table {
     auto bucket = read_bucket(bucket_idx);
     auto existing_tag = read_tag(bucket_idx, tag_idx);
     const auto to_write = existing_tag ^ tag_content;
-    bucket ^= to_write << (tag_size_bits * tag_idx);
+    bucket ^= word_t(to_write) << (tag_size_bits * tag_idx);
     write_bucket(bucket_idx, bucket);
     return existing_tag;
   }
