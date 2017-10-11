@@ -87,9 +87,10 @@ struct bloomfilter_h1_vec {
 
     // determine the number of keys that need to be probed sequentially, due to alignment
     u64 required_alignment_bytes = 64;
-    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)
-                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t)
-                            : key_cnt;
+    u64 t = dtl::mem::is_aligned(reader)  // should always be true
+            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
+            : key_cnt;
+    u64 unaligned_key_cnt = std::min(static_cast<$u64>(key_cnt), t);
     // process the unaligned keys sequentially
     $u64 read_pos = 0;
     for (; read_pos < unaligned_key_cnt; read_pos++) {
