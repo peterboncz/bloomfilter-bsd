@@ -229,7 +229,8 @@ struct blocked_cuckoo_filter {
 };
 
 
-static constexpr uint64_t cache_line_size = 64;
+//static constexpr uint64_t cache_line_size = 64;
+static constexpr uint64_t cache_line_size = 32;
 
 
 } // namespace internal

@@ -11,6 +11,7 @@ add_subdirectory(simd)
 set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
+        barrier.hpp
         bits.hpp
         bloomfilter/bloom_filter_std.hpp
         bloomfilter/blocked_bloomfilter.hpp
