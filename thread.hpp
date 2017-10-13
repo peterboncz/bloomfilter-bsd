@@ -164,12 +164,17 @@ run_in_parallel(std::function<void()> fn,
 }
 
 
+static auto identity(u32 thread_id) -> u32 {
+  return thread_id;
+}
+
 static void
 run_in_parallel(std::function<void(u32 thread_id)> fn,
-                u32 thread_cnt = std::thread::hardware_concurrency()) {
+                u32 thread_cnt = std::thread::hardware_concurrency(),
+                std::function<u32(u32)> cpu_map = identity) {
 
-  auto thread_fn = [](u32 thread_id, std::function<void(u32 thread_id)> fn) {
-    thread_affinitize(thread_id);
+  auto thread_fn = [&cpu_map](u32 thread_id, std::function<void(u32 thread_id)> fn) {
+    thread_affinitize(cpu_map(thread_id));
     fn(thread_id);
   };
 
