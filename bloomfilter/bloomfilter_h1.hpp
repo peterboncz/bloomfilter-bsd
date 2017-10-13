@@ -32,7 +32,8 @@ struct bloomfilter_h1 {
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
   using allocator_t = Alloc;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
@@ -78,9 +79,10 @@ struct bloomfilter_h1 {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // ---- Members ----
-  size_t length_mask; // The length of the bitvector - 1. Note the actual length (length_mask + 1) is not stored explicitly.
-  size_t word_cnt_log2; // The number of bits to address the individual words of the bitvector
-  allocator_t allocator;
+  const size_t bitvector_length; // the length of the bitvector
+  const hash_value_t length_mask; // the length mask (same type as the hash values)
+  const hash_value_t word_cnt_log2; // The number of bits to address the individual words of the bitvector
+  const allocator_t allocator;
   std::vector<word_t, allocator_t> word_array;
   // ----
 
@@ -98,25 +100,28 @@ struct bloomfilter_h1 {
   __forceinline__
   size_t
   length() const noexcept {
-    return length_mask + 1;
+    return bitvector_length;
   }
 
 
   /// C'tor
+  explicit
   bloomfilter_h1(const size_t length,
                  const allocator_t allocator = allocator_t())
-      : length_mask(determine_actual_length(length) - 1),
-        word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)),
+      : bitvector_length(determine_actual_length(length)),
+        length_mask(static_cast<hash_value_t>(bitvector_length - 1)),
+        word_cnt_log2(static_cast<hash_value_t>(dtl::log_2(bitvector_length / word_bitlength))),
         allocator(allocator),
-        word_array((length_mask + 1) / word_bitlength, 0, this->allocator) {
-    if (((length_mask + 1)) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+        word_array(bitvector_length / word_bitlength, 0, this->allocator) {
+    if (bitvector_length > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
   /// Copy c'tor
   bloomfilter_h1(const bloomfilter_h1&) = default;
   bloomfilter_h1(const bloomfilter_h1& other,
                  const allocator_t& allocator)
-      : length_mask(other.length_mask),
+      : bitvector_length(other.bitvector_length),
+        length_mask(other.length_mask),
         word_cnt_log2(other.word_cnt_log2),
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
@@ -127,7 +132,7 @@ struct bloomfilter_h1 {
   bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
     using return_t = bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
-    return_t bf_copy(this->length_mask + 1, alloc);
+    return_t bf_copy(this->bitvector_length, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
@@ -140,7 +145,7 @@ struct bloomfilter_h1 {
   bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>*
   make_heap_copy(AllocOfCopy alloc = AllocOfCopy()) const {
     using bf_t = bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
-    bf_t* bf_copy = new bf_t(this->length_mask + 1, alloc);
+    bf_t* bf_copy = new bf_t(this->bitvector_length, alloc);
     bf_copy->word_array.clear();
     bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
@@ -148,12 +153,10 @@ struct bloomfilter_h1 {
 
 
   __forceinline__ __host__ __device__
-  static size_t
-  which_word(const uint32_t /*hash_value_t*/ hash_val,
-             const size_t length_mask,
-             const size_t word_cnt_log2) noexcept {
-    const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
-    assert(word_idx < ((length_mask + 1) / word_bitlength));
+  static hash_value_t
+  which_word(const hash_value_t hash_val,
+             u32 word_cnt_log2) noexcept {
+    const auto word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
     return word_idx;
   }
 
@@ -164,7 +167,7 @@ struct bloomfilter_h1 {
   which_bits(const hash_value_t hash_val,
              const size_t word_cnt_log2) noexcept {
     word_t word = 0;
-    for (size_t i = 0; i < k; i++) {
+    for ($u32 i = 0; i < k; i++) {
       const u32 bit_idx = (hash_val >> (((hash_value_bitlength - word_cnt_log2) - ((i + 1) * sector_bitlength_log2)))) & sector_mask;
       const u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
@@ -177,7 +180,7 @@ struct bloomfilter_h1 {
   void
   insert(const key_t& key) noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val, length_mask, word_cnt_log2);
+    const hash_value_t word_idx = which_word(hash_val, word_cnt_log2);
     word_t word = word_array[word_idx];
     word |= which_bits(hash_val, word_cnt_log2);
     word_array[word_idx] = word;
@@ -188,7 +191,7 @@ struct bloomfilter_h1 {
   u1
   contains(const key_t& key) const noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val, length_mask, word_cnt_log2);
+    const hash_value_t word_idx = which_word(hash_val, word_cnt_log2);
     const word_t search_mask = which_bits(hash_val, word_cnt_log2);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
@@ -203,7 +206,7 @@ struct bloomfilter_h1 {
 
   f64
   load_factor() const noexcept {
-    f64 m = length_mask + 1;
+    f64 m = bitvector_length;
     return popcnt() / m;
   }
 
@@ -232,8 +235,8 @@ struct bloomfilter_h1 {
     std::cout << "  max m:                " << max_m << std::endl;
     std::cout << "  max size [MiB]:       " << (max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
     std::cout << "dynamic" << std::endl;
-    std::cout << "  m:                    " << (length_mask + 1) << std::endl;
-    f64 size_MiB = (length_mask + 1) / 8.0 / 1024.0 / 1024.0;
+    std::cout << "  m:                    " << bitvector_length << std::endl;
+    f64 size_MiB = bitvector_length / 8.0 / 1024.0 / 1024.0;
     if (size_MiB < 1) {
       std::cout << "  size [KiB]:           " << (size_MiB * 1024) << std::endl;
     }

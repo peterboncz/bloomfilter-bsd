@@ -37,9 +37,9 @@ struct bloomfilter_h1_mod_vec {
 
   template<u64 vector_len>
   __forceinline__
-  vec<size_t, vector_len>
+  vec<hash_value_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
-    const vec<size_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
+    const vec<hash_value_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
     return word_idx;
   }
 
@@ -50,7 +50,7 @@ struct bloomfilter_h1_mod_vec {
   which_bits(const vec<hash_value_t, n>& hash_val) const noexcept {
     u32 word_bit_cnt = (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     vec<word_t, n> words = 0;
-    for (size_t i = 0; i < bf_t::k; i++) {
+    for ($u32 i = 0; i < bf_t::k; i++) {
       const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
@@ -65,10 +65,11 @@ struct bloomfilter_h1_mod_vec {
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
+    using hash_value_vt = vec<hash_value_t, n>;
     using word_vt = vec<typename bf_t::word_t, n>;
 
-    const key_vt hash_vals = hash_fn<key_vt>::hash(keys);
-    const key_vt word_idxs = which_word(hash_vals);
+    const hash_value_vt hash_vals = hash_fn<key_vt>::hash(keys);
+    const hash_value_vt word_idxs = which_word(hash_vals);
     const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(hash_vals);
 // late gather:    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);

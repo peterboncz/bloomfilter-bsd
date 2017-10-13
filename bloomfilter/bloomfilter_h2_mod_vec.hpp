@@ -40,9 +40,9 @@ struct bloomfilter_h2_mod_vec {
 
   template<u64 vector_len>
   __forceinline__
-  vec<size_t, vector_len>
+  vec<hash_value_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
-    const vec<size_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
+    const vec<hash_value_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
     return word_idx;
   }
 
@@ -55,7 +55,7 @@ struct bloomfilter_h2_mod_vec {
     // take the LSBs of first hash value
     vec<word_t, n> words = 1;
     words <<= (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask();
-    for (size_t i = 1; i < bf_t::k; i++) {
+    for ($u32 i = 1; i < bf_t::k; i++) {
       u32 shift = (bf_t::hash_value_bitlength - 2) - (i * bf_t::sector_bitlength_log2);
       const vec<$u32, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
@@ -71,11 +71,12 @@ struct bloomfilter_h2_mod_vec {
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
+    using hash_value_vt = vec<hash_value_t, n>;
     using word_vt = vec<typename bf_t::word_t, n>;
 
-    const key_vt first_hash_vals = hash_fn<key_vt>::hash(keys);
-    const key_vt second_hash_vals = hash_fn2<key_vt>::hash(keys);
-    const key_vt word_idxs = which_word(first_hash_vals);
+    const hash_value_vt first_hash_vals = hash_fn<key_vt>::hash(keys);
+    const hash_value_vt second_hash_vals = hash_fn2<key_vt>::hash(keys);
+    const hash_value_vt word_idxs = which_word(first_hash_vals);
     const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(first_hash_vals, second_hash_vals);
 // late gather   const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);

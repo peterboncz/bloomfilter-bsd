@@ -31,7 +31,8 @@ struct bloomfilter_h1_mod {
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
   using allocator_t = Alloc;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
@@ -77,8 +78,8 @@ struct bloomfilter_h1_mod {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // ---- Members ----
-  const size_t word_cnt; // the number of words/blocks
-  const size_t word_cnt_log2; // The (minimum) number of bits required to address the individual words of the bitvector
+  const hash_value_t word_cnt; // the number of words/blocks
+  const hash_value_t word_cnt_log2; // The (minimum) number of bits required to address the individual words of the bitvector
   const dtl::fast_divisor_u32_t fast_divisor;
   const allocator_t allocator;
   std::vector<word_t, allocator_t> word_array;
@@ -88,9 +89,9 @@ struct bloomfilter_h1_mod {
   static constexpr
   size_t
   determine_word_cnt(const size_t length) {
-    u32 desired_word_cnt = (length + (word_bitlength - 1)) / word_bitlength;
-    u32 actual_word_cnt = dtl::next_cheap_magic(desired_word_cnt).divisor;
-    u32 min_word_cnt = static_cast<size_t>(min_m / word_bitlength);
+    const auto desired_word_cnt = (length + (word_bitlength - 1)) / word_bitlength;
+    const hash_value_t actual_word_cnt = dtl::next_cheap_magic(desired_word_cnt).divisor; // TODO support filter with more then 512 MiB
+    const hash_value_t min_word_cnt = static_cast<hash_value_t>(min_m / word_bitlength);
     return std::max(actual_word_cnt, min_word_cnt);
   }
 
@@ -103,8 +104,9 @@ struct bloomfilter_h1_mod {
 
 
   /// C'tor
+  explicit
   bloomfilter_h1_mod(const size_t length,
-                 const allocator_t allocator = allocator_t())
+                     const allocator_t allocator = allocator_t())
       : word_cnt(determine_word_cnt(length)),
         word_cnt_log2(dtl::log_2(dtl::next_power_of_two(word_cnt))),
         fast_divisor(dtl::next_cheap_magic(word_cnt)),
@@ -118,7 +120,7 @@ struct bloomfilter_h1_mod {
   bloomfilter_h1_mod(const bloomfilter_h1_mod& other,
                      const allocator_t& allocator)
       : word_cnt(other.word_cnt),
-        word_cnt_log2(dtl::log_2(dtl::next_power_of_two(word_cnt))),
+        word_cnt_log2(other.word_cnt_log2),
         fast_divisor(other.fast_divisor),
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
@@ -149,7 +151,7 @@ struct bloomfilter_h1_mod {
 
 
   __forceinline__ __host__ __device__
-  size_t
+  hash_value_t
   which_word(const hash_value_t hash_val) const noexcept {
     const size_t word_idx = dtl::fast_mod_u32(hash_val >> (hash_value_bitlength - word_cnt_log2), fast_divisor);
     return word_idx;
@@ -160,7 +162,7 @@ struct bloomfilter_h1_mod {
   word_t
   which_bits(const hash_value_t hash_val) const noexcept {
     word_t word = 0;
-    for (size_t i = 0; i < k; i++) {
+    for ($u32 i = 0; i < k; i++) {
       u32 shift = (hash_value_bitlength - word_cnt_log2) - ((i + 1) * sector_bitlength_log2);
       u32 bit_idx = (hash_val >> shift) & sector_mask;
       u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
@@ -174,7 +176,7 @@ struct bloomfilter_h1_mod {
   void
   insert(const key_t& key) noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val);
+    const hash_value_t word_idx = which_word(hash_val);
     word_t word = word_array[word_idx];
     word |= which_bits(hash_val);
     word_array[word_idx] = word;
@@ -185,7 +187,7 @@ struct bloomfilter_h1_mod {
   u1
   contains(const key_t& key) const noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val);
+    const hash_value_t word_idx = which_word(hash_val);
     const word_t search_mask = which_bits(hash_val);
     return (word_array[word_idx] & search_mask) == search_mask;
   }

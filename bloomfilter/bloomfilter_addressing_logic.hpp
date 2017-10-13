@@ -34,7 +34,8 @@ template<
 struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _block_t> {
 
   using block_t = _block_t;
-  using size_t = $u32;
+//  using size_t = $u32;
+  using size_t = $u64;
   using hash_value_t = _hash_value_t;
 
 
@@ -89,9 +90,9 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
 
   /// Returns the index of the block the hash value maps to.
   __forceinline__ __host__ __device__
-  size_t
+  hash_value_t
   get_block_idx(const hash_value_t hash_value) const noexcept {
-    const size_t block_idx = dtl::fast_mod_u32(hash_value, fast_divisor);
+    const auto block_idx = dtl::fast_mod_u32(hash_value, fast_divisor);
     return block_idx;
   }
 
@@ -99,7 +100,7 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
   /// Returns the index of the block the hash value maps to.
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
-  dtl::vec<size_t, dtl::vector_length<Tv>::value>
+  dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_block_idxs(const Tv& hash_value) const noexcept {
     const auto block_idx = dtl::fast_mod_u32(hash_value, fast_divisor);
     return block_idx;
@@ -108,10 +109,10 @@ struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _blo
 
   /// Returns the index of the first word of the block the hash value maps to.
   __forceinline__ __host__ __device__
-  size_t
+  hash_value_t
   get_word_idx(const hash_value_t hash_value) const noexcept {
-    const size_t block_idx = get_block_idx(hash_value);
-    const size_t word_idx = block_idx * block_t::word_cnt;
+    const hash_value_t block_idx = get_block_idx(hash_value);
+    const hash_value_t word_idx = block_idx * block_t::word_cnt;
     return word_idx;
   }
 
@@ -192,9 +193,9 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
 
   /// Returns the index of the block the hash value maps to.
   __forceinline__ __host__ __device__
-  size_t
+  hash_value_t
   get_block_idx(const hash_value_t hash_value) const noexcept {
-    const size_t block_idx = hash_value & block_cnt_mask;
+    const auto block_idx = hash_value & block_cnt_mask;
     return block_idx;
   }
 
@@ -202,7 +203,7 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
   /// Returns the index of the block the hash value maps to.
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
-  dtl::vec<size_t, dtl::vector_length<Tv>::value>
+  dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_block_idx(const Tv& hash_value) const noexcept {
     const auto block_idx = hash_value & block_cnt_mask;
     return block_idx;

@@ -47,7 +47,8 @@ struct bloom_filter_std {
   };
 
   using addr_t = bloomfilter_addressing_logic<AddrMode, hash_value_t, block_t>;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
 
   //===----------------------------------------------------------------------===//
@@ -78,14 +79,6 @@ struct bloom_filter_std {
   }
 
 
-//  /// Returns the number of blocks the Bloom filter consists of.
-//  __forceinline__ __host__ __device__
-//  std::size_t
-//  block_cnt() const noexcept {
-//    return addr.block_cnt;
-//  }
-
-
   /// Returns the number of words the Bloom filter consists of.
   __forceinline__ __host__ __device__
   std::size_t
@@ -99,21 +92,21 @@ struct bloom_filter_std {
   insert(const key_t& key, word_t* __restrict filter) const noexcept {
     constexpr uint32_t word_bitlength = sizeof(word_t) * 8;
     constexpr uint32_t word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
-    constexpr uint32_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
+    constexpr word_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
     const auto addressing_bits = addr.get_required_addressing_bits();
 
     // Set one bit per word at a time.
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
-      const size_t word_idx = addr.get_word_idx(hash_val);
-      const size_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
+      const hash_value_t word_idx = addr.get_word_idx(hash_val);
+      const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
       filter[word_idx] |= word_t(1u) << bit_idx;
     }
   }
 
 
   __forceinline__
-  uint64_t
+  void
   batch_insert(const key_t* __restrict keys, const uint32_t key_cnt,
                word_t* __restrict filter) const {
     for (uint32_t j = 0; j < key_cnt; j++) {
@@ -127,14 +120,14 @@ struct bloom_filter_std {
   contains(const key_t& key, const word_t* __restrict filter) const noexcept {
     constexpr uint32_t word_bitlength = sizeof(word_t) * 8;
     constexpr uint32_t word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
-    constexpr uint32_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
+    constexpr word_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
     const auto addressing_bits = addr.get_required_addressing_bits();
 
     // Test one bit per word at a time.
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
-      const size_t word_idx = addr.get_word_idx(hash_val);
-      const size_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
+      const hash_value_t word_idx = addr.get_word_idx(hash_val);
+      const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
       const bool hit = filter[word_idx] & (word_t(1u) << bit_idx);
       if (!hit) return false;
     }

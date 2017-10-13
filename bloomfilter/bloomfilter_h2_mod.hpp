@@ -31,7 +31,8 @@ struct bloomfilter_h2_mod {
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
   using allocator_t = Alloc;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
@@ -85,23 +86,12 @@ struct bloomfilter_h2_mod {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // ---- Members ----
-  const size_t word_cnt; // the number of words/blocks
-  const size_t word_cnt_log2; // The (minimum) number of bits required to address the individual words of the bitvector
+  const hash_value_t word_cnt; // the number of words/blocks
+  const hash_value_t word_cnt_log2; // The (minimum) number of bits required to address the individual words of the bitvector
   const dtl::fast_divisor_u32_t fast_divisor;
   const allocator_t allocator;
   std::vector<word_t, allocator_t> word_array;
   // ----
-
-
-// incompatible with C++11
-//  static constexpr
-//  size_t
-//  determine_actual_length(const size_t length) {
-//    // round up to the next power of two
-//    const size_t m = static_cast<size_t>(next_power_of_two(length));
-//    const size_t min = static_cast<size_t>(min_m);
-//    return std::max(m, min);
-//  }
 
 
   static constexpr
@@ -122,8 +112,9 @@ struct bloomfilter_h2_mod {
 
 
   /// C'tor
+  explicit
   bloomfilter_h2_mod(const size_t length,
-                 const allocator_t allocator = allocator_t())
+                     const allocator_t allocator = allocator_t())
       : word_cnt(determine_word_cnt(length)),
         word_cnt_log2(dtl::log_2(dtl::next_power_of_two(word_cnt))),
         fast_divisor(dtl::next_cheap_magic(word_cnt)),
@@ -137,7 +128,7 @@ struct bloomfilter_h2_mod {
   bloomfilter_h2_mod(const bloomfilter_h2_mod& other,
                      const allocator_t& allocator)
       : word_cnt(other.word_cnt),
-        word_cnt_log2(dtl::log_2(dtl::next_power_of_two(word_cnt))),
+        word_cnt_log2(other.word_cnt_log2),
         fast_divisor(other.fast_divisor),
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
@@ -168,9 +159,9 @@ struct bloomfilter_h2_mod {
 
 
   __forceinline__ __host__ __device__
-  size_t
+  const hash_value_t
   which_word(const hash_value_t hash_val) const noexcept {
-    const size_t word_idx = dtl::fast_mod_u32(hash_val >> (hash_value_bitlength - word_cnt_log2), fast_divisor);
+    const auto word_idx = dtl::fast_mod_u32(hash_val >> (hash_value_bitlength - word_cnt_log2), fast_divisor);
     return word_idx;
   }
 
@@ -182,7 +173,7 @@ struct bloomfilter_h2_mod {
              const size_t word_cnt_log2) noexcept {
     u32 first_bit_idx = (first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask();
     word_t word = word_t(1) << first_bit_idx;
-    for (size_t i = 1; i < k; i++) {
+    for ($u32 i = 1; i < k; i++) {
       u32 shift = (hash_value_bitlength - 2) - (i * sector_bitlength_log2);
       u32 bit_idx = (second_hash_val >> shift) & sector_mask();
       u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
@@ -197,7 +188,7 @@ struct bloomfilter_h2_mod {
   insert(const key_t& key) noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
-    u32 word_idx = which_word(first_hash_val);
+    const hash_value_t word_idx = which_word(first_hash_val);
     word_t word = word_array[word_idx];
     word |= which_bits(first_hash_val, second_hash_val, word_cnt_log2);
     word_array[word_idx] = word;

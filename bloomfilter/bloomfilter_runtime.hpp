@@ -56,7 +56,7 @@ struct bloomfilter_runtime {
   std::function<u32()>
   hash_function_count;
 
-  std::function<u32()>
+  std::function<u64()>
   length;
 
   std::function<void()>
@@ -255,7 +255,11 @@ struct bloomfilter_runtime {
     $u64 word_bit_cnt = dtl::log_2(actual_m / bf_t::word_bitlength);
     if (!dtl::is_power_of_two(m) && !only_pow_of_two) {
       using bf_mod_t = bf2_k2_mod_t;
-      actual_m = bf_mod_t::determine_word_cnt(m) * bf_mod_t::word_bitlength;
+      actual_m = std::min(actual_m, bf_mod_t::determine_word_cnt(m) * bf_mod_t::word_bitlength);
+    }
+
+    if (actual_m > (1ull << 32)) {
+      throw "m must not exceed 2^32 bits.";
     }
 
     // Determine the number of hash functions needed.

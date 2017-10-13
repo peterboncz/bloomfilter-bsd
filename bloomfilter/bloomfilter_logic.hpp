@@ -24,7 +24,8 @@ struct bloomfilter_logic {
   using key_t = Tk;
   using addr_t = Taddr;
   using block_t = Tblock;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   //===----------------------------------------------------------------------===//
   // Inspect the given hash functions
