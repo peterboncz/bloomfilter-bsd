@@ -59,6 +59,13 @@ struct vs<T, 32> {
 
 struct v_base {};
 
+template<class T>
+struct is_vector {
+  static constexpr bool value = std::is_base_of<v_base, T>::value;
+};
+
+
+
 /// The general vector class with N components of the (primitive) type T.
 ///
 /// If there exists a native vector type that can hold N values of type T, e.g. __m256i,
@@ -844,6 +851,15 @@ struct v : v_base {
   __forceinline__ v& operator<<=(const v& o) noexcept { data = binary_op<is_compound>(typename op::shift_left_var(), data, o.data); return (*this); }
   __forceinline__ v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left(), data, s); return (*this); }
 
+  template<typename Trhs, typename = std::enable_if_t<is_vector<Trhs>::value>>
+  __forceinline__ v operator<<(const Trhs& o) const noexcept {
+    v rhs;
+    for ($u64 i = 0; i < N; i++) {
+      rhs.insert(o[i], i);
+    }
+    return v { binary_op<is_compound>(typename op::shift_left_var(), data, rhs.data) };
+  }
+
   __forceinline__ v mask_shift_left(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data, data, op_mask.data) }; }
   __forceinline__ v mask_shift_left(const i32& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::shift_left(), data, make_nested(s), data, op_mask.data) }; }
   __forceinline__ v& mask_assign_shift_left(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::shift_left_var(), data, o.data, data, op_mask.data ); return *this; }
@@ -1185,6 +1201,18 @@ v<T, N> operator<<(const T& lhs, const v<T, N>& rhs) {
   v<T, N> lhs_vec = v<T, N>::make(lhs);
   return lhs_vec << rhs;
 }
+
+template<typename Tlhs, typename Trhs, typename = std::enable_if_t<is_vector<Trhs>::value>>
+__forceinline__ Tlhs
+operator<<(const Tlhs& lhs, const Trhs& o) noexcept {
+  Tlhs rhs;
+  for ($u64 i = 0; i < Tlhs::length; i++) {
+    rhs.insert(o[i], i);
+  }
+  return lhs << rhs;
+}
+
+
 // not sure if this is causing problems...
 template<typename Tl, typename T, u64 N>
 v<T, N> operator<<(const Tl& lhs, const v<T, N>& rhs) {

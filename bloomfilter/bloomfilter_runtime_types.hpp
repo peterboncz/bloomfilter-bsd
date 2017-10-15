@@ -16,6 +16,7 @@ namespace dtl {
 
 // TODO remove namespace pollution
 using key_t = $u32;
+//using word_t = $u64; // FIXME
 using word_t = $u32;
 
 template<typename T>

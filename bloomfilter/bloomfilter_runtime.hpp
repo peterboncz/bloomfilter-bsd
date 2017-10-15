@@ -499,6 +499,14 @@ struct bloomfilter_runtime {
     return std::pow(1.0 - std::pow(1.0 - (1.0 / m), k * n), k);
   }
 
+
+  block_addressing get_addressing_mode() const {
+    return dtl::is_power_of_two(m)
+           ? block_addressing::POWER_OF_TWO
+           : block_addressing::MAGIC;
+  }
+
+
 };
 
 } // namespace dtl

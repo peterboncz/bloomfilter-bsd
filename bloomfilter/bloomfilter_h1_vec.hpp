@@ -53,7 +53,8 @@ struct bloomfilter_h1_vec {
     for ($u32 i = 0; i < bf_t::k; i++) {
       const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
-      words |= vec<word_t, n>::make(1) << (bit_idxs + sector_offset);
+      const vec<word_t, n> a = vec<word_t, n>::make(1) << (bit_idxs + sector_offset);
+      words |= a;
     }
     return words;
   }
