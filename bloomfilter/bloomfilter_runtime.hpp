@@ -86,6 +86,10 @@ struct bloomfilter_runtime {
     src.instance_vec = nullptr;
   }
 
+  ~bloomfilter_runtime() {
+    destruct();
+  }
+
   bloomfilter_runtime&
   operator=(dtl::bloomfilter_runtime&& src) {
     m = src.m;
