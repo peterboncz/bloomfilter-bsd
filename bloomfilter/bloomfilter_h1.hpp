@@ -126,6 +126,10 @@ struct bloomfilter_h1 {
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
 
+  ~bloomfilter_h1() {
+    word_array.clear();
+    word_array.shrink_to_fit();
+  }
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator type)
   template<typename AllocOfCopy = Alloc>
