@@ -52,12 +52,13 @@ struct bloomfilter_h2_vec {
              const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
     vec<word_t, n> words = 1;
-    words <<= (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask();
+    words <<= internal::vector_convert<hash_value_t, word_t, n>::convert(
+        (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
     for ($u32 i = 1; i < bf_t::k; i++) {
       u32 shift = (bf_t::hash_value_bitlength - 2) - (i * bf_t::sector_bitlength_log2);
       const vec<$u32, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
-      words |= vec<$u32, n>::make(1) << (bit_idxs + sector_offset);
+      words |= vec<word_t, n>::make(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs + sector_offset);
     }
     return words;
   }
@@ -65,7 +66,8 @@ struct bloomfilter_h2_vec {
 
   template<u64 n> // the vector length
   __forceinline__
-  typename vec<key_t, n>::mask_t
+//  typename vec<key_t, n>::mask_t
+  auto
   contains(const vec<key_t, n>& keys) const noexcept {
     assert(dtl::mem::is_aligned(&keys, 32)); // FIXME alignment depends on the nested vector type
     using key_vt = vec<key_t, n>;
@@ -109,7 +111,7 @@ struct bloomfilter_h2_vec {
     using mask_t = typename vec<key_t, vector_len>::mask;
     u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-      const mask_t mask = contains<vector_len>(*reinterpret_cast<const vec_t*>(reader));
+      const auto mask = contains<vector_len>(*reinterpret_cast<const vec_t*>(reader));
       u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
       match_writer += match_cnt;
       reader += vector_len;

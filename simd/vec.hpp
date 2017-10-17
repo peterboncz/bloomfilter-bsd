@@ -1244,7 +1244,7 @@ template<u1 Compound,
 static __forceinline__ typename Trv::compound_type
 __gather(const Tp* const base_addr,
          const typename Tiv::compound_type& idxs) {
-  typename Tiv::compound_type result;
+  typename Trv::compound_type result;
   for ($u64 i = 0; i < Tiv::nested_vector_cnt; i++) {
     result[i] = __gather<!Compound, Tp, Trv, Tiv>(base_addr, idxs[i]);
   }

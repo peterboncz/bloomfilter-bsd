@@ -13,6 +13,81 @@
 
 namespace dtl {
 
+namespace internal {
+/// HACK only works for AVX2
+
+template<typename Tsrc, typename Tdst, u64 n> // the vector length
+struct vector_convert {};
+
+
+template<u64 n> // the vector length
+struct vector_convert<uint32_t, uint32_t, n> {
+  __forceinline__
+  static vec<uint32_t, n>
+  convert(const vec<uint32_t, n>& src) noexcept {
+    return src;
+  }
+};
+
+
+template<u64 n> // the vector length
+struct vector_convert<uint32_t, uint64_t, n> {
+  __forceinline__
+  static vec<uint64_t, n>
+  convert(const vec<uint32_t, n>& src) noexcept {
+    vec<uint64_t, n> dst;
+    const auto s = reinterpret_cast<const __m128i*>(&src.data);
+    auto d = reinterpret_cast<__m256i*>(&dst.data);
+    for (std::size_t i = 0; i < src.nested_vector_cnt; i++) {
+      d[i] = _mm256_cvtepu32_epi64(s[i]);
+    }
+    return dst;
+  }
+};
+
+
+template<typename Tp, typename Ti, u64 n> // the vector length
+struct vector_gather {};
+
+template<u64 n> // the vector length
+struct vector_gather<uint32_t, uint32_t, n> {
+  __forceinline__ static
+  vec<uint32_t, n>
+  gather(const u32* const base_addr,
+         const vec<uint32_t, n>& idxs) noexcept {
+    vec<uint32_t, n> result;
+    const auto i = reinterpret_cast<const __m256i*>(&idxs.data);
+    auto r = reinterpret_cast<__m256i*>(&result.data);
+    const auto b = reinterpret_cast<const int *>(base_addr);
+    for (std::size_t j = 0; j < idxs.nested_vector_cnt; j++) {
+      r[j] = _mm256_i32gather_epi32(b, i[j], 4);
+    }
+    return result;
+  }
+
+};
+
+template<u64 n> // the vector length
+struct vector_gather<uint64_t, uint32_t, n> {
+  __forceinline__ static
+  vec<uint64_t, n>
+  gather(const u64* const base_addr,
+         const vec<uint32_t, n>& idxs) noexcept {
+    vec<uint64_t, n> result;
+    const auto i = reinterpret_cast<const __m128i*>(&idxs.data);
+    auto r = reinterpret_cast<__m256i*>(&result.data);
+    const auto b = reinterpret_cast<const long long int *>(base_addr);
+    for (std::size_t j = 0; j < result.nested_vector_cnt; j++) {
+      r[j] = _mm256_i32gather_epi64(b, i[j], 8);
+    }
+    return result;
+  }
+
+};
+
+
+} // namespace internal
+
 template<
     typename Tk,
     template<typename Ty> class hash_fn,
@@ -53,12 +128,11 @@ struct bloomfilter_h1_vec {
     for ($u32 i = 0; i < bf_t::k; i++) {
       const vec<$u32, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
-      const vec<word_t, n> a = vec<word_t, n>::make(1) << (bit_idxs + sector_offset);
+      const vec<word_t, n> a = vec<word_t, n>::make(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs + sector_offset);
       words |= a;
     }
     return words;
   }
-
 
   template<u64 n> // the vector length
   __forceinline__
@@ -72,7 +146,8 @@ struct bloomfilter_h1_vec {
 
     const hash_value_vt hash_vals = hash_fn<key_vt>::hash(keys);
     const hash_value_vt word_idxs = which_word(hash_vals);
-    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
+//    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
+    const word_vt words = internal::vector_gather<word_t, hash_value_t, n>::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(hash_vals);
 // late gather:    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     return (words & search_masks) == search_masks;

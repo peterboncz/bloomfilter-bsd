@@ -264,7 +264,7 @@ template<>
 struct gather<$i64, __m256i, __m256i> : vector_fn<$i64, __m256i, __m256i, __m256i> {
   __forceinline__ __m256i operator()(const i64* const base_addr, const __m256i& idxs) const noexcept {
     const auto b = reinterpret_cast<const long long int *>(base_addr);
-    return _mm256_i64gather_epi64(b, idxs, 1); // danger!
+    return _mm256_i64gather_epi64(b, idxs, 8); // danger!
   }
 };
 
@@ -272,7 +272,7 @@ template<>
 struct gather<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256i> {
   __forceinline__ __m256i operator()(const u64* const base_addr, const __m256i& idxs) const noexcept {
     const auto b = reinterpret_cast<const long long int *>(base_addr);
-    return _mm256_i64gather_epi64(b, idxs, 1); // danger!
+    return _mm256_i64gather_epi64(b, idxs, 8); // danger!
   }
 };
 
