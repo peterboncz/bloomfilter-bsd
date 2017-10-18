@@ -71,7 +71,8 @@ struct bloomfilter_h1_mod_vec {
 
     const hash_value_vt hash_vals = hash_fn<key_vt>::hash(keys);
     const hash_value_vt word_idxs = which_word(hash_vals);
-    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
+//    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
+    const word_vt words = internal::vector_gather<word_t, hash_value_t, n>::gather(bf.word_array.data(), word_idxs);
     const word_vt search_masks = which_bits(hash_vals);
 // late gather:    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     return (words & search_masks) == search_masks;

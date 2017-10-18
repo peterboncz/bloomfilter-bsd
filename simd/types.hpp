@@ -332,7 +332,7 @@ constexpr u8 lut_match_cnt[256] = {
 
 
 /// lookup table used to convert a 4-bit mask into a 32-bit position list
-constexpr dtl::r128 lut_match_pos_4bit[256] = {
+constexpr dtl::r128 lut_match_pos_4bit[16] = {
     { .i32 = { -1, -1, -1, -1 } }, // 0
     { .i32 = { 0, -1, -1, -1 } }, // 1
     { .i32 = { 1, -1, -1, -1 } }, // 2
@@ -351,7 +351,7 @@ constexpr dtl::r128 lut_match_pos_4bit[256] = {
     { .i32 = { 0, 1, 2, 3 } }, // 15
 };
 
-constexpr u8 lut_match_cnt_4bit[256] = {
+constexpr u8 lut_match_cnt_4bit[16] = {
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4
 };
 

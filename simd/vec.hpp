@@ -905,6 +905,10 @@ struct v : v_base {
   __forceinline__ v& mask_assign_bit_xor(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, o.data, data, op_mask.data ); return *this; }
   __forceinline__ v& mask_assign_bit_xor(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data ); return *this; }
 
+  __forceinline__ v zero_mask(const m& mask) {
+    return v {unary_op<is_compound>(typename op::blend(), /*data,*/ make(0).data, data, (!mask).data) };
+  }
+
   __forceinline__ v operator~() const noexcept { return v { unary_op<is_compound>(typename op::bit_not(), data) }; }
 
   static __forceinline__ scalar_type
