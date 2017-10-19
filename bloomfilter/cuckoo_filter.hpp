@@ -68,7 +68,7 @@ struct cuckoo_filter {
     // Re-try at the alternative bucket.
     current_idx = alternative_bucket_idx(current_idx, current_tag);
 
-    for (uint32_t count = 0; count < 500; count++) {
+    for (uint32_t count = 0; count < 50; count++) {
       old_tag = table.insert_tag_relocate(current_idx, current_tag);
       if (old_tag == table_t::null_tag) { return; } // successfully inserted
       if (old_tag == table_t::overflow_tag) { return; } // hit an overflowed bucket (always return true)
