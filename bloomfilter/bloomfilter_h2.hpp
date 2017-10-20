@@ -77,7 +77,7 @@ struct bloomfilter_h2 {
   static constexpr u32 sector_bitlength = word_bitlength / sector_cnt;
   // the number of bits needed to address the individual bits within a sector
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
-  static constexpr word_t sector_mask() { return sector_bitlength - 1; }
+  static constexpr word_t sector_mask() { return static_cast<word_t>(sector_bitlength) - 1; }
 
   // the number of remaining bits of the FIRST hash value (used to identify the word)
   static constexpr i32 remaining_hash_bit_cnt = static_cast<i32>(hash_value_bitlength) - (sectorized ? sector_bitlength_log2 : word_bitlength_log2);
