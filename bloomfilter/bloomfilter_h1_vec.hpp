@@ -94,6 +94,43 @@ struct vector_gather<uint64_t, uint32_t, n> {
 };
 
 
+template<u64 n> // the vector length
+struct vector_gather<uint32_t, uint64_t, n> {
+  __forceinline__ static
+  vec<uint32_t, n>
+  gather(const vec<uint64_t, n>& idxs) noexcept {
+    vec<uint32_t, n> result;
+//    for (std::size_t j = 0; j < result.length; j++) {
+//      result.insert(base_addr[idxs[j]], j);
+//    }
+    const auto i = reinterpret_cast<const __m256i*>(&idxs.data);
+    auto r = reinterpret_cast<__m128i*>(&result.data);
+    for (std::size_t j = 0; j < idxs.nested_vector_cnt; j++) {
+      r[j] = _mm256_i64gather_epi32(0, i[j], 1);
+    }
+    return result;
+  }
+
+};
+
+
+template<u64 n> // the vector length
+struct vector_gather<uint64_t, uint64_t, n> {
+  __forceinline__ static
+  vec<uint64_t, n>
+  gather(const vec<uint64_t, n>& addrs) noexcept {
+    vec<uint64_t, n> result;
+    const auto a = reinterpret_cast<const __m256i*>(&addrs.data);
+    auto r = reinterpret_cast<__m256i*>(&result.data);
+    for (std::size_t i = 0; i < result.nested_vector_cnt; i++) {
+      r[i] = _mm256_i64gather_epi64(0, a[i], 1);
+    }
+    return result;
+  }
+
+};
+
+
 } // namespace internal
 
 template<

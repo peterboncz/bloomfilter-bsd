@@ -32,10 +32,10 @@ struct find_tag {
     const auto bucket = table.read_bucket(bucket_idx);
     const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
     bool found = false;
-    found = bucket == table_t::overflow_bucket;
+    found |= bucket == table_t::overflow_bucket;
     found |= alternative_bucket == table_t::overflow_bucket;
     // load both words and merge them into one word -> do only one search
-    const typename table_t::word_t merged_buckets = (bucket << table_t::bucket_size_bits) | alternative_bucket;
+    const typename table_t::word_t merged_buckets = (static_cast<typename table_t::word_t>(bucket) << table_t::bucket_size_bits) | alternative_bucket;
     found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(merged_buckets, tag);
     return found;
   };
@@ -54,10 +54,10 @@ struct find_tag<1> {
     const auto bucket = table.read_bucket(bucket_idx);
     const auto alternative_bucket = table.read_bucket(alternative_bucket_idx);
     bool found = false;
-    found = packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(bucket, tag);
     found |= bucket == table_t::overflow_bucket;
-    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
     found |= alternative_bucket == table_t::overflow_bucket;
+    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(bucket, tag);
+    found |= packed_value<typename table_t::word_t, table_t::tag_size_bits>::contains(alternative_bucket, tag);
     return found;
   };
 
@@ -97,6 +97,7 @@ struct cuckoo_filter_multiword_table {
 
   static constexpr word_t bucket_mask = (bucket_size_bits == word_size_bits) ? word_t(-1) : (word_t(1) << bucket_size_bits) - 1;
   static constexpr uint32_t bucket_count = bucket_cnt_per_word * word_cnt;
+  static_assert(dtl::is_power_of_two(bucket_count), "Bucket count must be a power of two.");
   static constexpr uint32_t bucket_addressing_bits = dtl::ct::log_2_u32<dtl::next_power_of_two(bucket_count)>::value;
 
   static constexpr uint32_t capacity = bucket_count * tags_per_bucket;
@@ -184,6 +185,7 @@ struct cuckoo_filter_multiword_table {
   __forceinline__
   uint32_t
   insert_tag_relocate(const uint32_t bucket_idx, const uint32_t tag) {
+//    std::cout << ".";
     // Check whether this is an overflow bucket.
     auto bucket = read_bucket(bucket_idx);
     if (bucket == overflow_bucket) {

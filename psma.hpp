@@ -68,7 +68,7 @@ public:
       sma_build(values, n, is_null);
       sma_build.done();
 
-      // 2. build populate PSMA table
+      // 2. populate the PSMA table
       for ($u32 i = 0; i != n; i++) {
         // compute the (unsigned) delta to the min value
         unsigned_value_t delta_value = values[i] - ref._sma.min_value;

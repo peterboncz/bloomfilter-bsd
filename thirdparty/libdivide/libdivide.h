@@ -555,7 +555,7 @@ static uint64_t libdivide_128_div_64_to_64(uint64_t u1, uint64_t u0, uint64_t v,
     rhat;               // A remainder.
     int s;              // Shift amount for norm.
 
-    if (u1 >= v) {                 // If overflow, set rem.
+    if (u1 >= v) {                 // If mark_overflow, set rem.
         if (r != NULL)             // to an impossible value,
             *r = (uint64_t) -1;    // and return the largest
         return (uint64_t) -1;      // possible quotient.
@@ -656,7 +656,7 @@ static uint64_t libdivide_128_div_128_to_64(uint64_t u_hi, uint64_t u_lo, uint64
     libdivide_u128_shift(&v1t.hi, &v1t.lo, n);
     uint64_t v1 = v1t.hi; // i.e. v1 = v1t >> 64
 
-    // To ensure no overflow
+    // To ensure no mark_overflow
     u128_t u1 = u;
     libdivide_u128_shift(&u1.hi, &u1.lo, -1);
 
@@ -751,7 +751,7 @@ static inline struct libdivide_u32_t libdivide_internal_u32_gen(uint32_t d, int 
       // (2**power) / d. However, we already have (2**(power-1))/d and
       // its remainder.  By doubling both, and then correcting the
       // remainder, we can compute the larger division.
-      // don't care about overflow here - in fact, we expect it
+      // don't care about mark_overflow here - in fact, we expect it
       proposed_m += proposed_m;
       const uint32_t twice_rem = rem + rem;
       if (twice_rem >= d || twice_rem < rem) proposed_m += 1;
@@ -813,7 +813,7 @@ uint32_t libdivide_u32_recover(const struct libdivide_u32_t *denom) {
     // Here we wish to compute d = 2^(32+shift+1)/(m+2^32).
     // Notice (m + 2^32) is a 33 bit number. Use 64 bit division for now
     // Also note that shift may be as high as 31, so shift + 1 will
-    // overflow. So we have to compute it as 2^(32+shift)/(m+2^32), and
+    // mark_overflow. So we have to compute it as 2^(32+shift)/(m+2^32), and
     // then double the quotient and remainder.
     // TODO: do something better than 64 bit math
     uint64_t half_n = 1ULL << (32 + shift);
@@ -825,7 +825,7 @@ uint32_t libdivide_u32_recover(const struct libdivide_u32_t *denom) {
     // We computed 2^(32+shift)/(m+2^32)
     // Need to double it, and then add 1 to the quotient if doubling th
     // remainder would increase the quotient.
-    // Note that rem<<1 cannot overflow, since rem < d and d is 33 bits
+    // Note that rem<<1 cannot mark_overflow, since rem < d and d is 33 bits
     uint32_t full_q = half_q + half_q + ((rem<<1) >= d);
 
     // We rounded down in gen unless we're a power of 2 (i.e. in branchfree case)
@@ -954,7 +954,7 @@ static inline struct libdivide_u64_t libdivide_internal_u64_gen(uint64_t d, int 
       // (2**power) / d. However, we already have (2**(power-1))/d and
       // its remainder. By doubling both, and then correcting the
       // remainder, we can compute the larger division.
-      // don't care about overflow here - in fact, we expect it
+      // don't care about mark_overflow here - in fact, we expect it
       proposed_m += proposed_m;
       const uint64_t twice_rem = rem + rem;
       if (twice_rem >= d || twice_rem < rem) proposed_m += 1;
@@ -1042,7 +1042,7 @@ uint64_t libdivide_u64_recover(const struct libdivide_u64_t *denom) {
     // We computed 2^(64+shift)/(m+2^64)
     // Double the remainder ('dr') and check if that is larger than d
     // Note that d is a 65 bit value, so r1 is small and so r1 + r1 cannot
-    // overflow
+    // mark_overflow
     uint64_t dr_lo = r_lo + r_lo;
     uint64_t dr_hi = r_hi + r_hi + (dr_lo < r_lo); // last term is carry
     int dr_exceeds_d = (dr_hi > d_hi) || (dr_hi == d_hi && dr_lo >= d_lo);
@@ -1175,7 +1175,7 @@ static inline struct libdivide_s32_t libdivide_internal_s32_gen(int32_t d, int b
       more = floor_log_2_d - 1;
     } else {
       // We need to go one higher. This should not make proposed_m
-      // overflow, but it will make it negative when interpreted as an
+      // mark_overflow, but it will make it negative when interpreted as an
       // int32_t.
       proposed_m += proposed_m;
       const uint32_t twice_rem = rem + rem;
@@ -1464,7 +1464,7 @@ static inline struct libdivide_s64_t libdivide_internal_s64_gen(int64_t d, int b
       more = floor_log_2_d - 1;
     } else {
       // We need to go one higher. This should not make proposed_m
-      // overflow, but it will make it negative when interpreted as an
+      // mark_overflow, but it will make it negative when interpreted as an
       // int32_t.
       proposed_m += proposed_m;
       const uint64_t twice_rem = rem + rem;

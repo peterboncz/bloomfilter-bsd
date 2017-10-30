@@ -175,8 +175,18 @@ struct bloom_filter_std {
   batch_contains(const key_t* __restrict keys, const uint32_t key_cnt,
                  const word_t* __restrict filter,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
+    constexpr u32 mini_batch_size = 16;
+    const u32 mini_batch_cnt = key_cnt / mini_batch_size;
+
     $u32* match_writer = match_positions;
-    for (uint32_t j = 0; j < key_cnt; j++) {
+    for ($u32 mb = 0; mb < mini_batch_cnt; mb++) {
+      for (uint32_t j = mb * mini_batch_size; j < ((mb + 1) * mini_batch_size); j++) {
+        const auto is_contained = contains(keys[j], filter);
+        *match_writer = j + match_offset;
+        match_writer += is_contained;
+      }
+    }
+    for (uint32_t j = (mini_batch_cnt * mini_batch_size); j < key_cnt; j++) {
       const auto is_contained = contains(keys[j], filter);
       *match_writer = j + match_offset;
       match_writer += is_contained;

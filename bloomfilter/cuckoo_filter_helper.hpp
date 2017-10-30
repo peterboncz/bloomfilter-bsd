@@ -10,9 +10,8 @@ namespace {
 
 
 // TODO remove macros
-// inspired from
-// http://www-graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
-// adapted from TODO
+// inspired from http://www-graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
+// adapted from https://github.com/efficient/cuckoofilter
 #define haszero2_u32(x) (((x)-0x55555555u) & (~(x)) & 0xAAAAAAAAu)
 #define hasvalue2_u32(x, n) (haszero2_u32((x) ^ ((n) * 0x55555555u)))
 

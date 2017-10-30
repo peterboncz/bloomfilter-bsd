@@ -113,7 +113,7 @@ struct v : v_base {
   /// The actual vector data. (the one and only non-static member variable of this class).
   compound_type data;
 
-  /// The native 'mask' type of the surrounding vector.
+    /// The native 'mask' type of the surrounding vector.
   using nested_mask_type = typename nested_vector::mask_type;
 
   /// The 'mask' type is a composition if the surrounding vector is also a composition.
@@ -849,7 +849,7 @@ struct v : v_base {
   __forceinline__ v operator<<(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data) }; }
   __forceinline__ v operator<<(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)) }; } // TODO optimize
   __forceinline__ v& operator<<=(const v& o) noexcept { data = binary_op<is_compound>(typename op::shift_left_var(), data, o.data); return (*this); }
-  __forceinline__ v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left(), data, s); return (*this); }
+  __forceinline__ v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)); return (*this); }
 
   template<typename Trhs, typename = std::enable_if_t<is_vector<Trhs>::value>>
   __forceinline__ v operator<<(const Trhs& o) const noexcept {

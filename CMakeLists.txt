@@ -32,11 +32,15 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h2_vec.hpp
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
+        bloomfilter/bloomfilter_hn.hpp
+        bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
         bloomfilter/cuckoo_filter.hpp
         bloomfilter/cuckoo_filter_word_table.hpp
         bloomfilter/cuckoo_filter_multiword_table.hpp
         bloomfilter/cuckoo_filter_helper.hpp
+        bloomfilter/cuckoo_filter_vec.hpp
+        bloomfilter/math.hpp
         bitmask.hpp
         bitpack.hpp
         bitset.hpp
