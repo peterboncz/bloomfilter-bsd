@@ -13,6 +13,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
         adept.hpp
         barrier.hpp
         bits.hpp
+        bloomfilter/dynamic/bloomfilter_addressing_logic.hpp
+        bloomfilter/dynamic/bloomfilter_block_logic.hpp
+        bloomfilter/dynamic/bloomfilter_hash.hpp
+        bloomfilter/dynamic/bloomfilter_logic.hpp
         bloomfilter/bloom_filter_std.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_b64.hpp
@@ -32,6 +36,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h2_vec.hpp
         bloomfilter/bloomfilter_h2_mod.hpp
         bloomfilter/bloomfilter_h2_mod_vec.hpp
+        bloomfilter/bloomfilter_h3.hpp
+        bloomfilter/bloomfilter_h3_mod.hpp
+        bloomfilter/bloomfilter_h3_mod_vec.hpp
+        bloomfilter/bloomfilter_h3_vec.hpp
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
