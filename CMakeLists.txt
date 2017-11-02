@@ -21,6 +21,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_b64.hpp
         bloomfilter/bloomfilter_runtime.hpp
+        bloomfilter/bloomfilter_runtime_sectorized.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_logic.hpp
         bloomfilter/bloomfilter_addressing_logic.hpp
@@ -40,6 +41,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h3_mod.hpp
         bloomfilter/bloomfilter_h3_mod_vec.hpp
         bloomfilter/bloomfilter_h3_vec.hpp
+        bloomfilter/blocked_bloomfilter_runtime.hpp
+        bloomfilter/bloomfilter_multiword.hpp
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp

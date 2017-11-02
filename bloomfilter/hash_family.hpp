@@ -8,31 +8,88 @@ namespace hash {
 
 namespace stat {
 
-template<$u32 no>
+template<
+    typename key_t,
+    $u32 hash_fn_no
+>
 struct mul32 { };
 
-template<>
-struct mul32<0> {
+template<typename key_t>
+struct mul32<key_t, 0> {
   __forceinline__ __host__ __device__
-  static u32 hash(u32& key) { return key * 596572387u; } // Peter 1
+  static key_t hash(key_t& key) { return key * 596572387u; } // Peter 1
 };
 
-template<>
-struct mul32<1> {
+template<typename key_t>
+struct mul32<key_t, 1> {
   __forceinline__ __host__ __device__
-  static u32 hash(u32& key) { return key * 370248451u; } // Peter 2
+  static key_t hash(key_t& key) { return key * 370248451u; } // Peter 2
 };
 
-template<>
-struct mul32<2> {
+template<typename key_t>
+struct mul32<key_t, 2> {
   __forceinline__ __host__ __device__
-  static u32 hash(u32& key) { return key * 2654435769u; } // Knuth 1
+  static key_t hash(key_t& key) { return key * 2654435769u; } // Knuth 1
 };
 
-template<>
-struct mul32<3> {
+template<typename key_t>
+struct mul32<key_t, 3> {
   __forceinline__ __host__ __device__
-  static u32 hash(u32& key) { return key * 1799596469u; } // Knuth 2
+  static key_t hash(key_t& key) { return key * 1799596469u; } // Knuth 2
+};
+
+template<typename key_t>
+struct mul32<key_t, 4> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 0x9E3779B1u; } // https://lowrey.me/exploring-knuths-multiplicative-hash-2/
+};
+
+template<typename key_t>
+struct mul32<key_t, 5> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 2284105051u; } // Impala 3
+};
+
+template<typename key_t>
+struct mul32<key_t, 6> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 1203114875u; } // Impala 1 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 7> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 1150766481u; } // Impala 2 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 8> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 2729912477u; } // Impala 4 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 9> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 1884591559u; } // Impala 5 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 10> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 770785867u; } // Impala 6 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 11> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 2667333959u; } // Impala 7 (odd, not prime)
+};
+
+template<typename key_t>
+struct mul32<key_t, 12> {
+  __forceinline__ __host__ __device__
+  static key_t hash(key_t& key) { return key * 1550580529u; } // Impala 8 (odd, not prime)
 };
 
 } // namespace stat(ic)

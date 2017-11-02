@@ -150,7 +150,7 @@ std::bitset<N*2> unrank_tree(size_t rank) {
 }
 
 constexpr bool is_power_of_two(size_t x) {
-  return x && ((x & (x - 1)) == 0);
+  return x == 1 ? true : (x && ((x & (x - 1)) == 0));
 }
 
 constexpr u64 next_power_of_two(u64 value) {
