@@ -19,13 +19,12 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/dynamic/bloomfilter_logic.hpp
         bloomfilter/bloom_filter_std.hpp
         bloomfilter/blocked_bloomfilter.hpp
-        bloomfilter/blocked_bloomfilter_b64.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_sectorized.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_logic.hpp
         bloomfilter/bloomfilter_addressing_logic.hpp
-        bloomfilter/bloomfilter_block_logic.hpp
+        bloomfilter/old/bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_h1.hpp
         bloomfilter/bloomfilter_h1_logic.hpp
         bloomfilter/bloomfilter_h1_vec.hpp
@@ -41,8 +40,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h3_mod.hpp
         bloomfilter/bloomfilter_h3_mod_vec.hpp
         bloomfilter/bloomfilter_h3_vec.hpp
-        bloomfilter/blocked_bloomfilter_runtime.hpp
-        bloomfilter/bloomfilter_multiword.hpp
+        bloomfilter/blocked_bloomfilter.hpp
+        bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
@@ -50,7 +49,6 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/cuckoo_filter_word_table.hpp
         bloomfilter/cuckoo_filter_multiword_table.hpp
         bloomfilter/cuckoo_filter_helper.hpp
-        bloomfilter/cuckoo_filter_vec.hpp
         bloomfilter/math.hpp
         bitmask.hpp
         bitpack.hpp

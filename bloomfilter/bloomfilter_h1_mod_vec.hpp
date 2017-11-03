@@ -49,7 +49,7 @@ struct bloomfilter_h1_mod_vec {
   vec<word_t, n>
   which_bits(const vec<hash_value_t, n>& hash_val) const noexcept {
     u32 word_bit_cnt = (bf_t::hash_value_bitlength - bf.word_cnt_log2);
-    vec<word_t, n> words = 0;
+    vec<word_t, n> words = vec<word_t, n>::make(0);
     for ($u32 i = 0; i < bf_t::k; i++) {
       const vec<hash_value_t, n> bit_idxs = (hash_val >> (word_bit_cnt - ((i + 1) * bf_t::sector_bitlength_log2))) & static_cast<word_t>(bf_t::sector_mask);
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;

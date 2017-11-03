@@ -53,7 +53,7 @@ struct bloomfilter_h2_mod_vec {
   which_bits(const vec<hash_value_t, n>& first_hash_val,
              const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
-    vec<word_t, n> words = 1;
+    vec<word_t, n> words = vec<word_t, n>::make(1);
     words <<= internal::vector_convert<hash_value_t, word_t, n>::convert(
         (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
     for ($u32 i = 1; i < bf_t::k; i++) {

@@ -34,7 +34,6 @@ template<
 struct bloomfilter_addressing_logic<block_addressing::MAGIC, _hash_value_t, _block_t> {
 
   using block_t = _block_t;
-//  using size_t = $u32;
   using size_t = $u64;
   using hash_value_t = _hash_value_t;
 
@@ -140,12 +139,12 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
   using block_t = _block_t;
   using size_t = $u32;
   using hash_value_t = _hash_value_t;
-
+  static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
 
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
-  const size_t block_cnt; // the number of blocks
+  const size_t block_cnt;      // the number of blocks
   const size_t block_cnt_log2; // the number of bits required to address the individual blocks
   const size_t block_cnt_mask;
   //===----------------------------------------------------------------------===//
@@ -195,7 +194,7 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
   __forceinline__ __host__ __device__
   hash_value_t
   get_block_idx(const hash_value_t hash_value) const noexcept {
-    const auto block_idx = hash_value & block_cnt_mask;
+    const auto block_idx = (hash_value >> (hash_value_bitlength - block_cnt_log2)) & block_cnt_mask;
     return block_idx;
   }
 
@@ -205,7 +204,7 @@ struct bloomfilter_addressing_logic<block_addressing::POWER_OF_TWO, _hash_value_
   __forceinline__ __host__
   dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_block_idxs(const Tv& hash_value) const noexcept {
-    const auto block_idx = hash_value & block_cnt_mask;
+    const auto block_idx = (hash_value >> (hash_value_bitlength - block_cnt_log2)) & block_cnt_mask;
     return block_idx;
   }
 

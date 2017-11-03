@@ -48,7 +48,6 @@ struct bloom_filter_std {
 
   using addr_t = bloomfilter_addressing_logic<AddrMode, hash_value_t, block_t>;
   using size_t = $u64;
-//  using size_t = $u32;
 
 
   //===----------------------------------------------------------------------===//

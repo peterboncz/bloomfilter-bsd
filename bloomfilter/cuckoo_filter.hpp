@@ -196,66 +196,6 @@ simd_batch_contains_8_4(const _filter_t& filter,
       reader += vector_len;
     }
 
-
-//    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-//
-//      const key_vt& key_v = *reinterpret_cast<const key_vt*>(reader);
-//      auto block_hash_v = dtl::hash::knuth_32_alt<key_vt>::hash(key_v);
-//      auto block_idx_v = filter.filter.addr.get_block_idxs(block_hash_v);
-//      block_hash_v <<= filter.filter.addr.get_required_addressing_bits();
-//
-//      // compute block address
-//      ptr_vt ptr_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(block_idx_v);
-//      ptr_v <<= block_size_log2;
-//      ptr_v += reinterpret_cast<std::uintptr_t>(&filter.filter.blocks[0]);
-//
-//      // contains hash
-//      auto bucket_hash_v = dtl::hash::knuth_32<key_vt>::hash(key_v);
-//      auto bucket_idx_v = filter_t::block_type::get_bucket_idxs(bucket_hash_v);
-//      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_type::bucket_addressing_bits - filter_t::table_type::tag_size_bits))
-//                   & static_cast<uint32_t>(filter_t::table_type::tag_mask);
-//      tag_v[tag_v == 0] += 1; // tag must not be zero
-//      auto alternative_bucket_idx_v = filter_t::block_type::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
-//
-//      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-//      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-////      const auto in_word_bucket_idx = bucket_idx >> word_cnt_log2;
-////      const auto bucket = word >> (bucket_size_bits * in_word_bucket_idx);
-//
-//      const auto bucket_ptr_v = ptr_v + dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(word_idx_v << word_size_log2);
-//      const auto alternative_bucket_ptr_v = ptr_v + dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(alternative_word_idx_v << word_size_log2);
-//
-//      // load the buckets
-//      const auto bucket_v = dtl::internal::vector_gather<$u64, $u64, vector_len>::gather(bucket_ptr_v);
-//      const auto alternative_bucket_v = dtl::internal::vector_gather<$u64, $u64, vector_len>::gather(alternative_bucket_ptr_v);
-//
-//      auto dup_tag_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(tag_v | (tag_v << 16)) ;
-//      dup_tag_v |= dup_tag_v << 32;
-//
-//      const auto b = reinterpret_cast<const r256*>(&bucket_v.data);
-//      const auto ba = reinterpret_cast<const r256*>(&alternative_bucket_v.data);
-//      auto t = reinterpret_cast<r256*>(&dup_tag_v.data);
-//      for (std::size_t i = 0; i < bucket_v.nested_vector_cnt; i++) {
-//        const r256 tags = t[i];
-//        const r256 bucket_content0 = b[i];
-//        const r256 bucket_content1 = ba[i];
-//        const r256 t0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,tags.i) };
-//        const r256 o0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,overflow_tag.i) };
-//        const r256 t1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,tags.i) };
-//        const r256 o1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,overflow_tag.i) };
-//        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i,o0.i), _mm256_or_si256(t1.i,o1.i)) };
-//        const r256 t3 = {.i = _mm256_cmpeq_epi64(t2.i, _mm256_setzero_si256()) };
-//        const auto mt = _mm256_movemask_pd(t3.d) ^ 0b1111;
-////        std::cout << std::bitset<4>(mt) << " ";
-//        const r128 match_pos_vec = { .i = dtl::simd::lut_match_pos_4bit[mt].i };
-//        const r128 pos_vec = {.i = _mm_add_epi32(offset_vec.i, match_pos_vec.i) };
-//        _mm_storeu_si128(reinterpret_cast<__m128i*>(match_writer), pos_vec.i);
-//        match_writer += _popcnt32(mt);
-//        offset_vec.i = _mm_add_epi32(offset_vec.i, _mm_set1_epi32(4));
-//      }
-//
-//      reader += vector_len;
-//    }
   }
 
 

@@ -74,7 +74,7 @@ struct is_vector {
 /// native vectors.
 template<typename Tp, u64 N>
 struct v : v_base {
-  static constexpr u64 vector_marker = 938457231345ull;
+
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
   // TODO assert fundamental type
   // TODO unroll loops in compound types - __attribute__((optimize("unroll-loops")))
@@ -88,6 +88,9 @@ struct v : v_base {
   /// The native vector wrapper that is used under the hood.
   /// Note: The wrapper determines the largest available native vector type.
   using nested_vector = vs<scalar_type, N>; // TODO (maybe) make it a template parameter. give the user the possibility to specify the native vector type
+
+  /// The alignment of the vector.
+  static constexpr std::size_t byte_alignment = std::alignment_of<typename nested_vector::type>::value;
 
   /// The length of the native vector, in terms of number of elements.
   static constexpr u64 nested_vector_length = nested_vector::value;
@@ -146,6 +149,15 @@ struct v : v_base {
 
     /// The actual mask data. (the one and only non-static member variable of this class)
     compound_mask_type data;
+
+    m(u32 i) {
+      set<is_compound>(this->data, i);
+    }
+    m(const m&) = default;
+    m(m&&) = default;
+    m(compound_mask_type&& d) : data { std::move(d) } {};
+    m& operator=(const m&) = default;
+    m& operator=(m&&) = default;
 
     struct all_fn {
       constexpr u1 operator()(const nested_mask_type& mask) const {
@@ -510,9 +522,13 @@ struct v : v_base {
   v() = default;
 
   v(const scalar_type scalar_value) {
-    *this = scalar_value;
+    *this = make(scalar_value);
   }
 
+  v(compound_type&& d) : data { std::move(d) } {};
+
+  v(const v& other) = default;
+  v(v&& other) = default;
 //  template<typename Tp_other>
 //  explicit
 //  v(const v<Tp_other, N>& other) {
@@ -520,10 +536,10 @@ struct v : v_base {
 //  }
 
   // brace-initializer list c'tor
-  template<typename ...T>
-  explicit
-  v(T&&... t) : data { std::forward<T>(t)... } { }
-
+//  template<typename ...T>
+//  explicit
+//  v(T&&... t) : data { std::forward<T>(t)... } { }
+//
 //  explicit
 //  v(v&& other) : data(std::move(other.data)) { }
 
@@ -535,10 +551,8 @@ struct v : v_base {
   __forceinline__ v&
   operator=(const v& other) = default;
 
-//  __forceinline__ v&
-//  operator=(v&& other) {
-//    data = std::move(other.data);
-//  }
+  __forceinline__ v&
+  operator=(v&& other) = default;
 
 
   /// Assigns the given scalar value to all vector components.
@@ -1137,6 +1151,16 @@ struct v : v_base {
     v& vector;
     m mask;
 
+//    m(u32 i) {
+//      set<is_compound>(this->data, i);
+//    }
+//    masked_reference(const masked_reference&) = default;
+//    masked_reference(masked_reference&&) = default;
+//    masked_reference(compound_mask_type&& d) : data { std::move(d) } {};
+//    masked_reference& operator=(const masked_reference&) = default;
+//    masked_reference& operator=(masked_reference&&) = default;
+
+
     __forceinline__ v& operator=(const v& o) { vector.mask_assign(o, mask); return vector; }
     __forceinline__ v& operator=(const scalar_type& s) { vector.mask_assign(s, mask); return vector; }
     __forceinline__ v operator+(const v& o) const noexcept { return vector.mask_plus(o, mask); }
@@ -1177,7 +1201,8 @@ struct v : v_base {
 
   __forceinline__ masked_reference
   operator[](const m& op_mask) noexcept {
-    return masked_reference{ *this, m{op_mask.data} };
+//    return masked_reference{ *this, m{op_mask.data} };
+    return masked_reference{ *this, op_mask };
   }
 
 //  __forceinline__ masked_reference

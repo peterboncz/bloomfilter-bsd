@@ -15,7 +15,7 @@
 #include <cub/cub.cuh>
 #endif // defined(__CUDA_ARCH__)
 
-#include "hash_family.hpp"
+#include "dtl/bloomfilter/hash_family.hpp"
 
 namespace dtl {
 
