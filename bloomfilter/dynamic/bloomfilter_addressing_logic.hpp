@@ -133,20 +133,12 @@ struct bloomfilter_addressing_logic_pow2 : bloomfilter_addressing_logic {
   __forceinline__ __host__ __device__
   size_t
   get_block_idx(const hash_value_t hash_value) const noexcept override {
-    const size_t block_idx = hash_value & block_cnt_mask;
+    const auto block_idx = (hash_value >> (sizeof(hash_value_t) * 8 - block_cnt_log2)) & block_cnt_mask;
     return block_idx;
   }
-
-//  template<size_t batch_size>
-//  __forceinline__ __host__
-//  size_t
-//  get_block_idxs(const hash_value_t hash_value) const noexcept override {
-//    const size_t block_idx = hash_value & block_cnt_mask;
-//    return block_idx;
-//  }
 
 };
 
 } // namespace dynamic
-} // namespace hash
+} // namespace bloomfilter
 } // namespace dtl
