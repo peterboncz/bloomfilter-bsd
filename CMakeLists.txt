@@ -12,6 +12,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         main.cpp
         adept.hpp
         barrier.hpp
+        batchwise.hpp
         bits.hpp
         bloomfilter/dynamic/bloomfilter_addressing_logic.hpp
         bloomfilter/dynamic/bloomfilter_block_logic.hpp

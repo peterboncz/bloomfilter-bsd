@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
+#include <dtl/batchwise.hpp>
 #include <dtl/mem.hpp>
 
 #include <boost/math/common_factor.hpp>
@@ -40,8 +41,12 @@ struct lcm {
 };
 
 
+static std::array<$u32, 16> unroll_factors_32 = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+static std::array<$u32, 16> unroll_factors_64 = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+
 template<typename Tw = $u32>
 struct blocked_bloomfilter {
+
 
   using key_t = $u32;
   using hash_value_t = $u32;
@@ -123,7 +128,8 @@ struct blocked_bloomfilter {
 
 
   template<
-      typename bf_t
+      typename bf_t,
+      u32 unroll_factor = 1
   >
   void
   _construct_and_bind(u64 m) {
@@ -140,31 +146,32 @@ struct blocked_bloomfilter {
     // Bind the API functions.
     insert = std::bind(&bf_t::insert, bf, _1);
     contains = std::bind(&bf_t::contains, bf, _1);
-    //                                                        | picks the default vector length as configured above
-    batch_contains = std::bind(&bf_t::template batch_contains<>, bf, _1, _2, _3, _4);
+
+    static constexpr u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor;
+    batch_contains = std::bind(&bf_t::template batch_contains<vector_len>, bf, _1, _2, _3, _4);
   }
 
 
 
-  template<
-      typename bf_t
-  >
-  void
-  _copy_and_bind(blocked_bloomfilter& copy,
-                 const dtl::mem::allocator_config allocator_config) const {
-    using namespace std::placeholders;
-
-    // Copy the Bloom filter.
-    const bf_t* bf_src = static_cast<bf_t*>(instance);
-    auto allocator = dtl::mem::numa_allocator<word_t>(allocator_config);
-    bf_t* bf_dst = bf_src->make_heap_copy(allocator);
-    copy.instance = bf_dst;
-
-    // Bind the API functions.
-    copy.insert = std::bind(&bf_t::insert, bf_dst, _1);
-    copy.contains = std::bind(&bf_t::contains, bf_dst, _1);
-    copy.batch_contains = std::bind(&bf_t::template batch_contains<>, bf_dst, _1, _2, _3, _4);
-  }
+//  template<
+//      typename bf_t
+//  >
+//  void
+//  _copy_and_bind(blocked_bloomfilter& copy,
+//                 const dtl::mem::allocator_config allocator_config) const {
+//    using namespace std::placeholders;
+//
+//    // Copy the Bloom filter.
+//    const bf_t* bf_src = static_cast<bf_t*>(instance);
+//    auto allocator = dtl::mem::numa_allocator<word_t>(allocator_config);
+//    bf_t* bf_dst = bf_src->make_heap_copy(allocator);
+//    copy.instance = bf_dst;
+//
+//    // Bind the API functions.
+//    copy.insert = std::bind(&bf_t::insert, bf_dst, _1);
+//    copy.contains = std::bind(&bf_t::contains, bf_dst, _1);
+//    copy.batch_contains = std::bind(&bf_t::template batch_contains<>, bf_dst, _1, _2, _3, _4);
+//  }
 
 
   template<
@@ -253,14 +260,14 @@ struct blocked_bloomfilter {
       case  6: _k<w, s, boost::static_unsigned_max<( 6 % s == 0 ?  6 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
       case  7: _k<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
       case  8: _k<w, s, boost::static_unsigned_max<( 8 % s == 0 ?  8 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case  9: _k<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 10: _k<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 11: _k<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 12: _k<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 13: _k<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 14: _k<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 15: _k<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
-//      case 16: _k<w, s, boost::static_unsigned_max<16 , s>::value>(wrapper, m, op); break;
+      case  9: _k<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 10: _k<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 11: _k<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 12: _k<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 13: _k<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 14: _k<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 15: _k<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(wrapper, m, op); break;
+      case 16: _k<w, s, boost::static_unsigned_max<16 , s>::value>(wrapper, m, op); break;
     }
   }
 
@@ -271,18 +278,31 @@ struct blocked_bloomfilter {
                                  ? dtl::block_addressing::POWER_OF_TWO
                                  : dtl::block_addressing::MAGIC;
     switch (addr) {
-      case dtl::block_addressing::POWER_OF_TWO: _a<w, s, k, dtl::block_addressing::POWER_OF_TWO>(wrapper, m, op); break;
-      case dtl::block_addressing::MAGIC:        _a<w, s, k, dtl::block_addressing::MAGIC>(wrapper, m, op);        break;
+      case dtl::block_addressing::POWER_OF_TWO: _u<w, s, k, dtl::block_addressing::POWER_OF_TWO>(wrapper, m, op); break;
+      case dtl::block_addressing::MAGIC:        _u<w, s, k, dtl::block_addressing::MAGIC>(wrapper, m, op);        break;
     }
   }
 
-
   template<u32 w, u32 s, u32 k, dtl::block_addressing a>
-  static void _a(blocked_bloomfilter& wrapper, size_t m, op_t op) {
+  static void _u(blocked_bloomfilter& wrapper, size_t m, op_t op) {
+    auto& unroll_factors = sizeof(word_t) == 8 ? unroll_factors_64 : unroll_factors_32;
+    switch (unroll_factors[k-1]) {
+      case  1: _o<w, s, k, a,  1>(wrapper, m, op); break;
+      case  2: _o<w, s, k, a,  2>(wrapper, m, op); break;
+      case  4: _o<w, s, k, a,  4>(wrapper, m, op); break;
+      case  8: _o<w, s, k, a,  8>(wrapper, m, op); break;
+      case 16: _o<w, s, k, a, 16>(wrapper, m, op); break;
+      default:
+        throw std::invalid_argument("The given 'unroll_factor' is not supported.");
+    }
+  }
+
+  template<u32 w, u32 s, u32 k, dtl::block_addressing a, u32 unroll_factor>
+  static void _o(blocked_bloomfilter& wrapper, size_t m, op_t op) {
     using _t = bbf<w, s, k, a>;
     switch (op) {
-      case op_t::CONSTRUCT: wrapper._construct_and_bind<_t>(m); break;
-      case op_t::DESTRUCT:  wrapper._destruct<_t>(); break;
+      case op_t::CONSTRUCT: wrapper._construct_and_bind<_t, unroll_factor>(m); break;
+      case op_t::DESTRUCT:  wrapper._destruct<_t>();                           break;
     }
   };
 
@@ -393,6 +413,59 @@ struct blocked_bloomfilter {
            ? block_addressing::POWER_OF_TWO
            : block_addressing::MAGIC;
   }
+
+  static void
+  calibrate() {
+    std::cout << "Running calibration..." << std::endl;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dis;
+
+    static constexpr u32 data_size = 4*1024;
+    std::vector<key_t> random_data;
+    random_data.reserve(data_size);
+    for (std::size_t i = 0; i < data_size; i++) {
+      random_data.push_back(dis(gen));
+    }
+
+    auto& unroll_factors = sizeof(word_t) == 8 ? unroll_factors_64 : unroll_factors_32;
+    for ($u32 k = 1; k <= 16; k++) {
+      std::cout << "k=" << k << ": " << std::flush;
+
+      $f64 cycles_per_lookup_min = std::numeric_limits<$f64>::max();
+      $u32 u_min = 1;
+
+      std::size_t match_count = 0;
+      uint32_t match_pos[dtl::BATCH_SIZE];
+
+      for ($u32 u = 1; u <= 16; u *= 2) {
+        std::cout << u << "->" << std::flush;
+        unroll_factors[k-1] = u;
+        auto bbf = blocked_bloomfilter::construct(1, 1, k, 4u * 1024);
+        $u64 rep_cntr = 0;
+        auto start = std::chrono::high_resolution_clock::now();
+        auto tsc_start = _rdtsc();
+        while (true) {
+          std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
+          if (diff.count() > 0.25) break;
+          dtl::batch_wise(random_data.begin(), random_data.end(), [&](const auto batch_begin, const auto batch_end) {
+            match_count += bbf.batch_contains(&batch_begin[0], batch_end - batch_begin, match_pos, 0);
+          });
+          rep_cntr++;
+        }
+        auto tsc_end = _rdtsc();
+        auto cycles_per_lookup = (tsc_end - tsc_start) / (data_size * rep_cntr * 1.0);
+        std::cout << std::setprecision(2) << cycles_per_lookup << " ";
+        if (cycles_per_lookup < cycles_per_lookup_min) {
+          cycles_per_lookup_min = cycles_per_lookup;
+          u_min = u;
+        }
+      }
+      unroll_factors[k-1] = u_min;
+      std::cout << " picked u=" << u_min << " (chksum: " << match_count << ")" << std::endl;
+    }
+  }
+
 
 
 };
