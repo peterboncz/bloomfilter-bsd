@@ -416,6 +416,108 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
 //===----------------------------------------------------------------------===//
 // A high-performance blocked Bloom filter template.
 //===----------------------------------------------------------------------===//
+namespace internal {
+
+//===----------------------------------------------------------------------===//
+// Batch-wise Contains
+//===----------------------------------------------------------------------===//
+template<
+    typename filter_t,
+    u64 vector_len
+>
+struct dispatch {
+
+  __forceinline__
+  static $u64
+  batch_contains(const filter_t& filter,
+                 const typename filter_t::key_t* keys, u32 key_cnt,
+                 $u32* match_positions, u32 match_offset) {
+    // Typedefs
+    using key_t = typename filter_t::key_t;
+    using vec_t = vec<key_t, vector_len>;
+    using mask_t = typename vec<key_t, vector_len>::mask;
+
+    const key_t* reader = keys;
+    $u32* match_writer = match_positions;
+
+    // Determine the number of keys that need to be probed sequentially, due to alignment
+    u64 required_alignment_bytes = vec_t::byte_alignment;
+    u64 t = dtl::mem::is_aligned(reader)  // should always be true
+            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
+            : key_cnt;
+    u64 unaligned_key_cnt = std::min(static_cast<$u64>(key_cnt), t);
+    // process the unaligned keys sequentially
+    $u64 read_pos = 0;
+    for (; read_pos < unaligned_key_cnt; read_pos++) {
+      u1 is_match = filter.contains(*reader);
+      *match_writer = static_cast<$u32>(read_pos) + match_offset;
+      match_writer += is_match;
+      reader++;
+    }
+    // Process the aligned keys vectorized
+    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
+    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
+      const auto mask = filter.template contains_vec<vector_len>(*reinterpret_cast<const vec_t*>(reader));
+      u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
+      match_writer += match_cnt;
+      reader += vector_len;
+    }
+    // process remaining keys sequentially
+    for (; read_pos < key_cnt; read_pos++) {
+      u1 is_match = filter.contains(*reader);
+      *match_writer = static_cast<$u32>(read_pos) + match_offset;
+      match_writer += is_match;
+      reader++;
+    }
+    return match_writer - match_positions;
+  }
+
+};
+
+
+//===----------------------------------------------------------------------===//
+// Batch-wise Contains (no SIMD)
+//===----------------------------------------------------------------------===//
+template<
+    typename filter_t
+>
+struct dispatch<filter_t, 0> {
+
+  __forceinline__
+  static $u64
+  batch_contains(const filter_t& filter,
+                 const typename filter_t::key_t* keys, u32 key_cnt,
+                 $u32* match_positions, u32 match_offset) {
+    $u32* match_writer = match_positions;
+    $u32 i = 0;
+    for (; i < key_cnt; i += 4) {
+      u1 is_match_0 = filter.contains(keys[i]);
+      u1 is_match_1 = filter.contains(keys[i + 1]);
+      u1 is_match_2 = filter.contains(keys[i + 2]);
+      u1 is_match_3 = filter.contains(keys[i + 3]);
+      *match_writer = i + match_offset;
+      match_writer += is_match_0;
+      *match_writer = (i + 1) + match_offset;
+      match_writer += is_match_1;
+      *match_writer = (i + 2) + match_offset;
+      match_writer += is_match_2;
+      *match_writer = (i + 3) + match_offset;
+      match_writer += is_match_3;
+    }
+    for (; i < key_cnt; i++) {
+      u1 is_match = filter.contains(keys[i]);
+      *match_writer = i + match_offset;
+      match_writer += is_match;
+    }
+    return match_writer - match_positions;
+  }
+
+};
+
+
+} // namespace internal
+
+
 template<
     typename Tk,                  // the key type
     template<typename Ty, u32 i> class Hasher,      // the hash function family to use
@@ -592,56 +694,18 @@ struct blocked_bloomfilter_logic {
   }
 
 
-  // Simple heuristic that seems to work well on Xeon (but not on Ryzen). // FIXME
-  static constexpr u64 unroll_factor = word_bitlength == 32
-                                       ? boost::static_unsigned_max<8u / word_cnt, 1>::value
-                                       : boost::static_unsigned_max<4u / word_cnt, 1>::value;
-
   //===----------------------------------------------------------------------===//
   // Batch-wise Contains
   //===----------------------------------------------------------------------===//
-  template<u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor>
+  template<u64 vector_len = dtl::simd::lane_count<key_t>>
   __forceinline__
   $u64
   batch_contains(const key_t* keys, u32 key_cnt,
                  $u32* match_positions, u32 match_offset) const {
-    // Typedef the vector types.
-    using vec_t = vec<key_t, vector_len>;
-    using mask_t = typename vec<key_t, vector_len>::mask;
-
-    const key_t* reader = keys;
-    $u32* match_writer = match_positions;
-
-    // Determine the number of keys that need to be probed sequentially, due to alignment
-    u64 required_alignment_bytes = vec_t::byte_alignment;
-    u64 t = dtl::mem::is_aligned(reader)  // should always be true
-            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
-            : key_cnt;
-    u64 unaligned_key_cnt = std::min(static_cast<$u64>(key_cnt), t);
-    // process the unaligned keys sequentially
-    $u64 read_pos = 0;
-    for (; read_pos < unaligned_key_cnt; read_pos++) {
-      u1 is_match = contains(*reader);
-      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-      match_writer += is_match;
-      reader++;
-    }
-    // Process the aligned keys vectorized
-    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
-    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-      const auto mask = contains_vec<vector_len>(*reinterpret_cast<const vec_t*>(reader));
-      u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
-      match_writer += match_cnt;
-      reader += vector_len;
-    }
-    // process remaining keys sequentially
-    for (; read_pos < key_cnt; read_pos++) {
-      u1 is_match = contains(*reader);
-      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-      match_writer += is_match;
-      reader++;
-    }
-    return match_writer - match_positions;
+    return internal::dispatch<blocked_bloomfilter_logic, vector_len>
+             ::batch_contains(*this,
+                              keys, key_cnt,
+                              match_positions, match_offset);
   }
 
 

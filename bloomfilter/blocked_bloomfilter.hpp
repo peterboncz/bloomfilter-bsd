@@ -287,6 +287,7 @@ struct blocked_bloomfilter {
   static void _u(blocked_bloomfilter& wrapper, size_t m, op_t op) {
     auto& unroll_factors = sizeof(word_t) == 8 ? unroll_factors_64 : unroll_factors_32;
     switch (unroll_factors[k-1]) {
+      case  0: _o<w, s, k, a,  0>(wrapper, m, op); break;
       case  1: _o<w, s, k, a,  1>(wrapper, m, op); break;
       case  2: _o<w, s, k, a,  2>(wrapper, m, op); break;
       case  4: _o<w, s, k, a,  4>(wrapper, m, op); break;
@@ -430,7 +431,7 @@ struct blocked_bloomfilter {
 
     auto& unroll_factors = sizeof(word_t) == 8 ? unroll_factors_64 : unroll_factors_32;
     for ($u32 k = 1; k <= 16; k++) {
-      std::cout << "k=" << k << ": " << std::flush;
+      std::cout <<"k = " <<  std::setw(2) << k << ": " << std::flush;
 
       $f64 cycles_per_lookup_min = std::numeric_limits<$f64>::max();
       $u32 u_min = 1;
@@ -438,8 +439,8 @@ struct blocked_bloomfilter {
       std::size_t match_count = 0;
       uint32_t match_pos[dtl::BATCH_SIZE];
 
-      for ($u32 u = 1; u <= 16; u *= 2) {
-        std::cout << u << "->" << std::flush;
+      for ($u32 u = 0; u <= 16; u = (u == 0) ? 1 : u*2) {
+        std::cout <<  std::setw(4) << "u(" << std::setw(2) << std::to_string(u) + ") = "<< std::flush;
         unroll_factors[k-1] = u;
         auto bbf = blocked_bloomfilter::construct(1, 1, k, 4u * 1024);
         $u64 rep_cntr = 0;
@@ -455,7 +456,7 @@ struct blocked_bloomfilter {
         }
         auto tsc_end = _rdtsc();
         auto cycles_per_lookup = (tsc_end - tsc_start) / (data_size * rep_cntr * 1.0);
-        std::cout << std::setprecision(2) << cycles_per_lookup << " ";
+        std::cout << std::setprecision(2) << cycles_per_lookup << ", ";
         if (cycles_per_lookup < cycles_per_lookup_min) {
           cycles_per_lookup_min = cycles_per_lookup;
           u_min = u;
