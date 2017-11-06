@@ -7,7 +7,7 @@
 #include <dtl/hash.hpp>
 #include <dtl/math.hpp>
 
-#include <dtl/bloomfilter/bloomfilter_addressing_logic.hpp>
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
 
 namespace dtl {

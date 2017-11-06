@@ -14,17 +14,18 @@ set(SOURCE_FILES ${SOURCE_FILES}
         barrier.hpp
         batchwise.hpp
         bits.hpp
-        bloomfilter/dynamic/bloomfilter_addressing_logic.hpp
-        bloomfilter/dynamic/bloomfilter_block_logic.hpp
-        bloomfilter/dynamic/bloomfilter_hash.hpp
-        bloomfilter/dynamic/bloomfilter_logic.hpp
+        bloomfilter/dynamic/block_addressing_logic.hpp
+        bloomfilter/dynamic/blocked_bloomfilter.hpp
+        bloomfilter/dynamic/blocked_bloomfilter_logic.hpp
+        bloomfilter/dynamic/blocked_bloomfilter_block_logic.hpp
+        bloomfilter/dynamic/hash.hpp
         bloomfilter/bloom_filter_std.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_sectorized.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_logic.hpp
-        bloomfilter/bloomfilter_addressing_logic.hpp
+        bloomfilter/block_addressing_logic.hpp
         bloomfilter/old/bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_h1.hpp
         bloomfilter/bloomfilter_h1_logic.hpp
@@ -43,6 +44,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_h3_vec.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
+        bloomfilter/blocked_bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp

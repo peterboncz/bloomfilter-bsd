@@ -12,7 +12,7 @@
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
-#include "bloomfilter_addressing_logic.hpp"
+#include "block_addressing_logic.hpp"
 #include "hash_family.hpp"
 
 namespace dtl {
@@ -40,13 +40,14 @@ struct bloom_filter_std {
 
   //===----------------------------------------------------------------------===//
 
-  // A fake block; required by addressing logic
-  struct block_t {
-    static constexpr uint32_t block_bitlength = sizeof(word_t) * 8;
-    static constexpr uint32_t word_cnt = 1;
-  };
+//  // A fake block; required by addressing logic
+//  struct block_t {
+//    static constexpr uint32_t word_cnt = 1;
+//  };
 
-  using addr_t = bloomfilter_addressing_logic<AddrMode, hash_value_t, block_t>;
+  static constexpr uint32_t block_bitlength = sizeof(word_t) * 8;
+
+  using addr_t = block_addressing_logic<AddrMode>;
   using size_t = $u64;
 
 
@@ -63,7 +64,7 @@ struct bloom_filter_std {
 
   explicit
   bloom_filter_std(const std::size_t length, const uint32_t k) noexcept
-      : addr(length), k(k) { }
+      : addr(length, block_bitlength), k(k) { }
 
   bloom_filter_std(const bloom_filter_std&) noexcept = default;
 
@@ -97,7 +98,7 @@ struct bloom_filter_std {
     // Set one bit per word at a time.
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
-      const hash_value_t word_idx = addr.get_word_idx(hash_val);
+      const hash_value_t word_idx = addr.get_block_idx(hash_val); // word == block
       const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
       filter[word_idx] |= word_t(1u) << bit_idx;
     }
@@ -125,7 +126,7 @@ struct bloom_filter_std {
     // Test one bit per word at a time.
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
-      const hash_value_t word_idx = addr.get_word_idx(hash_val);
+      const hash_value_t word_idx = addr.get_block_idx(hash_val);
       const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
       const bool hit = filter[word_idx] & (word_t(1u) << bit_idx);
       if (!hit) return false;
@@ -171,8 +172,8 @@ struct bloom_filter_std {
 
   __forceinline__
   uint64_t
-  batch_contains(const key_t* __restrict keys, const uint32_t key_cnt,
-                 const word_t* __restrict filter,
+  batch_contains(const word_t* __restrict filter,
+                 const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
     constexpr u32 mini_batch_size = 16;
     const u32 mini_batch_cnt = key_cnt / mini_batch_size;
@@ -192,50 +193,6 @@ struct bloom_filter_std {
     }
     return match_writer - match_positions;
   };
-
-//  /// Performs a batch-probe
-//  template<u64 vector_len = dtl::simd::lane_count<key_t>>
-//  __forceinline__
-//  $u64
-//  batch_contains(const key_t* keys, u32 key_cnt,
-//                 const word_t* filter,
-//                 $u32* match_positions, u32 match_offset) const {
-//    const key_t* reader = keys;
-//    $u32* match_writer = match_positions;
-//
-//    // determine the number of keys that need to be probed sequentially, due to alignment
-//    u64 required_alignment_bytes = 64;
-//    u64 unaligned_key_cnt = dtl::mem::is_aligned(reader)
-//                            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t)
-//                            : key_cnt;
-//    // process the unaligned keys sequentially
-//    $u64 read_pos = 0;
-//    for (; read_pos < unaligned_key_cnt; read_pos++) {
-//      u1 is_match = contains(*reader, filter);
-//      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-//      match_writer += is_match;
-//      reader++;
-//    }
-//    // process the aligned keys vectorized
-//    using vec_t = vec<key_t, vector_len>;
-//    using mask_t = typename vec<key_t, vector_len>::mask;
-//    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
-//    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
-//      assert(dtl::mem::is_aligned(reader, 32));
-//      const mask_t mask = simd_contains(*reinterpret_cast<const vec_t*>(reader), filter);
-//      u64 match_cnt = mask.to_positions(match_writer, read_pos + match_offset);
-//      match_writer += match_cnt;
-//      reader += vector_len;
-//    }
-//    // process remaining keys sequentially
-//    for (; read_pos < key_cnt; read_pos++) {
-//      u1 is_match = contains(*reader, filter);
-//      *match_writer = static_cast<$u32>(read_pos) + match_offset;
-//      match_writer += is_match;
-//      reader++;
-//    }
-//    return match_writer - match_positions;
-//  }
 
 
 };

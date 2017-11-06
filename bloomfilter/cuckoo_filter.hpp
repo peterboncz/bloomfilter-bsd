@@ -7,7 +7,7 @@
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
-#include <dtl/bloomfilter/bloomfilter_addressing_logic.hpp>
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_word_table.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_multiword_table.hpp>
 #include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
@@ -538,7 +538,7 @@ struct blocked_cuckoo_filter {
   using block_t = __block_t;
   using hash_value_t = uint32_t;
   using hasher = dtl::hash::knuth_32_alt<hash_value_t>;
-  using addr_t = bloomfilter_addressing_logic<__block_addressing, hash_value_t, block_t>;
+  using addr_t = block_addressing_logic<__block_addressing>;
 
 
   //===----------------------------------------------------------------------===//
@@ -550,7 +550,7 @@ struct blocked_cuckoo_filter {
 
 
   explicit
-  blocked_cuckoo_filter(const std::size_t length) : addr(length), blocks(addr.block_cnt) { }
+  blocked_cuckoo_filter(const std::size_t length) : addr(length, block_t::block_bitlength), blocks(addr.get_block_cnt()) { }
 
   blocked_cuckoo_filter(const blocked_cuckoo_filter&) noexcept = default;
 

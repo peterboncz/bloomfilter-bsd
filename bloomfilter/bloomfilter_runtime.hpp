@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_addressing_logic.hpp>
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/bloomfilter_h1.hpp>
 #include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
 #include <dtl/bloomfilter/bloomfilter_h1_mod.hpp>
