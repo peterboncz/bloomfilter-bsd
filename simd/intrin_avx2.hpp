@@ -143,7 +143,6 @@ struct mask8 {
     const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
     const __m256i pos_vec = _mm256_add_epi32(offset_vec, match_pos_vec.i);
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(positions), pos_vec);
-    // TODO consider using popcnt instead
     return dtl::simd::lut_match_cnt[bitmask];
   }
 

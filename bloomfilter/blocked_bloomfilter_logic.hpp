@@ -148,8 +148,8 @@ struct blocked_bloomfilter_logic {
   using allocator_t = Alloc;
   using size_t = $u64;
 
-  static constexpr u32 word_cnt = Wc;
-  static constexpr u32 word_cnt_log2 = dtl::ct::log_2<Wc>::value;
+  static constexpr u32 word_cnt_per_block = Wc;
+  static constexpr u32 word_cnt_per_block_log2 = dtl::ct::log_2<Wc>::value;
   static_assert(dtl::is_power_of_two(Wc), "Parameter 'Wc' must be a power of two.");
 
   static constexpr u32 sector_cnt = s;
@@ -158,7 +158,7 @@ struct blocked_bloomfilter_logic {
   static constexpr u32 word_bitlength_log2 = dtl::ct::log_2_u32<word_bitlength>::value;
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
-  static constexpr u32 block_bitlength = sizeof(word_t) * 8 * word_cnt;
+  static constexpr u32 block_bitlength = sizeof(word_t) * 8 * word_cnt_per_block;
   static constexpr u32 block_bitlength_log2 = dtl::ct::log_2_u32<block_bitlength>::value;
   static constexpr u32 block_bitlength_mask = block_bitlength - 1;
 
@@ -174,10 +174,10 @@ struct blocked_bloomfilter_logic {
 
   static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME
 
-  using block_t = multiword_block<key_t, word_t, word_cnt, s, k,
-      Hasher, hash_value_t,
-      /* recursive counters */
-      0, 1, word_cnt>;
+  static constexpr u32 block_hash_fn_idx = 1; // 0 is used for block addressing
+  using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
+                                                           Hasher, hash_value_t, block_hash_fn_idx>::type;
+
   using addr_t = block_addressing_logic<block_addressing>;
 
   //===----------------------------------------------------------------------===//
@@ -210,15 +210,11 @@ struct blocked_bloomfilter_logic {
          const key_t key) noexcept {
     const hash_value_t block_addressing_hash_val = Hasher<const key_t, 0>::hash(key);
     const hash_value_t block_idx = addr.get_block_idx(block_addressing_hash_val);
-    const hash_value_t bitvector_word_idx = block_idx << word_cnt_log2;
+    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
 
     auto block_ptr = &filter_data[bitvector_word_idx];
 
-    multiword_block<key_t, word_t, word_cnt, s, k,
-        Hasher, hash_value_t,
-        /* recursive counter */
-        1, 0, word_cnt>
-        ::insert(block_ptr, key);
+    block_t::insert(block_ptr, key);
   }
 
 
@@ -231,15 +227,11 @@ struct blocked_bloomfilter_logic {
            const key_t key) const noexcept {
     const hash_value_t block_addressing_hash_val = Hasher<const key_t, 0>::hash(key);
     const hash_value_t block_idx = addr.get_block_idx(block_addressing_hash_val);
-    const hash_value_t bitvector_word_idx = block_idx << word_cnt_log2;
+    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
 
     const auto block_ptr = &filter_data[bitvector_word_idx];
 
-    u1 found = multiword_block<key_t, word_t, word_cnt, s, k,
-        Hasher, hash_value_t,
-        /* recursive counter */
-        1, 0, word_cnt>
-        ::contains(block_ptr, key);
+    u1 found = block_t::contains(block_ptr, key);
     return found;
   }
 
@@ -258,13 +250,9 @@ struct blocked_bloomfilter_logic {
 
     const hash_value_vt block_addressing_hash_vals = Hasher<key_vt, 0>::hash(keys);
     const hash_value_vt block_idxs = addr.get_block_idxs(block_addressing_hash_vals);
-    const hash_value_vt bitvector_word_idx = block_idxs << word_cnt_log2;
+    const hash_value_vt bitvector_word_idx = block_idxs << word_cnt_per_block_log2;
 
-    auto found = multiword_block<key_t, word_t, word_cnt, s, k,
-        Hasher, hash_value_t,
-        /* recursive counter */
-        1, 0, word_cnt>
-        ::contains(keys, filter_data, bitvector_word_idx);
+    auto found = block_t::contains(keys, filter_data, bitvector_word_idx);
     return found;
   }
 
@@ -299,7 +287,7 @@ struct blocked_bloomfilter_logic {
     std::cout << "  k:                    " << k << std::endl;
     std::cout << "  word bitlength:       " << word_bitlength << std::endl;
     std::cout << "  hash value bitlength: " << hash_value_bitlength << std::endl;
-    std::cout << "  word count:           " << word_cnt << std::endl;
+    std::cout << "  word count:           " << word_cnt_per_block << std::endl;
     std::cout << "  sector count:         " << s << std::endl;
     std::cout << "  max m:                " << max_m << std::endl;
     std::cout << "  max size [MiB]:       " << (max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;

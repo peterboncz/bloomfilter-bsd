@@ -180,10 +180,14 @@ struct blocked_bloomfilter {
   template<u32 w>
   static void _s(blocked_bloomfilter& instance, op_t op) {
     switch (instance.sector_cnt) {
-      case 1: _k<w, boost::static_unsigned_max<1, w>::value>(instance, op); break;
-      case 2: _k<w, boost::static_unsigned_max<2, w>::value>(instance, op); break;
-      case 4: _k<w, boost::static_unsigned_max<4, w>::value>(instance, op); break;
-      case 8: _k<w, boost::static_unsigned_max<8, w>::value>(instance, op); break;
+      case 1: _k<w, 1>(instance, op); break;
+      case 2: _k<w, 2>(instance, op); break;
+      case 4: _k<w, 4>(instance, op); break;
+      case 8: _k<w, 8>(instance, op); break;
+//      case 1: _k<w, boost::static_unsigned_max<1, w>::value>(instance, op); break;
+//      case 2: _k<w, boost::static_unsigned_max<2, w>::value>(instance, op); break;
+//      case 4: _k<w, boost::static_unsigned_max<4, w>::value>(instance, op); break;
+//      case 8: _k<w, boost::static_unsigned_max<8, w>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'sector_cnt' is not supported.");
     }
@@ -263,7 +267,7 @@ struct blocked_bloomfilter {
     bf_t* bf = new bf_t(m);
     instance = bf;
     k = bf_t::k;
-    word_cnt_per_block = bf_t::word_cnt;
+    word_cnt_per_block = bf_t::word_cnt_per_block;
     sector_cnt = bf_t::sector_cnt;
 
     // Get the actual size of the filter.

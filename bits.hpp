@@ -19,11 +19,11 @@ __forceinline__ __device__
 u32 pop_count(u64 a) { return __popcll(a); }
 #else
 __forceinline__
-constexpr u32 pop_count(u8 a) { return __builtin_popcount(a); }
+//constexpr u32 pop_count(u8 a) { return __builtin_popcount(a); }
 __forceinline__
-constexpr u32 pop_count(u16 a) { return __builtin_popcount(a); }
+//constexpr u32 pop_count(u16 a) { return __builtin_popcount(a); }
 __forceinline__
-constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
+//constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
 __forceinline__
 constexpr u32 pop_count(u64 a) { return __builtin_popcountll(a); }
 #endif

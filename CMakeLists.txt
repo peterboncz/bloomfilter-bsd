@@ -45,6 +45,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter_block_logic.hpp
+        bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
+        bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
