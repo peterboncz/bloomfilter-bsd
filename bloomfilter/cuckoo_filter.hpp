@@ -519,10 +519,7 @@ public:
     return contains_hash(hash_value);
   }
 
-
 };
-
-
 //===----------------------------------------------------------------------===//
 
 
@@ -571,6 +568,7 @@ struct blocked_cuckoo_filter {
       blocks[i].insert_key(key);
     }
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__
@@ -580,6 +578,7 @@ struct blocked_cuckoo_filter {
       insert(keys[i]);
     }
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__
@@ -594,6 +593,7 @@ struct blocked_cuckoo_filter {
       return blocks[i].contains_key(key);
     }
   }
+  //===----------------------------------------------------------------------===//
 
 
   /// Performs a batch-probe
@@ -647,6 +647,7 @@ struct blocked_cuckoo_filter {
     }
     return match_writer - match_positions;
   }
+  //===----------------------------------------------------------------------===//
 
 
 };
@@ -672,18 +673,21 @@ struct blocked_cuckoo_filter_base {
   insert(const key_t& key) {
     return static_cast<__derived*>(this)->filter.insert(key);
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__ uint64_t
   batch_insert(const key_t* keys, const uint32_t key_cnt) {
     return static_cast<__derived*>(this)->filter.batch_insert(keys, key_cnt);
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__ bool
   contains(const key_t& key) const {
     return static_cast<const __derived*>(this)->filter.contains(key);
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__ uint64_t
@@ -691,6 +695,7 @@ struct blocked_cuckoo_filter_base {
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
     return static_cast<const __derived*>(this)->filter.batch_contains(keys, key_cnt, match_positions, match_offset);
   };
+  //===----------------------------------------------------------------------===//
 
 };
 
@@ -700,7 +705,9 @@ struct blocked_cuckoo_filter {};
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 16, 4, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 16, 4, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 16, 4, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 16, 4, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, block_size_bytes, 16, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -710,18 +717,21 @@ struct blocked_cuckoo_filter<block_size_bytes, 16, 4, addressing> : blocked_cuck
 
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
+  // use SIMD implementation
   __forceinline__ uint64_t
   batch_contains(const key_type* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
     return dtl::cuckoo_filter::simd_batch_contains_16_4(*this, keys, key_cnt, match_positions, match_offset);
   };
 
-
 };
+//===----------------------------------------------------------------------===//
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 16, 2, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 16, 2, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 16, 2, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 16, 2, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, block_size_bytes, 16, 2>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -732,10 +742,13 @@ struct blocked_cuckoo_filter<block_size_bytes, 16, 2, addressing> : blocked_cuck
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+//===----------------------------------------------------------------------===//
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 12, 4, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 12, 4, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 12, 4, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 12, 4, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, block_size_bytes, 12, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -746,10 +759,13 @@ struct blocked_cuckoo_filter<block_size_bytes, 12, 4, addressing> : blocked_cuck
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+//===----------------------------------------------------------------------===//
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 10, 6, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 10, 6, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 10, 6, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 10, 6, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, block_size_bytes, 10, 6>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -760,10 +776,13 @@ struct blocked_cuckoo_filter<block_size_bytes, 10, 6, addressing> : blocked_cuck
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+//===----------------------------------------------------------------------===//
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 8, 8, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 8, 8, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 8, 8, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 8, 8, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint64_t, block_size_bytes, 8, 8>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -774,10 +793,13 @@ struct blocked_cuckoo_filter<block_size_bytes, 8, 8, addressing> : blocked_cucko
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
 };
+//===----------------------------------------------------------------------===//
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing> : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing>> {
+struct blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing>
+    : blocked_cuckoo_filter_base<uint32_t, blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing>> {
+
   using key_type = uint32_t;
   using table_type = cuckoo_filter::cuckoo_filter_multiword_table<uint32_t, block_size_bytes, 8, 4>;
   using block_type = cuckoo_filter::internal::cuckoo_filter<key_type, table_type>;
@@ -787,6 +809,7 @@ struct blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing> : blocked_cucko
 
   explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
 
+  // use SIMD implementation
   __forceinline__ uint64_t
   batch_contains(const key_type* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
@@ -794,7 +817,7 @@ struct blocked_cuckoo_filter<block_size_bytes, 8, 4, addressing> : blocked_cucko
   };
 
 };
-
+//===----------------------------------------------------------------------===//
 
 
 } // namespace dtl

@@ -38,6 +38,7 @@ struct word_block {
 
   //===----------------------------------------------------------------------===//
   // Static part
+  //===----------------------------------------------------------------------===//
   static_assert(dtl::is_power_of_two(s), "Parameter 's' must be a power of two.");
 
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
@@ -80,6 +81,7 @@ struct word_block {
         remaining_k_cnt - 1> // decrement the remaining k counter
         ::which_bits(key, hash_val, word);
   }
+  //===----------------------------------------------------------------------===//
 
 
   template<u64 n>
@@ -111,6 +113,7 @@ struct word_block {
         remaining_k_cnt - 1> // decrement the remaining k counter
         ::which_bits(keys, hash_vals, words);
   }
+  //===----------------------------------------------------------------------===//
 
 
   // The number of required hash functions.
@@ -121,6 +124,8 @@ struct word_block {
       (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
       remaining_k_cnt - 1> // decrement the remaining k counter
       ::hash_fn_cnt;
+  //===----------------------------------------------------------------------===//
+
 
   // The number of required hash bits.
   static constexpr u32 remaining_hash_bits =
@@ -130,6 +135,8 @@ struct word_block {
       (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
       remaining_k_cnt - 1> // decrement the remaining k counter
       ::remaining_hash_bits;
+  //===----------------------------------------------------------------------===//
+
 
 };
 
@@ -152,6 +159,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
   which_bits(const key_t key, hash_value_t& hash_value, word_t& word) noexcept {
     // End of recursion
   }
+  //===----------------------------------------------------------------------===//
 
 
   template<u64 n>
@@ -162,6 +170,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
              vec<word_t, n>& words) noexcept {
     // End of recursion
   }
+  //===----------------------------------------------------------------------===//
 
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
 
@@ -193,6 +202,7 @@ struct multiword_block {
 
   //===----------------------------------------------------------------------===//
   // Static part
+  //===----------------------------------------------------------------------===//
   static constexpr u32 word_cnt_log2 = dtl::ct::log_2<word_cnt>::value;
   static_assert(dtl::is_power_of_two(word_cnt), "Parameter 'word_cnt' must be a power of two.");
   static_assert(k >= word_cnt, "Parameter 'k' must be greater or equal to 'word_cnt'.");
@@ -219,7 +229,7 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static void
-  insert(const key_t key, word_t* __restrict block_ptr) noexcept {
+  insert(word_t* __restrict block_ptr, const key_t key) noexcept {
 
     hash_value_t hash_val = 0;
 
@@ -227,13 +237,14 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, remaining_hash_bits, remaining_word_cnt>
-        ::insert(key, hash_val, block_ptr);
+        ::insert(block_ptr, key, hash_val);
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__ __unroll_loops__
   static void
-  insert(const key_t key, hash_value_t& hash_val, word_t* __restrict block_ptr) noexcept {
+  insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // Load the word of interest
     word_t word = block_ptr[current_word_idx()];
 
@@ -252,8 +263,9 @@ struct multiword_block {
     // Process remaining words recursively, if any
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
-        ::insert(key, hash_val, block_ptr);
+        ::insert(block_ptr, key, hash_val);
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -261,7 +273,7 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
-  contains(const key_t key, const word_t* __restrict block_ptr) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key) noexcept {
 
     hash_value_t hash_val = 0;
 
@@ -269,13 +281,14 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, remaining_hash_bits, remaining_word_cnt>
-        ::contains(key, hash_val, block_ptr, false);
+        ::contains(block_ptr, key, hash_val, false);
   }
+  //===----------------------------------------------------------------------===//
 
 
   __forceinline__ __unroll_loops__
   static u1
-  contains(const key_t key, hash_value_t& hash_val, const word_t* __restrict block_ptr, u1 is_contained) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
     // Load the word of interest
     word_t word = block_ptr[current_word_idx()];
 
@@ -295,8 +308,9 @@ struct multiword_block {
     // Process remaining words recursively, if any
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
-        ::contains(key, hash_val, block_ptr, is_contained | found);
+        ::contains(block_ptr, key, hash_val, is_contained | found);
   }
+  //===----------------------------------------------------------------------===//
 
 
   template<u64 n>
@@ -315,6 +329,7 @@ struct multiword_block {
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, remaining_hash_bits, remaining_word_cnt>
         ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask);
   }
+  //===----------------------------------------------------------------------===//
 
 
   template<u64 n>
@@ -352,6 +367,8 @@ struct multiword_block {
         hasher, hash_value_t, hash_fn_idx + hash_fn_per_word, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
         ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask | found);
   }
+  //===----------------------------------------------------------------------===//
+
 
 };
 
@@ -377,9 +394,10 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static void
-  insert(const key_t key, hash_value_t& hash_val, word_t* __restrict block_ptr) noexcept {
+  insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // End of recursion
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -387,10 +405,11 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
-  contains(const key_t key, hash_value_t& hash_val, const word_t* __restrict block_ptr, u1 is_contained) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
     // End of recursion
     return is_contained;
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -407,6 +426,8 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
     // End of recursion
     return is_contained_mask;
   }
+  //===----------------------------------------------------------------------===//
+
 
 };
 //===----------------------------------------------------------------------===//

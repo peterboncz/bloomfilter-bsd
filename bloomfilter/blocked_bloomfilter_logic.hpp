@@ -218,7 +218,7 @@ struct blocked_bloomfilter_logic {
         Hasher, hash_value_t,
         /* recursive counter */
         1, 0, word_cnt>
-        ::insert(key, block_ptr);
+        ::insert(block_ptr, key);
   }
 
 
@@ -239,7 +239,7 @@ struct blocked_bloomfilter_logic {
         Hasher, hash_value_t,
         /* recursive counter */
         1, 0, word_cnt>
-        ::contains(key, block_ptr);
+        ::contains(block_ptr, key);
     return found;
   }
 
