@@ -24,9 +24,9 @@ struct blocked_bloomfilter {
 
 
   blocked_bloomfilter(u64 m,
-                               u32 block_size_bytes,
-                               u32 sector_size_bytes,
-                               u32 k)
+                      u32 block_size_bytes,
+                      u32 sector_size_bytes,
+                      u32 k)
       : filter_logic(m, block_size_bytes, sector_size_bytes, k), filter_data(filter_logic.word_cnt(), 0) {}
 
 

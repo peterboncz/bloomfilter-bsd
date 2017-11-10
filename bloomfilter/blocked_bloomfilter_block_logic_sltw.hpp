@@ -68,7 +68,7 @@ struct multiword_sector {
 
   static constexpr u32 current_k_idx() { return k - remaining_k_cnt; }
 
-  static constexpr u32 hash_bit_cnt_per_k = word_cnt * (word_cnt_log2 + word_bitlength_log2);
+  static constexpr u32 hash_bit_cnt_per_k = word_cnt_log2 + word_bitlength_log2;
 
   static constexpr u1 rehash = remaining_hash_bit_cnt < hash_bit_cnt_per_k;
   static constexpr u32 remaining_hash_bit_cnt_after_rehash = rehash ? hash_value_bitlength : remaining_hash_bit_cnt;
@@ -227,7 +227,7 @@ struct multiword_sector {
     // Test a bit in the given word
     constexpr u32 bit_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2 - word_bitlength_log2;
     const auto bit_idx = (hash_vals >> bit_idx_shift) & static_cast<hash_value_t>(word_bitlength_log2_mask);
-    const auto bits_to_test = word_vt(1) << bit_idx;
+    const word_vt bits_to_test = word_vt(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idx);
     const auto found_mask = (words & bits_to_test) == bits_to_test;
 
     // Process remaining k's recursively, if any

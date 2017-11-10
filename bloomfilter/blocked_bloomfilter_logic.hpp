@@ -9,6 +9,7 @@
 #include <dtl/dtl.hpp>
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
 #include "immintrin.h"

@@ -10,7 +10,7 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include "dtl/bloomfilter/bloomfilter_h1.hpp"
+#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
 
 #include "immintrin.h"
 
@@ -185,6 +185,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 //===----------------------------------------------------------------------===//
 
 
+
 //===----------------------------------------------------------------------===//
 // Recursive template to work with multi-word blocks.
 //
@@ -247,6 +248,7 @@ struct multiword_block {
   __forceinline__ __unroll_loops__
   static void
   insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+
     // Load the word of interest
     word_t word = block_ptr[current_word_idx()];
 
@@ -291,6 +293,7 @@ struct multiword_block {
   __forceinline__ __unroll_loops__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+
     // Load the word of interest
     word_t word = block_ptr[current_word_idx()];
 

@@ -12,6 +12,9 @@
 #include <dtl/bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/bloomfilter/hash_family.hpp>
 #include <dtl/hash.hpp>
+#include <random>
+#include <iomanip>
+#include <chrono>
 #include "block_addressing_logic.hpp"
 #include "bloomfilter_h2_mod.hpp"
 
@@ -47,8 +50,8 @@ struct blocked_bloomfilter {
   };
 
 
-  static constexpr auto power = dtl::block_addressing::POWER_OF_TWO;
-  static constexpr auto magic = dtl::block_addressing::MAGIC;
+  static constexpr dtl::block_addressing power = dtl::block_addressing::POWER_OF_TWO;
+  static constexpr dtl::block_addressing magic = dtl::block_addressing::MAGIC;
 
   template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = power>
   using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr, dtl::mem::numa_allocator<word_t>>;
@@ -167,10 +170,11 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
   static void dispatch(blocked_bloomfilter& instance, op_t op) {
       switch (instance.word_cnt_per_block) {
-        case 1: _s<1>(instance, op); break;
-        case 2: _s<2>(instance, op); break;
-        case 4: _s<4>(instance, op); break;
-        case 8: _s<8>(instance, op); break;
+        case  1: _s< 1>(instance, op); break;
+        case  2: _s< 2>(instance, op); break;
+        case  4: _s< 4>(instance, op); break;
+        case  8: _s< 8>(instance, op); break;
+//        case 16: _s<16>(instance, op); break;
         default:
           throw std::invalid_argument("The given 'word_cnt_per_block' is not supported.");
       }
@@ -184,10 +188,6 @@ struct blocked_bloomfilter {
       case 2: _k<w, 2>(instance, op); break;
       case 4: _k<w, 4>(instance, op); break;
       case 8: _k<w, 8>(instance, op); break;
-//      case 1: _k<w, boost::static_unsigned_max<1, w>::value>(instance, op); break;
-//      case 2: _k<w, boost::static_unsigned_max<2, w>::value>(instance, op); break;
-//      case 4: _k<w, boost::static_unsigned_max<4, w>::value>(instance, op); break;
-//      case 8: _k<w, boost::static_unsigned_max<8, w>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'sector_cnt' is not supported.");
     }
@@ -205,14 +205,14 @@ struct blocked_bloomfilter {
       case  6: _a<w, s, boost::static_unsigned_max<( 6 % s == 0 ?  6 : 1 /*invalid*/), s>::value>(instance, op); break;
       case  7: _a<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(instance, op); break;
       case  8: _a<w, s, boost::static_unsigned_max<( 8 % s == 0 ?  8 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case  9: _a<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 10: _a<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 11: _a<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 12: _a<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 13: _a<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
-//      case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
+      case  9: _a<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 10: _a<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 11: _a<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 12: _a<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 13: _a<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
     }
   }
 
