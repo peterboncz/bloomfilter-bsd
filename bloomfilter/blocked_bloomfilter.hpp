@@ -5,32 +5,65 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/batchwise.hpp>
+#include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
 #include <boost/math/common_factor.hpp>
 
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/bloomfilter/hash_family.hpp>
 #include <dtl/hash.hpp>
+
 #include <random>
 #include <iomanip>
 #include <chrono>
-#include "block_addressing_logic.hpp"
-#include "bloomfilter_h2_mod.hpp"
 
 
 namespace dtl {
 
 namespace internal {
+
+//===----------------------------------------------------------------------===//
+/// @see $u32& unroll_factor(u32, dtl::block_addressing, u32)
 static constexpr u32 max_k = 16;
-static std::array<$u32, max_k * 2> unroll_factors_32 = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-static std::array<$u32, max_k * 2> unroll_factors_64 = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-}
+
+static
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+    unroll_factors_32 = {
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  4, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  8, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w = 16, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  4, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  8, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w = 16, a = magic
+  };
+
+static
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+    unroll_factors_64 = {
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  4, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  8, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w = 16, a = pow2
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  4, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  8, a = magic
+    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w = 16, a = magic
+  };
+//===----------------------------------------------------------------------===//
+
+} // namespace internal
 
 
 template<typename Tw = $u32>
 struct blocked_bloomfilter {
-
 
   using key_t = $u32;
   using hash_value_t = $u32;
@@ -81,6 +114,9 @@ struct blocked_bloomfilter {
   std::function<void(const key_t /*key*/)>
   insert;
 
+  std::function<void(const key_t* /*keys*/, u32 /*key_cnt*/)>
+  batch_insert;
+
   std::function<$u1(const key_t /*key*/)>
   contains;
 
@@ -98,6 +134,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   blocked_bloomfilter(const size_t m, u32 k, u32 word_cnt_per_block = 1, u32 sector_cnt = 1)
       : m(m), k(k), word_cnt_per_block(word_cnt_per_block), sector_cnt(sector_cnt) {
 
@@ -125,11 +162,13 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   blocked_bloomfilter(blocked_bloomfilter&& src)
       : m(src.m), m_actual(src.m_actual), k(src.k),
         word_cnt_per_block(src.word_cnt_per_block), sector_cnt(src.sector_cnt),
         instance(src.instance),
         insert(std::move(src.insert)),
+        batch_insert(std::move(src.batch_insert)),
         contains(std::move(src.contains)),
         batch_contains(std::move(src.batch_contains)),
         allocator(std::move(src.allocator)),
@@ -140,6 +179,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   ~blocked_bloomfilter() {
     // Destruct logic instance (if any).
     if (instance != nullptr) dispatch(*this, op_t::DESTRUCT);
@@ -147,6 +187,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   blocked_bloomfilter&
   operator=(blocked_bloomfilter&& src) {
     m = src.m;
@@ -156,6 +197,7 @@ struct blocked_bloomfilter {
     sector_cnt = src.sector_cnt;
     instance = src.instance;
     insert = std::move(src.insert);
+    batch_insert = std::move(src.batch_insert);
     contains = std::move(src.contains);
     batch_contains = std::move(src.batch_contains);
     // invalidate pointers
@@ -166,7 +208,7 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  // Dispatching
+  // Dynamic Dispatching
   //===----------------------------------------------------------------------===//
   static void dispatch(blocked_bloomfilter& instance, op_t op) {
       switch (instance.word_cnt_per_block) {
@@ -174,7 +216,7 @@ struct blocked_bloomfilter {
         case  2: _s< 2>(instance, op); break;
         case  4: _s< 4>(instance, op); break;
         case  8: _s< 8>(instance, op); break;
-//        case 16: _s<16>(instance, op); break;
+        case 16: _s<16>(instance, op); break;
         default:
           throw std::invalid_argument("The given 'word_cnt_per_block' is not supported.");
       }
@@ -184,10 +226,11 @@ struct blocked_bloomfilter {
   template<u32 w>
   static void _s(blocked_bloomfilter& instance, op_t op) {
     switch (instance.sector_cnt) {
-      case 1: _k<w, 1>(instance, op); break;
-      case 2: _k<w, 2>(instance, op); break;
-      case 4: _k<w, 4>(instance, op); break;
-      case 8: _k<w, 8>(instance, op); break;
+      case  1: _k<w,  1>(instance, op); break;
+      case  2: _k<w,  2>(instance, op); break;
+      case  4: _k<w,  4>(instance, op); break;
+      case  8: _k<w,  8>(instance, op); break;
+      case 16: _k<w, 16>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'sector_cnt' is not supported.");
     }
@@ -231,7 +274,7 @@ struct blocked_bloomfilter {
 
   template<u32 w, u32 s, u32 k, dtl::block_addressing a>
   static void _u(blocked_bloomfilter& instance, op_t op) {
-    switch (unroll_factor(k, a)) {
+    switch (unroll_factor(k, a, w)) {
       case  0: _o<w, s, k, a,  0>(instance, op); break;
       case  1: _o<w, s, k, a,  1>(instance, op); break;
       case  2: _o<w, s, k, a,  2>(instance, op); break;
@@ -255,6 +298,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Constructs a blocked Bloom filter logic instance.
   template<
       typename bf_t
@@ -276,6 +320,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Bind API functions to the (previously constructed) Bloom filter logic.
   template<
       typename bf_t,
@@ -288,6 +333,7 @@ struct blocked_bloomfilter {
 
     // Bind the API functions.
     insert = std::bind(&bf_t::insert, bf, &filter_data[0], _1);
+    batch_insert = std::bind(&bf_t::batch_insert, bf, &filter_data[0], _1, _2);
     contains = std::bind(&bf_t::contains, bf, &filter_data[0], _1);
 
     // SIMD vector length (0 = run scalar code)
@@ -297,6 +343,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Destructs the Bloom filter logic.
   template<
       typename bf_t // the scalar bloomfilter_h1 type
@@ -310,6 +357,7 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the block addressing mode.
   block_addressing get_addressing_mode() const {
     return dtl::is_power_of_two(m)
@@ -319,6 +367,33 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  /// Returns the (actual) size in bytes.
+  std::size_t
+  size_in_bytes() const noexcept {
+    return (m_actual + 7) / 8;
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  /// Returns the name of the Bloom filter instance including the most
+  /// important parameters.
+  std::string
+  name() {
+    return "blocked_bloom_multiword[size=" + std::to_string(size_in_bytes())
+        + ",word_size=" + std::to_string(sizeof(word_t))
+           + ",k=" + std::to_string(k)
+           + ",w=" + std::to_string(word_cnt_per_block)
+           + ",s=" + std::to_string(sector_cnt)
+           + ",u=" + std::to_string(unroll_factor(k, get_addressing_mode(), word_cnt_per_block))
+           + ",addr=" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "pow2" : "magic")
+        + "]";
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
   /// Runs the calibration code. Results are memorized in global variables.
   static void
   calibrate() __attribute__ ((noinline)) {
@@ -327,53 +402,65 @@ struct blocked_bloomfilter {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<uint32_t> dis;
 
-    static constexpr u32 data_size = 4*1024;
+    static constexpr u32 data_size = 4u*1024*8;
     std::vector<key_t> random_data;
     random_data.reserve(data_size);
     for (std::size_t i = 0; i < data_size; i++) {
       random_data.push_back(dis(gen));
     }
 
-    for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
-      for ($u32 k = 1; k <= 16; k++) {
-        try {
-          std::cout <<"k = " <<  std::setw(2) << k << ": " << std::flush;
+    static const u32 max_unroll_factor = 8;
+    for ($u32 w = 1; w <= 16; w *= 2) {
+      for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+        for ($u32 k = 1; k <= 16; k++) {
+          try {
+            std::cout << "w = " << std::setw(2) << w << ", "
+                      << "addr = " << std::setw(5) << (addr_mode == block_addressing::POWER_OF_TWO ? "pow2" : "magic") << ", "
+                      << "k = " <<  std::setw(2) << k << ": " << std::flush;
 
-          $f64 cycles_per_lookup_min = std::numeric_limits<$f64>::max();
-          $u32 u_min = 1;
+            $f64 cycles_per_lookup_min = std::numeric_limits<$f64>::max();
+            $u32 u_min = 1;
 
-          std::size_t match_count = 0;
-          uint32_t match_pos[dtl::BATCH_SIZE];
+            std::size_t match_count = 0;
+            uint32_t match_pos[dtl::BATCH_SIZE];
 
-          static const u32 max_unroll_factor = 8;
-          for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u*2) {
-            std::cout <<  std::setw(4) << "u(" << std::setw(2) << std::to_string(u) + ") = "<< std::flush;
-            unroll_factor(k, addr_mode) = u;
-            blocked_bloomfilter bbf(4u * 1024, k, 1, 1);
-            $u64 rep_cntr = 0;
-            auto start = std::chrono::high_resolution_clock::now();
-            auto tsc_start = _rdtsc();
-            while (true) {
-              std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
-              if (diff.count() > 0.25) break;
-              dtl::batch_wise(random_data.begin(), random_data.end(), [&](const auto batch_begin, const auto batch_end) {
-                match_count += bbf.batch_contains(&batch_begin[0], batch_end - batch_begin, match_pos, 0);
-              });
-              rep_cntr++;
+            // baselines
+            $f64 cycles_per_lookup_u0 = 0.0;
+            $f64 cycles_per_lookup_u1 = 0.0;
+            for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u*2) {
+              std::cout << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
+              unroll_factor(k, addr_mode, w) = u;
+              blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, w); // word_cnt = sector_cnt
+              $u64 rep_cntr = 0;
+              auto start = std::chrono::high_resolution_clock::now();
+              auto tsc_start = _rdtsc();
+              while (true) {
+                std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
+                if (diff.count() > 0.25) break;
+                dtl::batch_wise(random_data.begin(), random_data.end(), [&](const auto batch_begin, const auto batch_end) {
+                  match_count += bbf.batch_contains(&batch_begin[0], batch_end - batch_begin, match_pos, 0);
+                });
+                rep_cntr++;
+              }
+              auto tsc_end = _rdtsc();
+              auto cycles_per_lookup = (tsc_end - tsc_start) / (data_size * rep_cntr * 1.0);
+              if (u == 0) cycles_per_lookup_u0 = cycles_per_lookup;
+              if (u == 1) cycles_per_lookup_u1 = cycles_per_lookup;
+              std::cout << std::setprecision(3) << std::setw(4) << std::right << cycles_per_lookup << ", ";
+              if (cycles_per_lookup < cycles_per_lookup_min) {
+                cycles_per_lookup_min = cycles_per_lookup;
+                u_min = u;
+              }
             }
-            auto tsc_end = _rdtsc();
-            auto cycles_per_lookup = (tsc_end - tsc_start) / (data_size * rep_cntr * 1.0);
-            std::cout << std::setprecision(2) << cycles_per_lookup << ", ";
-            if (cycles_per_lookup < cycles_per_lookup_min) {
-              cycles_per_lookup_min = cycles_per_lookup;
-              u_min = u;
-            }
+            unroll_factor(k, addr_mode, w) = u_min;
+            std::cout << " picked u = " << unroll_factor(k, addr_mode, w)
+                      << ", speedup over u(0) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_u0 / cycles_per_lookup_min)
+                      << ", speedup over u(1) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_u1 / cycles_per_lookup_min)
+                      << " (chksum: " << match_count << ")" << std::endl;
+
+          } catch (...) {
+            std::cout<< " -> Failed to calibrate for k = " << k << "." << std::endl;
           }
-          unroll_factor(k, addr_mode) = u_min;
-          std::cout << " picked u=" << u_min << " (chksum: " << match_count << ")" << std::endl;
-
-        } catch (...) {
-          std::cerr << "Failed to calibrate for k = " << k << "." << std::endl;
         }
       }
     }
@@ -381,17 +468,21 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the SIMD unrolling factor for the given k and addressing mode.
   /// Note: unrolling by 0 means -> scalar code (no SIMD)
   static $u32&
-  unroll_factor(u32 k, dtl::block_addressing addr_mode) {
+  unroll_factor(u32 k, dtl::block_addressing addr_mode, u32 word_cnt_per_block) {
     auto& unroll_factors = sizeof(word_t) == 8
                            ? internal::unroll_factors_64
                            : internal::unroll_factors_32;
-    return unroll_factors[k - 1];
+    return unroll_factors[
+        internal::max_k * dtl::log_2(word_cnt_per_block)
+        + (k - 1)
+        + (static_cast<u32>(addr_mode) * internal::max_k * 5)
+    ];
   }
   //===----------------------------------------------------------------------===//
-
 
 };
 

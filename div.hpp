@@ -4,6 +4,8 @@
 
 #include <dtl/dtl.hpp>
 
+#include "immintrin.h"
+
 // TODO remove dependency
 #include "thirdparty/libdivide/libdivide.h"
 

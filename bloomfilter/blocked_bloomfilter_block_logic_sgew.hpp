@@ -10,7 +10,7 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
+#include <dtl/bloomfilter/vector_helper.hpp>
 
 #include "immintrin.h"
 
@@ -22,7 +22,7 @@ namespace dtl {
 
 //===----------------------------------------------------------------------===//
 // Recursive template to compute a search mask with k bits set.
-// Used in case of sector count >= word_cnt, which allows to set multiple
+// Used in case of sector count >= word_cnt, which allows to set/test multiple
 // bits in a word in one go.
 //===----------------------------------------------------------------------===//
 template<
@@ -119,7 +119,9 @@ struct word_block {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   // The number of required hash functions.
+  //===----------------------------------------------------------------------===//
   static constexpr u32 hash_fn_idx_end =
   word_block<key_t, word_t, s, k,
       hasher, hash_value_t,
@@ -130,7 +132,9 @@ struct word_block {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   // The number of required hash bits.
+  //===----------------------------------------------------------------------===//
   static constexpr u32 remaining_hash_bits =
   word_block<key_t, word_t, s, k,
       hasher, hash_value_t,

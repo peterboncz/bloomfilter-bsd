@@ -10,7 +10,7 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include "dtl/bloomfilter/bloomfilter_h1.hpp"
+#include <dtl/bloomfilter/vector_helper.hpp>
 
 #include "immintrin.h"
 
@@ -95,6 +95,9 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // Insert (Recursive)
+  //===----------------------------------------------------------------------===//
   __forceinline__
   static void
   insert(word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val) noexcept {
@@ -148,6 +151,9 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // Contains (Recursive)
+  //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
   contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
@@ -201,6 +207,9 @@ struct multiword_sector {
   }
 
 
+  //===----------------------------------------------------------------------===//
+  // Contains (SIMD, Recursive)
+  //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
   static auto
@@ -242,7 +251,9 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   // The number of required hash functions.
+  //===----------------------------------------------------------------------===//
   static constexpr u32 hash_fn_idx_end =
       multiword_sector<key_t, word_t, word_cnt, k,
                        hasher, hash_value_t,
@@ -253,7 +264,9 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   // The number of required hash bits.
+  //===----------------------------------------------------------------------===//
   static constexpr u32 remaining_hash_bits =
       multiword_sector<key_t, word_t, word_cnt, k,
                  hasher, hash_value_t,
@@ -337,7 +350,6 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
 // Same as in the 'sgew' case, we process the block sector by sector,
 // however, a sector consists of more than one word.
 //===----------------------------------------------------------------------===//
-
 template<
     typename key_t,               // the key type
     typename word_t,              // the word type
@@ -385,6 +397,9 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // Insert (Recursive)
+  //===----------------------------------------------------------------------===//
   __forceinline__
   static void
   insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
@@ -426,6 +441,9 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // Contains (Recursive)
+  //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
@@ -473,6 +491,9 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // Contains (SIMD, Recursive)
+  //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
   static auto

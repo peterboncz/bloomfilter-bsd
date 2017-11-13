@@ -13,17 +13,12 @@
 #include <dtl/bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
 #include "immintrin.h"
-#include "dtl/bloomfilter/bloomfilter_h1.hpp"
 
 #include <boost/integer/static_min_max.hpp>
 
 
 namespace dtl {
 
-
-//===----------------------------------------------------------------------===//
-// A high-performance blocked Bloom filter template.
-//===----------------------------------------------------------------------===//
 namespace internal {
 
 //===----------------------------------------------------------------------===//
@@ -101,7 +96,7 @@ struct dispatch<filter_t, 0> {
                  $u32* __restrict match_positions, u32 match_offset) {
     $u32* match_writer = match_positions;
     $u32 i = 0;
-    for (; i < key_cnt; i += 4) {
+    for (; i < key_cnt - 4; i += 4) {
       u1 is_match_0 = filter.contains(filter_data, keys[i]);
       u1 is_match_1 = filter.contains(filter_data, keys[i + 1]);
       u1 is_match_2 = filter.contains(filter_data, keys[i + 2]);
@@ -129,6 +124,9 @@ struct dispatch<filter_t, 0> {
 } // namespace internal
 
 
+//===----------------------------------------------------------------------===//
+// A high-performance blocked Bloom filter template.
+//===----------------------------------------------------------------------===//
 template<
     typename Tk,                  // the key type
     template<typename Ty, u32 i> class Hasher,      // the hash function family to use
@@ -217,6 +215,21 @@ struct blocked_bloomfilter_logic {
 
     block_t::insert(block_ptr, key);
   }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  // Batch Insert
+  //===----------------------------------------------------------------------===//
+  __forceinline__ __host__
+  void
+  batch_insert(word_t* __restrict filter_data,
+               const key_t* keys, u32 key_cnt) noexcept {
+    for (std::size_t i = 0; i < key_cnt; i++) {
+      insert(filter_data, keys[i]);
+    }
+  }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -235,6 +248,7 @@ struct blocked_bloomfilter_logic {
     u1 found = block_t::contains(block_ptr, key);
     return found;
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -256,6 +270,7 @@ struct blocked_bloomfilter_logic {
     auto found = block_t::contains(keys, filter_data, bitvector_word_idx);
     return found;
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
@@ -280,8 +295,10 @@ struct blocked_bloomfilter_logic {
   length() const noexcept {
     return addr.get_block_cnt() * block_bitlength;
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   void
   print_info() const noexcept {
     std::cout << "-- bloomfilter parameters --" << std::endl;
@@ -302,6 +319,7 @@ struct blocked_bloomfilter_logic {
       std::cout << "  size [MiB]:           " << size_MiB << std::endl;
     }
   }
+  //===----------------------------------------------------------------------===//
 
 
 //  void

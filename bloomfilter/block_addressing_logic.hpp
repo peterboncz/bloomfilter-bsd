@@ -15,10 +15,15 @@
 namespace dtl {
 
 
-enum class block_addressing {
+//===----------------------------------------------------------------------===//
+/// The block addressing modes.
+enum class block_addressing : u32 {
+  /// The numbers of blocks is a power of two.
   POWER_OF_TWO,
+  /// The numbers of blocks is restricted to 'cheap' magic numbers.
   MAGIC
 };
+//===----------------------------------------------------------------------===//
 
 
 template<
@@ -43,6 +48,7 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Determines the actual block count based on the given bitlength of the Bloom filter.
   /// Note: The actual size of the Bloom filter might be larger than the given 'bitlength'.
   static size_t
@@ -69,6 +75,7 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   ~block_addressing_logic() noexcept = default;
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the number of blocks.
   __forceinline__ __host__ __device__
   size_t
@@ -78,6 +85,7 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the index of the block the hash value maps to.
   __forceinline__ __host__ __device__
   hash_value_t
@@ -88,6 +96,7 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the index of the block the hash value maps to.
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
@@ -99,6 +108,7 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the number of bits required to address the individual blocks.
   __forceinline__ __host__ __device__
   uint32_t
@@ -128,6 +138,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Determines the actual block count based on the given bitlength of the Bloom filter.
   /// Note: The actual size of the Bloom filter might be larger than the given 'bitlength'.
   static size_t
@@ -154,6 +165,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
   ~block_addressing_logic() noexcept = default;
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the number of blocks.
   __forceinline__ __host__ __device__
   size_t
@@ -163,6 +175,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the index of the block the hash value maps to.
   __forceinline__ __host__ __device__
   hash_value_t
@@ -173,6 +186,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the index of the block the hash value maps to.
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
@@ -184,6 +198,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the number of bits required to address the individual blocks.
   __forceinline__ __host__ __device__
   uint32_t

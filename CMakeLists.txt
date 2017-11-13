@@ -25,6 +25,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_runtime_sectorized.hpp
         bloomfilter/bloomfilter_runtime_types.hpp
         bloomfilter/bloomfilter_logic.hpp
+        bloomfilter/vector_helper.hpp
         bloomfilter/block_addressing_logic.hpp
         bloomfilter/old/bloomfilter_block_logic.hpp
         bloomfilter/bloomfilter_h1.hpp
