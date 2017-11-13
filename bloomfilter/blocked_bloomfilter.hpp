@@ -484,6 +484,21 @@ struct blocked_bloomfilter {
   }
   //===----------------------------------------------------------------------===//
 
+
+  //===----------------------------------------------------------------------===//
+  /// Force unroll factor for all implementations (used for benchmarking)
+  static $u32&
+  force_unroll_factor(u32 u) {
+    for ($u32 w = 1; w <= 16; w *= 2) {
+      for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+        for ($u32 k = 1; k <= 16; k++) {
+          unroll_factor(k, addr_mode, w) = u;
+        }
+      }
+    }
+  }
+  //===----------------------------------------------------------------------===//
+
 };
 
 } // namespace dtl
