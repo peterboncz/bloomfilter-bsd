@@ -216,7 +216,7 @@ struct multiword_sector {
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
-           const vec<key_t,n>& sector_start_word_idxs,
+           const vec<hash_value_t,n>& sector_start_word_idxs,
            const typename vec<word_t,n>::mask is_contained_mask) noexcept {
 
     // Typedef the vector types
@@ -228,7 +228,8 @@ struct multiword_sector {
 
     // Determine the word of interest
     constexpr u32 word_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2;
-    const auto word_idxs = (hash_vals >> word_idx_shift) & static_cast<hash_value_t>(word_cnt_log2);
+    const auto in_sector_word_idxs = (hash_vals >> word_idx_shift) & static_cast<hash_value_t>(word_cnt_log2);
+    const auto word_idxs = sector_start_word_idxs + in_sector_word_idxs;
 
     // Gather the words of interest
     const word_vt words = internal::vector_gather<word_t, hash_value_t, n>::gather(bitvector_base_address, word_idxs);
@@ -324,7 +325,7 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
-           const vec<key_t,n>& sector_start_word_idxs,
+           const vec<hash_value_t,n>& sector_start_word_idxs,
            const typename vec<word_t,n>::mask is_contained_mask) noexcept {
     // End of recursion.
     return is_contained_mask;
@@ -475,7 +476,7 @@ struct multisector_block {
   static auto
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
-           const vec<key_t,n>& block_start_word_idxs) noexcept {
+           const vec<hash_value_t,n>& block_start_word_idxs) noexcept {
 
     vec<hash_value_t, n> hash_vals(0);
     typename vec<word_t,n>::mask is_contained_mask(0);
@@ -484,7 +485,7 @@ struct multisector_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multisector_block<key_t, word_t, word_cnt, s, k,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
-                             remaining_sector_cnt - 1>
+                             remaining_sector_cnt>
       ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask);
 
   }
@@ -500,7 +501,7 @@ struct multisector_block {
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
-           const vec<key_t,n>& block_start_word_idxs,
+           const vec<hash_value_t,n>& block_start_word_idxs,
            const typename vec<word_t,n>::mask is_contained_mask) noexcept {
 
     // Typedef the vector types

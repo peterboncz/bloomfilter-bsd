@@ -10,6 +10,14 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w1.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w2.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w4.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w8.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w1.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w2.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w4.hpp>
+//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w8.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
 #include "immintrin.h"
@@ -96,19 +104,21 @@ struct dispatch<filter_t, 0> {
                  $u32* __restrict match_positions, u32 match_offset) {
     $u32* match_writer = match_positions;
     $u32 i = 0;
-    for (; i < key_cnt - 4; i += 4) {
-      u1 is_match_0 = filter.contains(filter_data, keys[i]);
-      u1 is_match_1 = filter.contains(filter_data, keys[i + 1]);
-      u1 is_match_2 = filter.contains(filter_data, keys[i + 2]);
-      u1 is_match_3 = filter.contains(filter_data, keys[i + 3]);
-      *match_writer = i + match_offset;
-      match_writer += is_match_0;
-      *match_writer = (i + 1) + match_offset;
-      match_writer += is_match_1;
-      *match_writer = (i + 2) + match_offset;
-      match_writer += is_match_2;
-      *match_writer = (i + 3) + match_offset;
-      match_writer += is_match_3;
+    if (key_cnt >= 4) {
+      for (; i < key_cnt - 4; i += 4) {
+        u1 is_match_0 = filter.contains(filter_data, keys[i]);
+        u1 is_match_1 = filter.contains(filter_data, keys[i + 1]);
+        u1 is_match_2 = filter.contains(filter_data, keys[i + 2]);
+        u1 is_match_3 = filter.contains(filter_data, keys[i + 3]);
+        *match_writer = i + match_offset;
+        match_writer += is_match_0;
+        *match_writer = (i + 1) + match_offset;
+        match_writer += is_match_1;
+        *match_writer = (i + 2) + match_offset;
+        match_writer += is_match_2;
+        *match_writer = (i + 3) + match_offset;
+        match_writer += is_match_3;
+      }
     }
     for (; i < key_cnt; i++) {
       u1 is_match = filter.contains(filter_data, keys[i]);

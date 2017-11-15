@@ -46,6 +46,22 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter_block_logic.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w1.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w1.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w2.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w2.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w4.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w4.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w8.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w8.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w1.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w1.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w2.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w2.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w4.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w4.cpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w8.hpp
+#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w8.cpp
         bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
         bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
         bloomfilter/bloomfilter_hn.hpp

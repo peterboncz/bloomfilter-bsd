@@ -279,7 +279,7 @@ struct blocked_bloomfilter {
       case  1: _o<w, s, k, a,  1>(instance, op); break;
       case  2: _o<w, s, k, a,  2>(instance, op); break;
       case  4: _o<w, s, k, a,  4>(instance, op); break;
-      case  8: _o<w, s, k, a,  8>(instance, op); break;
+//      case  8: _o<w, s, k, a,  8>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'unroll_factor' is not supported.");
     }
@@ -397,7 +397,7 @@ struct blocked_bloomfilter {
   /// Runs the calibration code. Results are memorized in global variables.
   static void
   calibrate() __attribute__ ((noinline)) {
-    std::cout << "Running calibration..." << std::endl;
+    std::cerr << "Running calibration..." << std::endl;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<uint32_t> dis;
@@ -409,12 +409,12 @@ struct blocked_bloomfilter {
       random_data.push_back(dis(gen));
     }
 
-    static const u32 max_unroll_factor = 8;
+    static const u32 max_unroll_factor = 4;
     for ($u32 w = 1; w <= 16; w *= 2) {
       for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
         for ($u32 k = 1; k <= 16; k++) {
           try {
-            std::cout << "w = " << std::setw(2) << w << ", "
+            std::cerr << "w = " << std::setw(2) << w << ", "
                       << "addr = " << std::setw(5) << (addr_mode == block_addressing::POWER_OF_TWO ? "pow2" : "magic") << ", "
                       << "k = " <<  std::setw(2) << k << ": " << std::flush;
 
@@ -428,7 +428,7 @@ struct blocked_bloomfilter {
             $f64 cycles_per_lookup_u0 = 0.0;
             $f64 cycles_per_lookup_u1 = 0.0;
             for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u*2) {
-              std::cout << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
+              std::cerr << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
               unroll_factor(k, addr_mode, w) = u;
               blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, w); // word_cnt = sector_cnt
               $u64 rep_cntr = 0;
@@ -446,20 +446,20 @@ struct blocked_bloomfilter {
               auto cycles_per_lookup = (tsc_end - tsc_start) / (data_size * rep_cntr * 1.0);
               if (u == 0) cycles_per_lookup_u0 = cycles_per_lookup;
               if (u == 1) cycles_per_lookup_u1 = cycles_per_lookup;
-              std::cout << std::setprecision(3) << std::setw(4) << std::right << cycles_per_lookup << ", ";
+              std::cerr << std::setprecision(3) << std::setw(4) << std::right << cycles_per_lookup << ", ";
               if (cycles_per_lookup < cycles_per_lookup_min) {
                 cycles_per_lookup_min = cycles_per_lookup;
                 u_min = u;
               }
             }
             unroll_factor(k, addr_mode, w) = u_min;
-            std::cout << " picked u = " << unroll_factor(k, addr_mode, w)
+            std::cerr << " picked u = " << unroll_factor(k, addr_mode, w)
                       << ", speedup over u(0) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_u0 / cycles_per_lookup_min)
                       << ", speedup over u(1) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_u1 / cycles_per_lookup_min)
                       << " (chksum: " << match_count << ")" << std::endl;
 
           } catch (...) {
-            std::cout<< " -> Failed to calibrate for k = " << k << "." << std::endl;
+            std::cerr<< " -> Failed to calibrate for k = " << k << "." << std::endl;
           }
         }
       }
@@ -487,7 +487,7 @@ struct blocked_bloomfilter {
 
   //===----------------------------------------------------------------------===//
   /// Force unroll factor for all implementations (used for benchmarking)
-  static $u32&
+  static void
   force_unroll_factor(u32 u) {
     for ($u32 w = 1; w <= 16; w *= 2) {
       for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {

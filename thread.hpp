@@ -25,7 +25,7 @@ namespace this_thread {
 
 /// pins the current thread to the specified CPU(s)
 static void
-set_cpu_affinity(dtl::cpu_mask& cpu_mask) {
+set_cpu_affinity(const dtl::cpu_mask& cpu_mask) {
   cpu_set_t mask;
   CPU_ZERO(&mask);
   // convert bitset to CPU mask
@@ -186,6 +186,38 @@ run_in_parallel(std::function<void(u32 thread_id)> fn,
   for (auto& worker : workers) {
     worker.join();
   }
+}
+
+static void
+run_in_parallel(std::function<void(u32 thread_id)> fn,
+                const dtl::cpu_mask& cpu_mask,
+                u32 thread_cnt) {
+
+  const auto affinity_saved = dtl::this_thread::get_cpu_affinity();
+
+  std::vector<$u32> map;
+  for (auto it = cpu_mask.on_bits_begin(); it != cpu_mask.on_bits_end(); it++) {
+    map.push_back(*it);
+  }
+
+  auto cpu_map = [&](u32 thread_id) {
+    return map[thread_id % map.size()];
+  };
+
+  auto thread_fn = [&cpu_map](u32 thread_id, std::function<void(u32 thread_id)> fn) {
+    thread_affinitize(cpu_map(thread_id));
+    fn(thread_id);
+  };
+
+  std::vector<std::thread> workers;
+  for (std::size_t i = 0; i < thread_cnt - 1; i++) {
+    workers.push_back(std::move(std::thread(thread_fn, i, fn)));
+  }
+  std::thread(thread_fn, thread_cnt - 1, fn).join();
+  for (auto& worker : workers) {
+    worker.join();
+  }
+  dtl::this_thread::set_cpu_affinity(affinity_saved);
 }
 
 
