@@ -123,7 +123,7 @@ struct multiword_sector {
     multiword_sector<key_t, word_t, word_cnt, k,
                      hasher, hash_value_t,
                      rehash ? hash_fn_idx + 1 : hash_fn_idx,
-                     remaining_hash_bit_cnt_after_rehash,
+                     remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0,
                      remaining_k_cnt - 1>
       ::insert(sector_ptr, key, hash_val);
   }
@@ -146,7 +146,7 @@ struct multiword_sector {
                             hash_fn_idx,
                             remaining_hash_bits,
                             remaining_k_cnt>
-                            ::contains(sector_ptr, key, hash_val, false);
+      ::contains(sector_ptr, key, hash_val, true);
   }
   //===----------------------------------------------------------------------===//
 
@@ -156,7 +156,7 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
-  contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+  contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_sector) noexcept {
 
     hash_val = rehash ? hasher<key_t, hash_fn_idx>::hash(key) : hash_val;
 
@@ -170,15 +170,15 @@ struct multiword_sector {
     // Test a bit in the given word
     constexpr u32 bit_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2 - word_bitlength_log2;
     $u32 bit_idx = ((hash_val >> bit_idx_shift) & word_bitlength_log2_mask);
-    u1 found = word & (word_t(1) << bit_idx);
+    u1 found_in_word = word & (word_t(1) << bit_idx);
 
     // Process remaining k's recursively, if any
     return multiword_sector<key_t, word_t, word_cnt, k,
                             hasher, hash_value_t,
                             rehash ? hash_fn_idx + 1 : hash_fn_idx,
-                            remaining_hash_bit_cnt_after_rehash,
+                            remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0,
                             remaining_k_cnt - 1>
-                            ::contains(sector_ptr, key, hash_val, found | is_contained);
+                            ::contains(sector_ptr, key, hash_val, found_in_word & is_contained_in_sector);
   }
   //===----------------------------------------------------------------------===//
 
@@ -194,7 +194,7 @@ struct multiword_sector {
            const vec<key_t,n>& sector_start_word_idxs) noexcept {
 
     vec<hash_value_t, n> hash_vals(0);
-    typename vec<word_t,n>::mask is_contained_mask(0);
+    auto is_contained_in_sector_mask = vec<word_t,n>::mask::make_all_mask();
 
     // Call recursive function
     static constexpr u32 remaining_hash_bits = 0;
@@ -203,7 +203,7 @@ struct multiword_sector {
                             hash_fn_idx,
                             remaining_hash_bits,
                             remaining_k_cnt>
-                            ::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, is_contained_mask);
+      ::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, is_contained_in_sector_mask);
   }
 
 
@@ -217,7 +217,7 @@ struct multiword_sector {
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& sector_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask is_contained_in_sector_mask) noexcept {
 
     // Typedef the vector types
     using key_vt = vec<key_t, n>;
@@ -228,7 +228,7 @@ struct multiword_sector {
 
     // Determine the word of interest
     constexpr u32 word_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2;
-    const auto in_sector_word_idxs = (hash_vals >> word_idx_shift) & static_cast<hash_value_t>(word_cnt_log2);
+    const auto in_sector_word_idxs = (hash_vals >> word_idx_shift) & static_cast<hash_value_t>(word_cnt_log2_mask);
     const auto word_idxs = sector_start_word_idxs + in_sector_word_idxs;
 
     // Gather the words of interest
@@ -238,15 +238,15 @@ struct multiword_sector {
     constexpr u32 bit_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2 - word_bitlength_log2;
     const auto bit_idx = (hash_vals >> bit_idx_shift) & static_cast<hash_value_t>(word_bitlength_log2_mask);
     const word_vt bits_to_test = word_vt(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idx);
-    const auto found_mask = (words & bits_to_test) == bits_to_test;
+    const auto found_in_word_mask = (words & bits_to_test) == bits_to_test;
 
     // Process remaining k's recursively, if any
     return multiword_sector<key_t, word_t, word_cnt, k,
                             hasher, hash_value_t,
                             rehash ? hash_fn_idx + 1 : hash_fn_idx,
-                            remaining_hash_bit_cnt_after_rehash,
+                            remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0,
                             remaining_k_cnt - 1>
-      ::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, found_mask | is_contained_mask);
+      ::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, found_in_word_mask & is_contained_in_sector_mask);
 
   }
   //===----------------------------------------------------------------------===//
@@ -259,7 +259,9 @@ struct multiword_sector {
       multiword_sector<key_t, word_t, word_cnt, k,
                        hasher, hash_value_t,
                        (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-                       remaining_hash_bit_cnt_after_rehash, // the number of remaining hash bits
+                       remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k
+                         ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k
+                         : 0, // the number of remaining hash bits
                        remaining_k_cnt - 1> // decrement the remaining k counter
       ::hash_fn_idx_end;
   //===----------------------------------------------------------------------===//
@@ -272,7 +274,9 @@ struct multiword_sector {
       multiword_sector<key_t, word_t, word_cnt, k,
                  hasher, hash_value_t,
                  (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-                 remaining_hash_bit_cnt_after_rehash, // the number of remaining hash bits
+                 remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k
+                   ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k
+                   : 0, // the number of remaining hash bits
                  remaining_k_cnt - 1> // decrement the remaining k counter
       ::remaining_hash_bits;
   //===----------------------------------------------------------------------===//
@@ -309,9 +313,9 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
   //===----------------------------------------------------------------------===//
   __forceinline__
   static u1
-  contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+  contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_sector) noexcept {
     // End of recursion.
-    return is_contained;
+    return is_contained_in_sector;
   }
   //===----------------------------------------------------------------------===//
 
@@ -326,9 +330,9 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& sector_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask is_contained_in_sector_mask) noexcept {
     // End of recursion.
-    return is_contained_mask;
+    return is_contained_in_sector_mask;
   }
   //===----------------------------------------------------------------------===//
 
@@ -377,6 +381,8 @@ struct multisector_block {
 
   static_assert(dtl::is_power_of_two(word_cnt), "Parameter 'word_cnt' must be a power of two.");
   static constexpr u32 word_cnt_per_sector = word_cnt / s;
+  static constexpr u32 k_cnt_per_sector = k / sector_cnt;
+  static_assert(k % sector_cnt == 0, "Parameter 'k' must be dividable by 's'.");
 
 
   //===----------------------------------------------------------------------===//
@@ -410,9 +416,9 @@ struct multisector_block {
 
     // Process remaining k's recursively, if any
     using sector_t =
-      multiword_sector<key_t, word_t, word_cnt_per_sector, k,
+      multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                        hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
-                       k>;
+                       k_cnt_per_sector>;
     sector_t::insert(sector_ptr, key, hash_val);
 
     multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
@@ -437,7 +443,7 @@ struct multisector_block {
     return multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
                              remaining_sector_cnt>
-      ::contains(block_ptr, key, hash_val, false);
+      ::contains(block_ptr, key, hash_val, true);
   }
   //===----------------------------------------------------------------------===//
 
@@ -447,23 +453,23 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
   __forceinline__ __unroll_loops__
   static u1
-  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
 
     // Sector pointer
     const word_t* sector_ptr = block_ptr + (word_cnt_per_sector * current_sector_idx);
 
     // Process the current sector
     using sector_t =
-      multiword_sector<key_t, word_t, word_cnt_per_sector, k,
+      multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                        hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
-                       k>;
-    auto found = sector_t::contains(sector_ptr, key, hash_val, is_contained);
+                       k_cnt_per_sector>;
+    auto found_in_sector = sector_t::contains(sector_ptr, key, hash_val, true);
 
     // Process remaining sectors recursively, if any
     return multisector_block<key_t, word_t, word_cnt, s, k,
                       hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
                       remaining_sector_cnt - 1>
-        ::contains(block_ptr, key, hash_val, found | is_contained);
+        ::contains(block_ptr, key, hash_val, found_in_sector & is_contained_in_block);
   }
   //===----------------------------------------------------------------------===//
 
@@ -479,14 +485,14 @@ struct multisector_block {
            const vec<hash_value_t,n>& block_start_word_idxs) noexcept {
 
     vec<hash_value_t, n> hash_vals(0);
-    typename vec<word_t,n>::mask is_contained_mask(0);
+    const auto is_contained_in_block_mask = vec<word_t,n>::mask::make_all_mask(); // true
 
     // Call recursive function
     static constexpr u32 remaining_hash_bits = 0;
     return multisector_block<key_t, word_t, word_cnt, s, k,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
                              remaining_sector_cnt>
-      ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask);
+      ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_in_block_mask);
 
   }
   //===----------------------------------------------------------------------===//
@@ -502,7 +508,7 @@ struct multisector_block {
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& block_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask is_contained_in_block_mask) noexcept {
 
     // Typedef the vector types
     using key_vt = vec<key_t, n>;
@@ -514,16 +520,16 @@ struct multisector_block {
 
     // Process the current sector
     using sector_t =
-            multiword_sector<key_t, word_t, word_cnt_per_sector, k,
+            multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
-                             k>;
-    auto found_mask = sector_t::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, is_contained_mask);
+                             k_cnt_per_sector>;
+    auto found_in_sector_mask = sector_t::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, vec<word_t,n>::mask::make_all_mask());
 
     // Process remaining sectors recursively, if any
     return multisector_block<key_t, word_t, word_cnt, s, k,
                              hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
                              remaining_sector_cnt - 1>
-      ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, found_mask);
+      ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, found_in_sector_mask & is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
 
@@ -567,9 +573,9 @@ struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, ha
   //===----------------------------------------------------------------------===//
   __forceinline__
   static u1
-  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
     // End of recursion.
-    return is_contained;
+    return is_contained_in_block;
   }
   //===----------------------------------------------------------------------===//
 
@@ -584,9 +590,9 @@ struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, ha
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& block_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask is_contained_in_block_mask) noexcept {
     // End of recursion.
-    return is_contained_mask;
+    return is_contained_in_block_mask;
   }
   //===----------------------------------------------------------------------===//
 

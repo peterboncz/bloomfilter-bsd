@@ -142,8 +142,9 @@ struct blocked_bloomfilter {
     dispatch(*this, op_t::CONSTRUCT);
 
     // Create and init the bit vector.
+    constexpr u32 word_bitlength = sizeof(word_t) * 8;
     filter_data.clear();
-    filter_data.resize(m_actual, 0);
+    filter_data.resize((m_actual + (word_bitlength - 1)) / word_bitlength, 0);
 
     // Bind the API functions.
     dispatch(*this, op_t::BIND);
@@ -496,6 +497,27 @@ struct blocked_bloomfilter {
         }
       }
     }
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  void
+  print() const noexcept {
+    constexpr u32 word_bitlength = sizeof(word_t) * 8;
+    std::cout << "-- Bloom filter dump --" << std::endl;
+    $u64 i = 0;
+    for (const word_t word : filter_data) {
+      std::cout << std::bitset<word_bitlength>(word);
+      i++;
+      if (i % (128 / word_bitlength) == 0) {
+        std::cout << std::endl;
+      }
+      else {
+        std::cout << " ";
+      }
+    }
+    std::cout << std::endl;
   }
   //===----------------------------------------------------------------------===//
 

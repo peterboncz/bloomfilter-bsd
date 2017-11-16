@@ -53,13 +53,14 @@ struct word_block {
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
   static constexpr word_t sector_mask() { return static_cast<word_t>(sector_bitlength) - 1; }
 
-  static constexpr u32 hash_bits_per_k = sector_bitlength_log2;
-  static constexpr u32 k_cnt_per_hash_value = ((sizeof(hash_value_t) * 8) / hash_bits_per_k) ; // consider -1 to respect hash fn weakness in the low order bits
+  static constexpr u32 hash_bit_cnt_per_k = sector_bitlength_log2;
+  static constexpr u32 k_cnt_per_hash_value = ((sizeof(hash_value_t) * 8) / hash_bit_cnt_per_k) ; // consider -1 to respect hash fn weakness in the low order bits
   static constexpr u32 k_cnt_per_sector = k / s;
 
   static constexpr u32 current_k = k - remaining_k_cnt;
 
-  static constexpr u1 rehash = remaining_hash_bit_cnt < hash_bits_per_k;
+  static constexpr u1 rehash = remaining_hash_bit_cnt < hash_bit_cnt_per_k;
+  static constexpr u32 remaining_hash_bit_cnt_after_rehash = rehash ? hash_value_bitlength : remaining_hash_bit_cnt;
   //===----------------------------------------------------------------------===//
 
 
@@ -68,11 +69,10 @@ struct word_block {
   which_bits(const key_t key, hash_value_t& hash_val, word_t& word) noexcept {
 
     hash_val = rehash ? hasher<key_t, hash_fn_idx>::hash(key) : hash_val;
-    const hash_value_t remaining_hash_bit_cnt_after_rehash = rehash ? hash_value_bitlength : remaining_hash_bit_cnt;
 
     // Set one bit in the given word; rehash if necessary
     constexpr u32 sector_idx = current_k / k_cnt_per_sector;
-    constexpr u32 shift = remaining_hash_bit_cnt_after_rehash - hash_bits_per_k;
+    constexpr u32 shift = remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k;
     $u32 bit_idx = ((hash_val >> shift) & sector_mask()) + (sector_idx * sector_bitlength);
     word |= word_t(1) << bit_idx;
 
@@ -80,9 +80,9 @@ struct word_block {
     word_block<key_t, word_t, s, k,
         hasher, hash_value_t,
         (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-        (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
+        remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0, // the number of remaining hash bits
         remaining_k_cnt - 1> // decrement the remaining k counter
-        ::which_bits(key, hash_val, word);
+      ::which_bits(key, hash_val, word);
   }
   //===----------------------------------------------------------------------===//
 
@@ -104,7 +104,7 @@ struct word_block {
 
     // Set one bit in the given word; rehash if necessary
     constexpr u32 sector_idx = current_k / k_cnt_per_sector;
-    constexpr u32 shift = remaining_hash_bit_cnt_after_rehash - hash_bits_per_k;
+    constexpr u32 shift = remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k;
     hash_value_vt bit_idxs = ((hash_vals >> shift) & sector_mask()) + (sector_idx * sector_bitlength);
     words |= word_vt(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs);
 
@@ -112,9 +112,9 @@ struct word_block {
     word_block<key_t, word_t, s, k,
         hasher, hash_value_t,
         (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-        (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
+        remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0, // the number of remaining hash bits
         remaining_k_cnt - 1> // decrement the remaining k counter
-        ::which_bits(keys, hash_vals, words);
+      ::which_bits(keys, hash_vals, words);
   }
   //===----------------------------------------------------------------------===//
 
@@ -126,9 +126,9 @@ struct word_block {
   word_block<key_t, word_t, s, k,
       hasher, hash_value_t,
       (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-      (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
+      remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0, // the number of remaining hash bits
       remaining_k_cnt - 1> // decrement the remaining k counter
-      ::hash_fn_idx_end;
+    ::hash_fn_idx_end;
   //===----------------------------------------------------------------------===//
 
 
@@ -139,9 +139,9 @@ struct word_block {
   word_block<key_t, word_t, s, k,
       hasher, hash_value_t,
       (rehash ? hash_fn_idx + 1 : hash_fn_idx), // increment the hash function index
-      (rehash ? hash_value_bitlength - hash_bits_per_k : remaining_hash_bit_cnt - hash_bits_per_k), // the number of remaining hash bits
+      remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0, // the number of remaining hash bits
       remaining_k_cnt - 1> // decrement the remaining k counter
-      ::remaining_hash_bits;
+    ::remaining_hash_bits;
   //===----------------------------------------------------------------------===//
 
 
@@ -288,14 +288,14 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt>
-        ::contains(block_ptr, key, hash_val, false);
+        ::contains(block_ptr, key, hash_val, true);
   }
   //===----------------------------------------------------------------------===//
 
 
   __forceinline__ __unroll_loops__
   static u1
-  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
+  contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
 
     // Load the word of interest
     word_t word = block_ptr[current_word_idx()];
@@ -303,7 +303,6 @@ struct multiword_block {
     word_t bit_mask = 0;
 
     // Compute the search mask
-    static constexpr u32 k_cnt_per_word = k / word_cnt;
     using word_block_t =
       word_block<key_t, word_t, sector_cnt_per_word, k_cnt_per_word,
         hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
@@ -311,12 +310,12 @@ struct multiword_block {
     word_block_t::which_bits(key, hash_val, bit_mask);
 
     // Update the bit vector
-    u1 found = (word & bit_mask) == bit_mask;
+    u1 found_in_word = (word & bit_mask) == bit_mask;
 
     // Process remaining words recursively, if any
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
-        ::contains(block_ptr, key, hash_val, is_contained | found);
+        ::contains(block_ptr, key, hash_val, found_in_word & is_contained_in_block);
   }
   //===----------------------------------------------------------------------===//
 
@@ -332,14 +331,14 @@ struct multiword_block {
            const vec<key_t,n>& block_start_word_idxs) noexcept {
 
     vec<hash_value_t, n> hash_vals(0);
-    typename vec<word_t,n>::mask is_contained_mask(0);
+    auto is_contained_in_block_mask = vec<word_t,n>::mask::make_all_mask();
 
     // Call recursive function
     static constexpr u32 remaining_hash_bits = 0;
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
                            hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
                            remaining_word_cnt>
-        ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask);
+        ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
 
@@ -351,7 +350,7 @@ struct multiword_block {
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& block_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask& is_contained_in_block_mask) noexcept {
 
     // Typedef the vector types
     using key_vt = vec<key_t, n>;
@@ -364,7 +363,6 @@ struct multiword_block {
 
     // Compute the search mask
     word_vt bit_masks = 0;
-    static constexpr u32 k_cnt_per_word = k / word_cnt;
     using word_block_t =
       word_block<key_t, word_t, sector_cnt_per_word, k_cnt_per_word,
         hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
@@ -372,12 +370,12 @@ struct multiword_block {
     word_block_t::which_bits(keys, hash_vals, bit_masks);
 
     // Update the bit vector
-    auto found = (words & bit_masks) == bit_masks;
+    auto found_in_word = (words & bit_masks) == bit_masks;
 
     // Process remaining words recursively, if any
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
-        ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_mask | found);
+        ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, found_in_word & is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
 
@@ -434,7 +432,7 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& block_idxs,
-           const typename vec<word_t,n>::mask is_contained_mask) noexcept {
+           const typename vec<word_t,n>::mask& is_contained_mask) noexcept {
     // End of recursion
     return is_contained_mask;
   }

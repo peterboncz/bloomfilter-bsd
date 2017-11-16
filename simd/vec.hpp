@@ -150,6 +150,9 @@ struct v : v_base {
     /// The actual mask data. (the one and only non-static member variable of this class)
     compound_mask_type data;
 
+    m() {
+      set<is_compound>(this->data, false);
+    }
     m(u32 i) {
       set<is_compound>(this->data, i);
     }

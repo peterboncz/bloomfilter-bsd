@@ -46,7 +46,7 @@ struct dispatch {
                  $u32* __restrict match_positions, u32 match_offset) {
     // Typedefs
     using key_t = typename filter_t::key_t;
-    using word_t_t = typename filter_t::word_t;
+    using word_t = typename filter_t::word_t;
     using vec_t = vec<key_t, vector_len>;
     using mask_t = typename vec<key_t, vector_len>::mask;
 
@@ -330,25 +330,6 @@ struct blocked_bloomfilter_logic {
     }
   }
   //===----------------------------------------------------------------------===//
-
-
-//  void
-//  print() const noexcept {
-//    std::cout << "-- Bloom filter dump --" << std::endl;
-//    $u64 i = 0;
-//    for (const word_t word : word_array) {
-//      std::cout << std::bitset<word_bitlength>(word);
-//      i++;
-//      if (i % (128 / word_bitlength) == 0) {
-//        std::cout << std::endl;
-//      }
-//      else {
-//        std::cout << " ";
-//      }
-//    }
-//    std::cout << std::endl;
-//  }
-
 
 };
 
