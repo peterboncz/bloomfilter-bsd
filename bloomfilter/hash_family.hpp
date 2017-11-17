@@ -101,7 +101,7 @@ struct mul32 {
 
   __forceinline__ __host__ __device__
   static u32 hash(u32& key, u32 hash_no) {
-    static constexpr u32 primes[13] {
+    static constexpr u32 primes[17] {
         596572387u,   // Peter 1
         370248451u,   // Peter 2
         2654435769u,  // Knuth 1
@@ -115,8 +115,12 @@ struct mul32 {
         770785867u,   // Impala 6 (odd, not prime)
         2667333959u,  // Impala 7 (odd, not prime)
         1550580529u,  // Impala 8 (odd, not prime)
+        0xcc9e2d51u,  // Murmur 3 (x86_32 c1)
+        0x1b873593u,  // Murmur 3 (x86_32 c2)
+        0x85ebca6bu,  // Murmur 3 (finalization mix constant)
+        0xc2b2ae35u,  // Murmur 3 (finalization mix constant)
     };
-    if (hash_no > 13) {
+    if (hash_no > 17) {
       std::cerr << "hash_no out of bounds: " << hash_no << std::endl;
       throw "BAM";
     }

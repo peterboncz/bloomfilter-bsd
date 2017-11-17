@@ -16,14 +16,13 @@
 #include "hash_family.hpp"
 
 namespace dtl {
-namespace bloom_filter {
 
 template<
     typename Tk,           // the key type
 //    typename HashFn,       // the hash function (family) to use
     block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the addressing scheme
 >
-struct bloom_filter_std {
+struct std_bloomfilter {
 
   using key_t = Tk;
   using word_t = uint32_t;
@@ -63,12 +62,12 @@ struct bloom_filter_std {
  public:
 
   explicit
-  bloom_filter_std(const std::size_t length, const uint32_t k) noexcept
+  std_bloomfilter(const std::size_t length, const uint32_t k) noexcept
       : addr(length, block_bitlength), k(k) { }
 
-  bloom_filter_std(const bloom_filter_std&) noexcept = default;
+  std_bloomfilter(const std_bloomfilter&) noexcept = default;
 
-  bloom_filter_std(bloom_filter_std&&) noexcept = default;
+  std_bloomfilter(std_bloomfilter&&) noexcept = default;
 
 
   /// Returns the size of the Bloom filter (in number of bits).
@@ -99,7 +98,7 @@ struct bloom_filter_std {
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
       const hash_value_t word_idx = addr.get_block_idx(hash_val); // word == block
-      const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
+      const hash_value_t bit_idx = (hash_val >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
       filter[word_idx] |= word_t(1u) << bit_idx;
     }
   }
@@ -127,7 +126,7 @@ struct bloom_filter_std {
     for (uint32_t current_k = 0; current_k < k; current_k++) {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
       const hash_value_t word_idx = addr.get_block_idx(hash_val);
-      const hash_value_t bit_idx = (hash_val >> (word_bitlength - addressing_bits)) & word_mask;
+      const hash_value_t bit_idx = (hash_val >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
       const bool hit = filter[word_idx] & (word_t(1u) << bit_idx);
       if (!hit) return false;
     }
@@ -152,7 +151,7 @@ struct bloom_filter_std {
     // Test one bit per word at a time.
     const hash_value_vt hash_vals = HashFn::hash(keys, 0);
     const auto word_idxs = addr.get_block_idx(hash_vals);
-    const auto bit_idxs = (hash_vals >> (word_bitlength - addressing_bits)) & word_mask;
+    const auto bit_idxs = (hash_vals >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
     const auto lsb_set = vec_t::make(word_t(1u));
     mask_t exec_mask = (dtl::gather(filter, word_idxs) & (lsb_set << bit_idxs)) != 0;
 
@@ -160,7 +159,7 @@ struct bloom_filter_std {
       for (uint32_t current_k = 1; current_k < k; current_k++) {
         const vec_t hash_vals = HashFn::hash(keys, current_k);
         const vec_t word_idxs = addr.get_block_idx(hash_vals).zero_mask(exec_mask);
-        const auto bit_idxs = (hash_vals >> (word_bitlength - addressing_bits)) & word_mask;
+        const auto bit_idxs = (hash_vals >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
         exec_mask &= (dtl::gather(filter, word_idxs) & (lsb_set << bit_idxs)) != 0;
         if (exec_mask.none()) return !exec_mask;
       }
@@ -197,5 +196,4 @@ struct bloom_filter_std {
 
 };
 
-} // namespace bloom_filter
 } // namespace dtl

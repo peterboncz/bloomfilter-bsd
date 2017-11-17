@@ -19,7 +19,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/dynamic/blocked_bloomfilter_logic.hpp
         bloomfilter/dynamic/blocked_bloomfilter_block_logic.hpp
         bloomfilter/dynamic/hash.hpp
-        bloomfilter/bloom_filter_std.hpp
+        bloomfilter/std_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/bloomfilter_runtime.hpp
         bloomfilter/bloomfilter_runtime_sectorized.hpp
