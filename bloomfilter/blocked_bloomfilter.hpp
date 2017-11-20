@@ -431,7 +431,17 @@ struct blocked_bloomfilter {
             for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u*2) {
               std::cerr << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
               unroll_factor(k, addr_mode, w) = u;
-              blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, w); // word_cnt = sector_cnt
+              $u32 sector_cnt = w;
+              try {
+                // with sectorization
+                blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt); // word_cnt = sector_cnt
+              }
+              catch (...) {
+                // fall back to 1 sector
+                sector_cnt = 1;
+              }
+              blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
+
               $u64 rep_cntr = 0;
               auto start = std::chrono::high_resolution_clock::now();
               auto tsc_start = _rdtsc();
