@@ -199,13 +199,13 @@ struct blocked_bloomfilter_logic {
 
   std::string
   info() const noexcept {
-    return "dynamic_blocked_bloom[size=" + std::to_string(length() / 8)
-           + ",B=" + std::to_string(block.block_bitlength / 8)
-           + ",S=" + std::to_string(block.sector_bitlength / 8)
-           + ",K=" + std::to_string(block.k)
-           + ",k=" + std::to_string(block.k * block.sector_cnt)
-           + ",addr=" + (dynamic_cast<bloomfilter_addressing_logic_pow2*>(addr.get()) ? "pow2" : "magic")
-           + "]";
+    return "{\"name\":\"dynamic_blocked_bloom\",\"size\":" + std::to_string(length() / 8)
+           + ",\"B\":" + std::to_string(block.block_bitlength / 8)
+           + ",\"S\":" + std::to_string(block.sector_bitlength / 8)
+           + ",\"K\":" + std::to_string(block.k)
+           + ",\"k\":" + std::to_string(block.k * block.sector_cnt)
+           + ",\"addr\":" + (dynamic_cast<bloomfilter_addressing_logic_pow2*>(addr.get()) ? "\"pow2\"" : "\"magic\"")
+           + "}";
   }
   //===----------------------------------------------------------------------===//
 

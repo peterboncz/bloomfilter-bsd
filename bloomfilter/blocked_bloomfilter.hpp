@@ -382,14 +382,14 @@ struct blocked_bloomfilter {
   /// important parameters.
   std::string
   name() {
-    return "blocked_bloom_multiword[size=" + std::to_string(size_in_bytes())
-        + ",word_size=" + std::to_string(sizeof(word_t))
-           + ",k=" + std::to_string(k)
-           + ",w=" + std::to_string(word_cnt_per_block)
-           + ",s=" + std::to_string(sector_cnt)
-           + ",u=" + std::to_string(unroll_factor(k, get_addressing_mode(), word_cnt_per_block))
-           + ",addr=" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "pow2" : "magic")
-        + "]";
+    return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
+         + ",\"word_size\":" + std::to_string(sizeof(word_t))
+         + ",\"k\":" + std::to_string(k)
+         + ",\"w\":" + std::to_string(word_cnt_per_block)
+         + ",\"s\":" + std::to_string(sector_cnt)
+         + ",\"u\":" + std::to_string(unroll_factor(k, get_addressing_mode(), word_cnt_per_block))
+         + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
+         + "}";
   }
   //===----------------------------------------------------------------------===//
 
