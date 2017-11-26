@@ -36,7 +36,7 @@ fpr_k_partitioned(u64 m,
 f64
 fpr_blocked(u64 m,
             u64 n,
-            u64 k,
+            f64 k,
             u64 B, /* block size in bits */
             f64 epsilon = 0.001) {
   $f64 f = 0;

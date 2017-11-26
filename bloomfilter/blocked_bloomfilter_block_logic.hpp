@@ -9,7 +9,7 @@ namespace dtl {
 //===----------------------------------------------------------------------===//
 // Type switch:
 // 'multiword_block' is used iff the number of sectors is greater or equal
-// the number of words per block, 'multisector_block' otherwise.
+// to the number of words per block, 'multisector_block' otherwise.
 //===----------------------------------------------------------------------===//
 template<
     typename key_t,               // the key type

@@ -66,9 +66,9 @@ struct is_vector {
 
 
 
-/// The general vector class with N components of the (primitive) type T.
+/// The general vector class with N components of the (primitive) type Tp.
 ///
-/// If there exists a native vector type that can hold N values of type T, e.g. __m256i,
+/// If there exists a native vector type that can hold N values of type Tp, e.g. __m256i,
 /// then an instance makes direct use of it. If the N exceeds the size of the largest
 /// available native vector type an instance will be a composition of multiple (smaller)
 /// native vectors.
@@ -415,7 +415,7 @@ struct v : v_base {
 
 
 
-    /// Converts the mask into an integer.
+    /// Initializes the mask according to the bits set in the integer.
     template<u1 Compound = false>
     static __forceinline__ void
     from_int(nested_mask_type& mask, u64 int_bitmask) {
@@ -431,6 +431,7 @@ struct v : v_base {
       }
     }
 
+    /// Creates a mask from an integer.
     static __forceinline__ m
     from_int(u64 int_bitmask) {
       m result;

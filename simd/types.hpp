@@ -60,7 +60,7 @@ r256 {
 
 namespace simd {
 
-/// lookup table used to convert an 8-bit mask into a 32-bit position list
+/// Lookup table used to convert an 8-bit mask into a 32-bit position list
 constexpr dtl::r128 lut_match_pos[256] = {
     { .i16 = { -1, -1, -1, -1, -1, -1, -1, -1 } }, // 0
     { .i16 = { 0, -1, -1, -1, -1, -1, -1, -1 } }, // 1
@@ -331,7 +331,7 @@ constexpr u8 lut_match_cnt[256] = {
 };
 
 
-/// lookup table used to convert a 4-bit mask into a 32-bit position list
+/// Lookup table used to convert a 4-bit mask into a 32-bit position list
 constexpr dtl::r128 lut_match_pos_4bit[16] = {
     { .i32 = { -1, -1, -1, -1 } }, // 0
     { .i32 = { 0, -1, -1, -1 } }, // 1

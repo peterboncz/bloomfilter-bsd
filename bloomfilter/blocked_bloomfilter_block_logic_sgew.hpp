@@ -192,7 +192,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 //===----------------------------------------------------------------------===//
 // Recursive template to work with multi-word blocks.
 //
-// Used in case of sector count >= word_cnt, which allows to sequentially
+// Used in case of sector count >= word count, which allows to sequentially
 // iterate over the words of a block (sequential access pattern).
 //===----------------------------------------------------------------------===//
 template<

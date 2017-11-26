@@ -396,6 +396,7 @@ struct blocked_bloomfilter {
 
   //===----------------------------------------------------------------------===//
   /// Runs the calibration code. Results are memorized in global variables.
+  // TODO memorization in a global file / tool to calibrate
   static void
   calibrate() __attribute__ ((noinline)) {
     std::cerr << "Running calibration..." << std::endl;
