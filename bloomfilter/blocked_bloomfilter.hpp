@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cmath>
+#include <chrono>
+#include <iomanip>
+#include <random>
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
@@ -8,16 +11,11 @@
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
-#include <boost/math/common_factor.hpp>
-
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/bloomfilter/hash_family.hpp>
-#include <dtl/hash.hpp>
 
-#include <random>
-#include <iomanip>
-#include <chrono>
+#include <boost/math/common_factor.hpp>
 
 
 namespace dtl {
@@ -76,19 +74,18 @@ struct blocked_bloomfilter {
   >
   using hasher = dtl::hash::stat::mul32<key_t, hash_fn_no>;
 
+  // The operations used for dynamic dispatching.
   enum class op_t {
-    CONSTRUCT,
-    BIND,
-    DESTRUCT
+    CONSTRUCT,  // constructs the Bloom filter logic
+    BIND,       // assigns the function pointers of the Bloom filter API
+    DESTRUCT,   // destructs the Bloom filter logic
   };
-
 
   static constexpr dtl::block_addressing power = dtl::block_addressing::POWER_OF_TWO;
   static constexpr dtl::block_addressing magic = dtl::block_addressing::MAGIC;
 
   template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = power>
-  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr, dtl::mem::numa_allocator<word_t>>;
-
+  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr>;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -101,7 +98,7 @@ struct blocked_bloomfilter {
   $u32 k;
   /// The number of words per block.
   $u32 word_cnt_per_block;
-  /// The number of sectors.
+  /// The number of sectors per block.
   $u32 sector_cnt;
   /// Pointer to the Bloom filter logic instance.
   void* instance = nullptr;
@@ -109,28 +106,21 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  // The API functions.
+  // The API functions. (Function pointers to the actual implementation.)
   //===----------------------------------------------------------------------===//
-  std::function<void(const key_t /*key*/)>
+  std::function<void(__restrict word_t* /*filter data*/, const key_t /*key*/)>
   insert;
 
-  std::function<void(const key_t* /*keys*/, u32 /*key_cnt*/)>
+  std::function<void(__restrict word_t* /*filter data*/, const key_t* /*keys*/, u32 /*key_cnt*/)>
   batch_insert;
 
-  std::function<$u1(const key_t /*key*/)>
+  std::function<$u1(const __restrict word_t* /*filter data*/, const key_t /*key*/)>
   contains;
 
-  std::function<$u64(const key_t* /*keys*/, u32 /*key_cnt*/, $u32* /*match_positions*/, u32 /*match_offset*/)>
+  std::function<$u64(const __restrict word_t* /*filter data*/,
+                     const key_t* /*keys*/, u32 /*key_cnt*/,
+                     $u32* /*match_positions*/, u32 /*match_offset*/)>
   batch_contains;
-  //===----------------------------------------------------------------------===//
-
-
-  //===----------------------------------------------------------------------===//
-  // Bit vector data
-  //===----------------------------------------------------------------------===//
-  using allocator_t = std::allocator<word_t>;
-  const allocator_t allocator;
-  std::vector<word_t, allocator_t> filter_data;
   //===----------------------------------------------------------------------===//
 
 
@@ -140,11 +130,6 @@ struct blocked_bloomfilter {
 
     // Construct the Bloom filter logic instance.
     dispatch(*this, op_t::CONSTRUCT);
-
-    // Create and init the bit vector.
-    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-    filter_data.clear();
-    filter_data.resize((m_actual + (word_bitlength - 1)) / word_bitlength, 0);
 
     // Bind the API functions.
     dispatch(*this, op_t::BIND);
@@ -171,9 +156,7 @@ struct blocked_bloomfilter {
         insert(std::move(src.insert)),
         batch_insert(std::move(src.batch_insert)),
         contains(std::move(src.contains)),
-        batch_contains(std::move(src.batch_contains)),
-        allocator(std::move(src.allocator)),
-        filter_data(std::move(src.filter_data)) {
+        batch_contains(std::move(src.batch_contains)) {
     // Invalidate pointer in src
     src.instance = nullptr;
   }
@@ -211,7 +194,9 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
   // Dynamic Dispatching
   //===----------------------------------------------------------------------===//
-  static void dispatch(blocked_bloomfilter& instance, op_t op) {
+  //TODO make private
+  static void
+  dispatch(blocked_bloomfilter& instance, op_t op) {
       switch (instance.word_cnt_per_block) {
         case  1: _s< 1>(instance, op); break;
         case  2: _s< 2>(instance, op); break;
@@ -225,7 +210,8 @@ struct blocked_bloomfilter {
 
 
   template<u32 w>
-  static void _s(blocked_bloomfilter& instance, op_t op) {
+  static void
+  _s(blocked_bloomfilter& instance, op_t op) {
     switch (instance.sector_cnt) {
       case  1: _k<w,  1>(instance, op); break;
       case  2: _k<w,  2>(instance, op); break;
@@ -239,7 +225,8 @@ struct blocked_bloomfilter {
 
 
   template<u32 w, u32 s>
-  static void _k(blocked_bloomfilter& instance, op_t op) {
+  static void
+  _k(blocked_bloomfilter& instance, op_t op) {
     switch (instance.k) {
       case  1: _a<w, s, boost::static_unsigned_max<1, s>::value>(instance, op); break;
       case  2: _a<w, s, boost::static_unsigned_max<( 2 % s == 0 ?  2 : 1 /*invalid*/), s>::value>(instance, op); break;
@@ -257,12 +244,15 @@ struct blocked_bloomfilter {
       case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
+      default:
+        throw std::invalid_argument("The given 'k' is not supported.");
     }
   }
 
 
   template<u32 w, u32 s, u32 k>
-  static void _a(blocked_bloomfilter& instance, op_t op) {
+  static void
+  _a(blocked_bloomfilter& instance, op_t op) {
     dtl::block_addressing addr = dtl::is_power_of_two(instance.m)
                                  ? dtl::block_addressing::POWER_OF_TWO
                                  : dtl::block_addressing::MAGIC;
@@ -274,7 +264,8 @@ struct blocked_bloomfilter {
 
 
   template<u32 w, u32 s, u32 k, dtl::block_addressing a>
-  static void _u(blocked_bloomfilter& instance, op_t op) {
+  static void
+  _u(blocked_bloomfilter& instance, op_t op) {
     switch (unroll_factor(k, a, w)) {
       case  0: _o<w, s, k, a,  0>(instance, op); break;
       case  1: _o<w, s, k, a,  1>(instance, op); break;
@@ -288,7 +279,8 @@ struct blocked_bloomfilter {
 
 
   template<u32 w, u32 s, u32 k, dtl::block_addressing a, u32 unroll_factor>
-  static void _o(blocked_bloomfilter& instance, op_t op) {
+  static void
+  _o(blocked_bloomfilter& instance, op_t op) {
     using _t = bbf<w, s, k, a>;
     switch (op) {
       case op_t::CONSTRUCT: instance._construct_logic<_t>();           break;
@@ -306,9 +298,7 @@ struct blocked_bloomfilter {
   >
   void
   _construct_logic() {
-    using namespace std::placeholders;
-
-    // Instantiate a Bloom filter.
+    // Instantiate a Bloom filter logic.
     bf_t* bf = new bf_t(m);
     instance = bf;
     k = bf_t::k;
@@ -316,7 +306,7 @@ struct blocked_bloomfilter {
     sector_cnt = bf_t::sector_cnt;
 
     // Get the actual size of the filter.
-    m_actual = bf->length();
+    m_actual = bf->get_length();
   }
   //===----------------------------------------------------------------------===//
 
@@ -333,13 +323,13 @@ struct blocked_bloomfilter {
     auto* bf = static_cast<bf_t*>(instance);
 
     // Bind the API functions.
-    insert = std::bind(&bf_t::insert, bf, &filter_data[0], _1);
-    batch_insert = std::bind(&bf_t::batch_insert, bf, &filter_data[0], _1, _2);
-    contains = std::bind(&bf_t::contains, bf, &filter_data[0], _1);
+    insert = std::bind(&bf_t::insert, bf, _1, _2);
+    batch_insert = std::bind(&bf_t::batch_insert, bf, _1, _2, _3);
+    contains = std::bind(&bf_t::contains, bf, _1, _2);
 
     // SIMD vector length (0 = run scalar code)
     static constexpr u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor;
-    batch_contains = std::bind(&bf_t::template batch_contains<vector_len>, bf, &filter_data[0], _1, _2, _3, _4);
+    batch_contains = std::bind(&bf_t::template batch_contains<vector_len>, bf, _1, _2, _3, _4, _5);
   }
   //===----------------------------------------------------------------------===//
 
@@ -378,8 +368,18 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
+  /// Returns the (total) number of words.
+  std::size_t
+  size() const noexcept {
+    constexpr u32 word_bitlength = sizeof(word_t) * 8;
+    return (m_actual + (word_bitlength - 1)) / word_bitlength;
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
   /// Returns the name of the Bloom filter instance including the most
-  /// important parameters.
+  /// important parameters (in JSON format).
   std::string
   name() {
     return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
@@ -395,8 +395,8 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  /// Runs the calibration code. Results are memorized in global variables.
-  // TODO memorization in a global file / tool to calibrate
+  /// Runs the calibration code. Results are stored in global variables.
+  // TODO memoization in a global file / tool to calibrate
   static void
   calibrate() __attribute__ ((noinline)) {
     std::cerr << "Running calibration..." << std::endl;
@@ -442,6 +442,7 @@ struct blocked_bloomfilter {
                 sector_cnt = 1;
               }
               blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
+              std::vector<word_t, dtl::mem::numa_allocator<word_t>> filter_data(bbf.size(), 0);
 
               $u64 rep_cntr = 0;
               auto start = std::chrono::high_resolution_clock::now();
@@ -450,7 +451,7 @@ struct blocked_bloomfilter {
                 std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
                 if (diff.count() > 0.25) break;
                 dtl::batch_wise(random_data.begin(), random_data.end(), [&](const auto batch_begin, const auto batch_end) {
-                  match_count += bbf.batch_contains(&batch_begin[0], batch_end - batch_begin, match_pos, 0);
+                  match_count += bbf.batch_contains(&filter_data[0], &batch_begin[0], batch_end - batch_begin, match_pos, 0);
                 });
                 rep_cntr++;
               }
@@ -512,25 +513,25 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
 
 
-  //===----------------------------------------------------------------------===//
-  void
-  print() const noexcept {
-    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-    std::cout << "-- Bloom filter dump --" << std::endl;
-    $u64 i = 0;
-    for (const word_t word : filter_data) {
-      std::cout << std::bitset<word_bitlength>(word);
-      i++;
-      if (i % (128 / word_bitlength) == 0) {
-        std::cout << std::endl;
-      }
-      else {
-        std::cout << " ";
-      }
-    }
-    std::cout << std::endl;
-  }
-  //===----------------------------------------------------------------------===//
+//  //===----------------------------------------------------------------------===//
+//  void
+//  print() const noexcept {
+//    constexpr u32 word_bitlength = sizeof(word_t) * 8;
+//    std::cout << "-- Bloom filter dump --" << std::endl;
+//    $u64 i = 0;
+//    for (const word_t word : filter_data) {
+//      std::cout << std::bitset<word_bitlength>(word);
+//      i++;
+//      if (i % (128 / word_bitlength) == 0) {
+//        std::cout << std::endl;
+//      }
+//      else {
+//        std::cout << " ";
+//      }
+//    }
+//    std::cout << std::endl;
+//  }
+//  //===----------------------------------------------------------------------===//
 
 };
 

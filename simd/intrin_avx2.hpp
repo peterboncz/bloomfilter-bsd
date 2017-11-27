@@ -19,17 +19,17 @@ namespace avx2 {
 
 struct mask4 {
   __m256i data;
-  forceinline u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-  forceinline u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-  forceinline u1 none() const { return _mm256_movemask_epi8(data) == 0; };
-  forceinline void set(u1 value) {
+  __forceinline__ u1 all() const { return _mm256_movemask_epi8(data) == -1; };
+  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
+  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+  __forceinline__ void set(u1 value) {
     if (value) {
       data = _mm256_set1_epi64x(-1);
     } else {
       data = _mm256_set1_epi64x(0);
     }
   }
-  forceinline void set(u64 idx, u1 value) {
+  __forceinline__ void set(u64 idx, u1 value) {
     i64 v = value ? -1 : 0;
     switch (idx) {
       case 0: data = _mm256_insert_epi64(data, v, 0); break;
@@ -39,13 +39,13 @@ struct mask4 {
 //      default: unreachable();
     }
   };
-  forceinline void set_from_int(u64 int_bitmask) {
+  __forceinline__ void set_from_int(u64 int_bitmask) {
     const dtl::r256 seq = { .i64 = { 1u << 0, 1u << 1, 1u << 2, 1u << 3 } };
     const dtl::r256 zero = { .i64 = { 0, 0, 0, 0 } };
     const auto t = _mm256_and_si256(_mm256_set1_epi64x(int_bitmask), seq.i) ;
     data = _mm256_cmpgt_epi64(t, zero.i);
   };
-  forceinline u1 get(u64 idx) const {
+  __forceinline__ u1 get(u64 idx) const {
     switch (idx) {
       case 0: return _mm256_extract_epi64(data, 0) != 0;
       case 1: return _mm256_extract_epi64(data, 1) != 0;
@@ -54,10 +54,10 @@ struct mask4 {
 //      default: unreachable();
     }
   };
-  forceinline mask4 bit_and(const mask4& o) const { return mask4 { _mm256_and_si256(data, o.data) }; };
-  forceinline mask4 bit_or(const mask4& o) const { return mask4 { _mm256_or_si256(data, o.data) }; };
-  forceinline mask4 bit_xor(const mask4& o) const { return mask4 { _mm256_xor_si256(data, o.data) }; };
-  forceinline mask4 bit_not() const { return mask4 { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
+  __forceinline__ mask4 bit_and(const mask4& o) const { return mask4 { _mm256_and_si256(data, o.data) }; };
+  __forceinline__ mask4 bit_or(const mask4& o) const { return mask4 { _mm256_or_si256(data, o.data) }; };
+  __forceinline__ mask4 bit_xor(const mask4& o) const { return mask4 { _mm256_xor_si256(data, o.data) }; };
+  __forceinline__ mask4 bit_not() const { return mask4 { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
 
   __forceinline__ $u64
   to_positions($u32* positions, $u32 offset) const {
@@ -84,17 +84,17 @@ struct mask4 {
 
 struct mask8 {
   __m256i data;
-  forceinline u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-  forceinline u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-  forceinline u1 none() const { return _mm256_movemask_epi8(data) == 0; };
-  forceinline void set(u1 value) {
+  __forceinline__ u1 all() const { return _mm256_movemask_epi8(data) == -1; };
+  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
+  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+  __forceinline__ void set(u1 value) {
     if (value) {
       data = _mm256_set1_epi64x(-1);
     } else {
       data = _mm256_set1_epi64x(0);
     }
   }
-  forceinline void set(u64 idx, u1 value) {
+  __forceinline__ void set(u64 idx, u1 value) {
     i32 v = value ? -1 : 0;
     switch (idx) {
       // TODO support other types than 32-bit integer
@@ -109,12 +109,12 @@ struct mask8 {
 //      default: unreachable();
     }
   };
-  forceinline void set_from_int(u64 int_bitmask) {
+  __forceinline__ void set_from_int(u64 int_bitmask) {
     const dtl::r256 seq = { .i32 = { 1u << 0, 1u << 1, 1u << 2, 1u << 3, 1u << 4, 1u << 5, 1u << 6, 1u << 7 } };
     const auto t = _mm256_and_si256(_mm256_set1_epi32(int_bitmask), seq.i) ;
     data = _mm256_cmpgt_epi32(t, _mm256_setzero_si256());
   };
-  forceinline u1 get(u64 idx) const {
+  __forceinline__ u1 get(u64 idx) const {
     switch (idx) {
       case 0: return _mm256_extract_epi32(data, 0) != 0;
       case 1: return _mm256_extract_epi32(data, 1) != 0;
@@ -127,10 +127,10 @@ struct mask8 {
 //      default: unreachable();
     }
   };
-  forceinline mask8 bit_and(const mask8& o) const { return mask8 { _mm256_and_si256(data, o.data) }; };
-  forceinline mask8 bit_or(const mask8& o) const { return mask8 { _mm256_or_si256(data, o.data) }; };
-  forceinline mask8 bit_xor(const mask8& o) const { return mask8 { _mm256_xor_si256(data, o.data) }; };
-  forceinline mask8 bit_not() const { return mask8 { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
+  __forceinline__ mask8 bit_and(const mask8& o) const { return mask8 { _mm256_and_si256(data, o.data) }; };
+  __forceinline__ mask8 bit_or(const mask8& o) const { return mask8 { _mm256_or_si256(data, o.data) }; };
+  __forceinline__ mask8 bit_xor(const mask8& o) const { return mask8 { _mm256_xor_si256(data, o.data) }; };
+  __forceinline__ mask8 bit_not() const { return mask8 { _mm256_andnot_si256(data, _mm256_set1_epi64x(-1)) }; };
 
   __forceinline__ $u64
   to_positions($u32* positions, $u32 offset) const {
@@ -198,11 +198,11 @@ struct vs<$u64, 4> : base<$u64, 4> {
 template<>                                             \
 struct broadcast<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  forceinline typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type                 \
   operator()(const typename fn::value_type& a) const noexcept { \
     return IntrinFn(a);                                \
   }                                                    \
-  forceinline typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type                 \
   operator()(const typename fn::value_type& a,         \
              const typename fn::vector_type& src,      \
              const mask##LEN m) const noexcept {       \
@@ -221,7 +221,7 @@ __GENERATE($u64, __m256i, $u64, _mm256_set1_epi64x, 4)
 template<>                                             \
 struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {     \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  forceinline typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type                 \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::vector_type& b,        \
              const mask##LEN m) const noexcept {       \
@@ -238,7 +238,7 @@ __GENERATE_BLEND($u64, __m256i, __m256i, _mm256_blendv_epi8, 4)
 
 template<>
 struct set<$i32, __m256i, $i32> : vector_fn<$i32, __m256i, $i32> {
-  forceinline __m256i operator()(const $i32& a) const noexcept {
+  __forceinline__ __m256i operator()(const $i32& a) const noexcept {
     return _mm256_set1_epi32(a);
   }
 };

@@ -10,10 +10,11 @@
 
 
 namespace dtl {
-
 namespace internal {
-/// FIXME: HACK works for AVX2 only
+// FIXME: works for AVX2 only
 
+//===----------------------------------------------------------------------===//
+// TODO should be part of dtl::vec
 template<typename Tsrc, typename Tdst, u64 n> // the vector length
 struct vector_convert {};
 
@@ -33,11 +34,6 @@ struct vector_convert<uint32_t, uint64_t, n> {
   __forceinline__
   static vec<uint64_t, n>
   convert(const vec<uint32_t, n>& src) noexcept {
-//    vec<uint64_t, n> result;
-//    for (std::size_t j = 0; j < result.length; j++) {
-//      result.insert(src[j], j);
-//    }
-//    return result;
     vec<uint64_t, n> dst;
     const auto s = reinterpret_cast<const __m128i*>(&src.data);
     auto d = reinterpret_cast<__m256i*>(&dst.data);
@@ -47,9 +43,16 @@ struct vector_convert<uint32_t, uint64_t, n> {
     return dst;
   }
 };
+//===----------------------------------------------------------------------===//
 
 
-template<typename Tp, typename Ti, u64 n> // the vector length
+//===----------------------------------------------------------------------===//
+// TODO should be part of dtl::vec
+template<
+    typename Tp, // the primitive type to load
+    typename Ti, // the index type
+    u64 n        // the vector length
+>
 struct vector_gather {};
 
 template<u64 n> // the vector length
@@ -77,9 +80,6 @@ struct vector_gather<uint64_t, uint32_t, n> {
   gather(const u64* const base_addr,
          const vec<uint32_t, n>& idxs) noexcept {
     vec<uint64_t, n> result;
-//    for (std::size_t j = 0; j < result.length; j++) {
-//      result.insert(base_addr[idxs[j]], j);
-//    }
     const auto i = reinterpret_cast<const __m128i*>(&idxs.data);
     auto r = reinterpret_cast<__m256i*>(&result.data);
     const auto b = reinterpret_cast<const long long int *>(base_addr);
@@ -98,9 +98,6 @@ struct vector_gather<uint32_t, uint64_t, n> {
       vec<uint32_t, n>
   gather(const vec<uint64_t, n>& idxs) noexcept {
     vec<uint32_t, n> result;
-//    for (std::size_t j = 0; j < result.length; j++) {
-//      result.insert(base_addr[idxs[j]], j);
-//    }
     const auto i = reinterpret_cast<const __m256i*>(&idxs.data);
     auto r = reinterpret_cast<__m128i*>(&result.data);
     for (std::size_t j = 0; j < idxs.nested_vector_cnt; j++) {
@@ -127,8 +124,8 @@ struct vector_gather<uint64_t, uint64_t, n> {
   }
 
 };
+//===----------------------------------------------------------------------===//
 
 
 } // namespace internal
-
 } // namespace dtl

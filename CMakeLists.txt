@@ -67,10 +67,11 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/bloomfilter_hn.hpp
         bloomfilter/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
-        bloomfilter/cuckoo_filter.hpp
-        bloomfilter/cuckoo_filter_word_table.hpp
-        bloomfilter/cuckoo_filter_multiword_table.hpp
-        bloomfilter/cuckoo_filter_helper.hpp
+        bloomfilter/blocked_cuckoofilter.hpp
+        bloomfilter/blocked_cuckoofilter_multiword_table.hpp
+        bloomfilter/blocked_cuckoofilter_simd.hpp
+        bloomfilter/blocked_cuckoofilter_util.hpp
+        bloomfilter/blocked_cuckoofilter_word_table.hpp
         bloomfilter/math.hpp
         bitmask.hpp
         bitpack.hpp

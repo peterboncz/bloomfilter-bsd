@@ -65,8 +65,9 @@ struct block_addressing_logic<block_addressing::MAGIC> {
  public:
 
   explicit
-  block_addressing_logic(const std::size_t data_bitlength, const std::size_t block_bitlength) noexcept
-      : block_cnt(determine_block_cnt(data_bitlength, block_bitlength)),
+  block_addressing_logic(const std::size_t desired_data_bitlength,
+                         const std::size_t block_bitlength) noexcept
+      : block_cnt(determine_block_cnt(desired_data_bitlength, block_bitlength)),
         block_cnt_log2(dtl::log_2(dtl::next_power_of_two(block_cnt))),
         block_cnt_mask(dtl::next_power_of_two(block_cnt) - 1),
         fast_divisor(dtl::next_cheap_magic(block_cnt)) { }
@@ -122,7 +123,6 @@ struct block_addressing_logic<block_addressing::MAGIC> {
   }
   //===----------------------------------------------------------------------===//
 
-
 };
 //===----------------------------------------------------------------------===//
 
@@ -158,8 +158,9 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
  public:
 
   explicit
-  block_addressing_logic(const std::size_t data_bitlength, const std::size_t block_bitlength) noexcept
-      : block_cnt(determine_block_cnt(data_bitlength, block_bitlength)),
+  block_addressing_logic(const std::size_t desired_data_bitlength,
+                         const std::size_t block_bitlength) noexcept
+      : block_cnt(determine_block_cnt(desired_data_bitlength, block_bitlength)),
         block_cnt_log2(dtl::log_2(block_cnt)),
         block_cnt_mask(block_cnt - 1) { }
 
@@ -211,7 +212,6 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO> {
     return block_cnt_log2;
   }
   //===----------------------------------------------------------------------===//
-
 
 };
 

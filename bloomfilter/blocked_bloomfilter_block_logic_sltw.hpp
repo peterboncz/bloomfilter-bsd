@@ -133,7 +133,7 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict sector_ptr, const key_t key) noexcept {
 
@@ -154,7 +154,7 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   // Contains (Recursive)
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_sector) noexcept {
 
@@ -311,7 +311,7 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__
+  __forceinline__ __host__ __device__
   static u1
   contains(const word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_sector) noexcept {
     // End of recursion.
@@ -349,7 +349,7 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
 //
 // Specialization for the case where sector count < word_cnt ('sltw'),
 // which results in a random access pattern within the block (and sector).
-// I.e., for every bit to set, the corresponding word needs to be determined
+// I.e., for every bit to set/test, the corresponding word needs to be determined
 // and loaded.
 //
 // Same as in the 'sgew' case, we process the block sector by sector,
@@ -432,7 +432,7 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key) noexcept {
 
@@ -451,7 +451,7 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
   // Contains (Recursive)
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
 
@@ -537,11 +537,6 @@ struct multisector_block {
 
 
 //===----------------------------------------------------------------------===//
-// Recursive template to work with multi-word blocks.
-//
-// Used in case of sector count < word_cnt, which PREVENTS a sequential
-// access pattern.
-//===----------------------------------------------------------------------===//
 template<
     typename key_t,               // the key type
     typename word_t,              // the word type
@@ -571,7 +566,7 @@ struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, ha
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__
+  __forceinline__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
     // End of recursion.

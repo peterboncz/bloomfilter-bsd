@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/cuckoo_filter_helper.hpp>
+#include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
 
 using namespace dtl;
 using namespace dtl::cuckoo_filter;

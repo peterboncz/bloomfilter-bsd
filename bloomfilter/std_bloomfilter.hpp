@@ -17,6 +17,7 @@
 
 namespace dtl {
 
+// TODO rename to bloomfilter_logic
 template<
     typename Tk,           // the key type
 //    typename HashFn,       // the hash function (family) to use
@@ -32,17 +33,11 @@ struct std_bloomfilter {
   //===----------------------------------------------------------------------===//
   // Inspect the given hash functions
   //===----------------------------------------------------------------------===//
-
   using hash_value_t = $u32; //decltype(HashFn<key_t>::hash(0)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-
   //===----------------------------------------------------------------------===//
 
-//  // A fake block; required by addressing logic
-//  struct block_t {
-//    static constexpr uint32_t word_cnt = 1;
-//  };
 
   static constexpr uint32_t block_bitlength = sizeof(word_t) * 8;
 
@@ -55,6 +50,7 @@ struct std_bloomfilter {
   //===----------------------------------------------------------------------===//
   /// The addressing scheme.
   const addr_t addr;
+  /// The number of bits to set/test per element.
   const uint32_t k;
   //===----------------------------------------------------------------------===//
 
@@ -70,22 +66,28 @@ struct std_bloomfilter {
   std_bloomfilter(std_bloomfilter&&) noexcept = default;
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the size of the Bloom filter (in number of bits).
   __forceinline__ __host__ __device__
   std::size_t
   length() const noexcept {
     return static_cast<std::size_t>(addr.block_cnt) * sizeof(word_t) * 8;
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns the number of words the Bloom filter consists of.
   __forceinline__ __host__ __device__
   std::size_t
   word_cnt() const noexcept {
-    return addr.block_cnt;
+    return addr.block_cnt; // word == block
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  /// Insert the given key/element into the filter.
   __forceinline__ __host__
   void
   insert(const key_t& key, word_t* __restrict filter) const noexcept {
@@ -102,8 +104,11 @@ struct std_bloomfilter {
       filter[word_idx] |= word_t(1u) << bit_idx;
     }
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  /// Inserts multiple keys/elements into the filter.
   __forceinline__
   void
   batch_insert(const key_t* __restrict keys, const uint32_t key_cnt,
@@ -112,8 +117,10 @@ struct std_bloomfilter {
       insert(keys[j], filter);
     }
   };
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   __forceinline__ __host__ __device__
   u1
   contains(const key_t& key, const word_t* __restrict filter) const noexcept {
@@ -132,8 +139,11 @@ struct std_bloomfilter {
     }
     return true;
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  // TODO should be private
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   typename dtl::vec<key_t, dtl::vector_length<Tv>::value>::mask_t
@@ -167,8 +177,10 @@ struct std_bloomfilter {
     }
     return !exec_mask;
   }
+  //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   __forceinline__
   uint64_t
   batch_contains(const word_t* __restrict filter,
@@ -192,7 +204,7 @@ struct std_bloomfilter {
     }
     return match_writer - match_positions;
   };
-
+  //===----------------------------------------------------------------------===//
 
 };
 

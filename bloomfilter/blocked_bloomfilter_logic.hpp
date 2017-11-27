@@ -10,19 +10,11 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w1.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w2.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w4.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u32_w8.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w1.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w2.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w4.hpp>
-//#include <dtl/bloomfilter/blocked_bloomfilter_block_logic_u64_w8.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
-#include "immintrin.h"
-
 #include <boost/integer/static_min_max.hpp>
+
+#include "immintrin.h"
 
 
 namespace dtl {
@@ -30,7 +22,7 @@ namespace dtl {
 namespace internal {
 
 //===----------------------------------------------------------------------===//
-// Batch-wise Contains
+// Batch-wise Contains (SIMD)
 //===----------------------------------------------------------------------===//
 template<
     typename filter_t,
@@ -38,17 +30,18 @@ template<
 >
 struct dispatch {
 
+  // Typedefs
+  using key_t = typename filter_t::key_t;
+  using word_t = typename filter_t::word_t;
+  using vec_t = vec<key_t, vector_len>;
+  using mask_t = typename vec<key_t, vector_len>::mask;
+
   __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
-                 const typename filter_t::word_t* __restrict filter_data,
-                 const typename filter_t::key_t* __restrict keys, u32 key_cnt,
+                 const word_t* __restrict filter_data,
+                 const key_t* __restrict keys, u32 key_cnt,
                  $u32* __restrict match_positions, u32 match_offset) {
-    // Typedefs
-    using key_t = typename filter_t::key_t;
-    using word_t = typename filter_t::word_t;
-    using vec_t = vec<key_t, vector_len>;
-    using mask_t = typename vec<key_t, vector_len>::mask;
 
     const key_t* reader = keys;
     $u32* match_writer = match_positions;
@@ -96,11 +89,15 @@ template<
 >
 struct dispatch<filter_t, 0> {
 
+  // Typedefs
+  using key_t = typename filter_t::key_t;
+  using word_t = typename filter_t::word_t;
+
   __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
-                 const typename filter_t::word_t* __restrict filter_data,
-                 const typename filter_t::key_t* __restrict keys, u32 key_cnt,
+                 const word_t* __restrict filter_data,
+                 const key_t* __restrict keys, u32 key_cnt,
                  $u32* __restrict match_positions, u32 match_offset) {
     $u32* match_writer = match_positions;
     $u32 i = 0;
@@ -130,7 +127,6 @@ struct dispatch<filter_t, 0> {
 
 };
 
-
 } // namespace internal
 
 
@@ -144,21 +140,22 @@ template<
     u32 Wc = 2,                   // the number of words per block
     u32 s = Wc,                   // the word type to use for the bitset
     u32 K = 8,                    // the number of hash functions to use
-    dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
-    typename Alloc = std::allocator<Tw>
+    dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO
 >
 struct blocked_bloomfilter_logic {
 
+  //===----------------------------------------------------------------------===//
+  // The static part.
+  //===----------------------------------------------------------------------===//
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
 
-  using allocator_t = Alloc;
   using size_t = $u64;
 
   static constexpr u32 word_cnt_per_block = Wc;
-  static constexpr u32 word_cnt_per_block_log2 = dtl::ct::log_2<Wc>::value;
+  static constexpr u32 word_cnt_per_block_log2 = dtl::ct::log_2<word_cnt_per_block>::value;
   static_assert(dtl::is_power_of_two(Wc), "Parameter 'Wc' must be a power of two.");
 
   static constexpr u32 sector_cnt = s;
@@ -168,11 +165,8 @@ struct blocked_bloomfilter_logic {
   static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
   static constexpr u32 block_bitlength = sizeof(word_t) * 8 * word_cnt_per_block;
-  static constexpr u32 block_bitlength_log2 = dtl::ct::log_2_u32<block_bitlength>::value;
-  static constexpr u32 block_bitlength_mask = block_bitlength - 1;
 
-
-  // Inspect the given hash function
+  // Inspect the given hash function.
   using hash_value_t = decltype(Hasher<key_t, 0>::hash(42)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
@@ -181,31 +175,41 @@ struct blocked_bloomfilter_logic {
   // The number of hash functions to use.
   static constexpr u32 k = K;
 
-  static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME
+  // The maximum size of a filter instance.
+  static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME remove limitation
 
-  static constexpr u32 block_hash_fn_idx = 1; // 0 is used for block addressing
+  // The first hash function to use inside the block. Note: 0 is used for block addressing
+  static constexpr u32 block_hash_fn_idx = 1;
+
+  // The block type. Determined based on word and sector counts.
   using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
                                                            Hasher, hash_value_t, block_hash_fn_idx>::type;
 
+  // The block addressing logic (either MAGIC or POWER_OF_TWO).
   using addr_t = block_addressing_logic<block_addressing>;
+  //===----------------------------------------------------------------------===//
+
 
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
+  /// Addressing logic instance.
   const addr_t addr;
   //===----------------------------------------------------------------------===//
 
 
-  /// C'tor
+  /// C'tor.
+  /// Note, that the actual length might be (slightly) different to the
+  /// desired length. The function get_length() returns the actual length.
   explicit
-  blocked_bloomfilter_logic(const size_t length)
-      : addr(length, block_bitlength) {
-    if (addr.get_block_cnt() * block_bitlength > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+  blocked_bloomfilter_logic(const size_t desired_length)
+      : addr(desired_length, block_bitlength) {
+    if (addr.get_block_cnt() * block_bitlength > max_m)
+      throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
   /// Copy c'tor
   blocked_bloomfilter_logic(const blocked_bloomfilter_logic&) = default;
-
 
   ~blocked_bloomfilter_logic() = default;
 
@@ -269,6 +273,7 @@ struct blocked_bloomfilter_logic {
   typename vec<word_t, n>::mask
   contains_vec(const word_t* __restrict filter_data,
                const vec<key_t, n>& keys) const noexcept {
+    // Typedef the vector types.
     using key_vt = vec<key_t, n>;
     using hash_value_vt = vec<hash_value_t, n>;
     using word_vt = vec<word_t, n>;
@@ -299,35 +304,11 @@ struct blocked_bloomfilter_logic {
   }
 
 
-  /// Returns length in bits.
+  /// Returns (actual) length in bits.
   __forceinline__
   size_t
-  length() const noexcept {
+  get_length() const noexcept {
     return addr.get_block_cnt() * block_bitlength;
-  }
-  //===----------------------------------------------------------------------===//
-
-
-  //===----------------------------------------------------------------------===//
-  void
-  print_info() const noexcept {
-    std::cout << "-- bloomfilter parameters --" << std::endl;
-    std::cout << "  k:                    " << k << std::endl;
-    std::cout << "  word bitlength:       " << word_bitlength << std::endl;
-    std::cout << "  hash value bitlength: " << hash_value_bitlength << std::endl;
-    std::cout << "  word count:           " << word_cnt_per_block << std::endl;
-    std::cout << "  sector count:         " << s << std::endl;
-    std::cout << "  max m:                " << max_m << std::endl;
-    std::cout << "  max size [MiB]:       " << (max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
-    std::cout << "dynamic" << std::endl;
-    std::cout << "  m:                    " << (addr.get_block_cnt() * block_bitlength) << std::endl;
-    f64 size_MiB = (addr.get_block_cnt() * block_bitlength) / 8.0 / 1024.0 / 1024.0;
-    if (size_MiB < 1) {
-      std::cout << "  size [KiB]:           " << (size_MiB * 1024) << std::endl;
-    }
-    else {
-      std::cout << "  size [MiB]:           " << size_MiB << std::endl;
-    }
   }
   //===----------------------------------------------------------------------===//
 

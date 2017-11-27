@@ -162,7 +162,7 @@ template<
 struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt, 0 /* no remaining k's */> {
 
   __forceinline__ __unroll_loops__ __host__ __device__
-  static word_t
+  static void
   which_bits(const key_t key, hash_value_t& hash_value, word_t& word) noexcept {
     // End of recursion
   }
@@ -193,7 +193,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 // Recursive template to work with multi-word blocks.
 //
 // Used in case of sector count >= word count, which allows to sequentially
-// iterate over the words of a block (sequential access pattern).
+// iterate over the words of a block (sequential block access pattern).
 //===----------------------------------------------------------------------===//
 template<
     typename key_t,               // the key type
@@ -278,7 +278,7 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key) noexcept {
 
@@ -293,7 +293,7 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
 
 
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained_in_block) noexcept {
 
@@ -413,7 +413,7 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__ __unroll_loops__
+  __forceinline__ __unroll_loops__ __host__ __device__
   static u1
   contains(const word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val, u1 is_contained) noexcept {
     // End of recursion
