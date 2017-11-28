@@ -109,20 +109,6 @@ struct blocked_cuckoofilter_multiword_table {
   static constexpr word_t overflow_bucket = bucket_mask;
 
 
-//  //===----------------------------------------------------------------------===//
-//  // Members
-//  //===----------------------------------------------------------------------===//
-//  alignas(table_size_bytes)
-//  word_t filter[word_cnt];
-//  //===----------------------------------------------------------------------===//
-
-
-  /// C'tor
-  blocked_cuckoofilter_multiword_table() {
-//    std::memset(&filter[0], 0, word_cnt * sizeof(word_t));
-  }
-
-
   __forceinline__
   static word_t
   read_bucket(const word_t* __restrict block_ptr, const uint32_t bucket_idx) {

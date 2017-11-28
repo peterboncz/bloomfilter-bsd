@@ -12,7 +12,7 @@ namespace cuckoofilter {
 //===----------------------------------------------------------------------===//
 // SIMDized implementations for batch_contains.
 // Note: Only Cuckoo filter <8,4> and <16,4> are supported yet.
-//       AVX-2 only!
+//       and AVX-2 only! // TODO implement for AVX512
 //===----------------------------------------------------------------------===//
 
 template<typename _filter_t>
