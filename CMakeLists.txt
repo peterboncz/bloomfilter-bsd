@@ -21,28 +21,28 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/dynamic/hash.hpp
         bloomfilter/std_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter.hpp
-        bloomfilter/bloomfilter_runtime.hpp
-        bloomfilter/bloomfilter_runtime_sectorized.hpp
-        bloomfilter/bloomfilter_runtime_types.hpp
-        bloomfilter/bloomfilter_logic.hpp
+        bloomfilter/old/bloomfilter_runtime.hpp
+        bloomfilter/old/bloomfilter_runtime_sectorized.hpp
+        bloomfilter/old/bloomfilter_runtime_types.hpp
+        bloomfilter/old/bloomfilter_logic.hpp
         bloomfilter/vector_helper.hpp
         bloomfilter/block_addressing_logic.hpp
         bloomfilter/old/bloomfilter_block_logic.hpp
-        bloomfilter/bloomfilter_h1.hpp
-        bloomfilter/bloomfilter_h1_logic.hpp
-        bloomfilter/bloomfilter_h1_vec.hpp
-        bloomfilter/bloomfilter_h1_mod.hpp
-        bloomfilter/bloomfilter_h1_mod_vec.hpp
-        bloomfilter/bloomfilter_h2.hpp
-        bloomfilter/bloomfilter_h2_logic.hpp
+        bloomfilter/old/bloomfilter_h1.hpp
+        bloomfilter/old/bloomfilter_h1_logic.hpp
+        bloomfilter/old/bloomfilter_h1_vec.hpp
+        bloomfilter/old/bloomfilter_h1_mod.hpp
+        bloomfilter/old/bloomfilter_h1_mod_vec.hpp
+        bloomfilter/old/bloomfilter_h2.hpp
+        bloomfilter/old/bloomfilter_h2_logic.hpp
 #        bloomfilter/bloomfilter_h2_mb_logic.hpp
-        bloomfilter/bloomfilter_h2_vec.hpp
-        bloomfilter/bloomfilter_h2_mod.hpp
-        bloomfilter/bloomfilter_h2_mod_vec.hpp
-        bloomfilter/bloomfilter_h3.hpp
-        bloomfilter/bloomfilter_h3_mod.hpp
-        bloomfilter/bloomfilter_h3_mod_vec.hpp
-        bloomfilter/bloomfilter_h3_vec.hpp
+        bloomfilter/old/bloomfilter_h2_vec.hpp
+        bloomfilter/old/bloomfilter_h2_mod.hpp
+        bloomfilter/old/bloomfilter_h2_mod_vec.hpp
+        bloomfilter/old/bloomfilter_h3.hpp
+        bloomfilter/old/bloomfilter_h3_mod.hpp
+        bloomfilter/old/bloomfilter_h3_mod_vec.hpp
+        bloomfilter/old/bloomfilter_h3_vec.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter_block_logic.hpp
@@ -64,8 +64,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w8.cpp
         bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
         bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
-        bloomfilter/bloomfilter_hn.hpp
-        bloomfilter/bloomfilter_hn_vec.hpp
+        bloomfilter/old/bloomfilter_hn.hpp
+        bloomfilter/old/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
         bloomfilter/blocked_cuckoofilter.hpp
         bloomfilter/blocked_cuckoofilter_block_logic.hpp

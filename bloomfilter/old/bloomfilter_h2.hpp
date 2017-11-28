@@ -11,9 +11,7 @@
 #include <dtl/math.hpp>
 
 #include "immintrin.h"
-#include "dtl/bloomfilter/bloomfilter_h1.hpp"
-
-#include <boost/integer/static_min_max.hpp>
+#include "bloomfilter_h1.hpp"
 
 namespace dtl {
 
@@ -22,13 +20,12 @@ namespace dtl {
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the first hash function to use
     template<typename Ty> class HashFn2,    // the second hash function to use
-    template<typename Ty> class HashFn3,    // the third hash function to use
     typename Tw = u64,     // the word type to use for the bitset
     typename Alloc = std::allocator<Tw>,
     u32 K = 5,             // the number of hash functions to use
     u1 Sectorized = false
 >
-struct bloomfilter_h3 {
+struct bloomfilter_h2 {
 
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
@@ -52,7 +49,7 @@ struct bloomfilter_h3 {
   using hash_value_t = $u32; //decltype(HashFn<key_t>::hash(0)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-  static constexpr u32 hash_fn_cnt = 3;
+  static constexpr u32 hash_fn_cnt = 2;
 
 
   // The number of hash functions to use.
@@ -116,7 +113,7 @@ struct bloomfilter_h3 {
 
   /// C'tor
   explicit
-  bloomfilter_h3(const size_t length,
+  bloomfilter_h2(const size_t length,
                  const allocator_t allocator = allocator_t())
       : bitvector_length(determine_actual_length(length)),
         length_mask(static_cast<hash_value_t>(bitvector_length - 1)),
@@ -127,8 +124,8 @@ struct bloomfilter_h3 {
   }
 
   /// Copy c'tor
-  bloomfilter_h3(const bloomfilter_h3&) = default;
-  bloomfilter_h3(const bloomfilter_h3& other,
+  bloomfilter_h2(const bloomfilter_h2&) = default;
+  bloomfilter_h2(const bloomfilter_h2& other,
                  const allocator_t& allocator)
       : bitvector_length(other.bitvector_length),
         length_mask(other.length_mask),
@@ -136,7 +133,7 @@ struct bloomfilter_h3 {
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
 
-  ~bloomfilter_h3() {
+  ~bloomfilter_h2() {
     word_array.clear();
     word_array.shrink_to_fit();
   }
@@ -144,9 +141,9 @@ struct bloomfilter_h3 {
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter_h3<Tk, HashFn, HashFn2, HashFn3, Tw, AllocOfCopy, K, Sectorized>
+  bloomfilter_h2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
-    using return_t = bloomfilter_h3<Tk, HashFn, HashFn2, HashFn3, Tw, AllocOfCopy, K, Sectorized>;
+    using return_t = bloomfilter_h2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>;
     return_t bf_copy(this->bitvector_length, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
@@ -156,9 +153,9 @@ struct bloomfilter_h3 {
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter_h3<Tk, HashFn, HashFn2, HashFn3, Tw, AllocOfCopy, K, Sectorized>*
+  bloomfilter_h2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>*
   make_heap_copy(AllocOfCopy alloc = AllocOfCopy()) const {
-    using bf_t = bloomfilter_h3<Tk, HashFn, HashFn2, HashFn3, Tw, AllocOfCopy, K, Sectorized>;
+    using bf_t = bloomfilter_h2<Tk, HashFn, HashFn2, Tw, AllocOfCopy, K, Sectorized>;
     bf_t* bf_copy = new bf_t(this->bitvector_length, alloc);
     bf_copy->word_array.clear();
     bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
@@ -179,21 +176,13 @@ struct bloomfilter_h3 {
   static word_t
   which_bits(const hash_value_t first_hash_val,
              const hash_value_t second_hash_val,
-             const hash_value_t third_hash_val,
              const size_t word_cnt_log2) noexcept {
     u32 first_bit_idx = (first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask();
     word_t word = word_t(1) << first_bit_idx;
-    constexpr u32 k_2nd = boost::static_unsigned_min<k, 6u>::value;
-    for ($u32 i = 1; i < k_2nd; i++) {
+    for ($u32 i = 1; i < k; i++) {
       u32 shift = (hash_value_bitlength - 2) - (i * sector_bitlength_log2);
       u32 bit_idx = (second_hash_val >> shift) & sector_mask();
       u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
-      word |= word_t(1) << (bit_idx + sector_offset);
-    }
-    for ($u32 i = k_2nd; i < boost::static_unsigned_min<k, k_2nd + 5u>::value; i++) {
-      u32 shift = (hash_value_bitlength - 2) - ((i-k_2nd) * sector_bitlength_log2);
-      u32 bit_idx = (third_hash_val >> shift) & sector_mask();
-      u32 sector_offset = ((i-k_2nd) * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
     }
     return word;
@@ -205,10 +194,9 @@ struct bloomfilter_h3 {
   insert(const key_t& key) noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
-    const hash_value_t third_hash_val = HashFn3<key_t>::hash(key);
     const hash_value_t word_idx = which_word(first_hash_val, word_cnt_log2);
     word_t word = word_array[word_idx];
-    word |= which_bits(first_hash_val, second_hash_val, third_hash_val, word_cnt_log2);
+    word |= which_bits(first_hash_val, second_hash_val, word_cnt_log2);
     word_array[word_idx] = word;
   }
 
@@ -218,9 +206,8 @@ struct bloomfilter_h3 {
   contains(const key_t& key) const noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
-    const hash_value_t third_hash_val = HashFn3<key_t>::hash(key);
     const hash_value_t word_idx = which_word(first_hash_val, word_cnt_log2);
-    const word_t search_mask = which_bits(first_hash_val, second_hash_val, third_hash_val, word_cnt_log2);
+    const word_t search_mask = which_bits(first_hash_val, second_hash_val, word_cnt_log2);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
 

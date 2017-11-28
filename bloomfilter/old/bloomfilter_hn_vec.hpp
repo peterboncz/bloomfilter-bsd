@@ -4,8 +4,7 @@
 #include <vector>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_mod.hpp>
-#include <dtl/div.hpp>
+#include <bloomfilter/old/bloomfilter_hn.hpp>
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
@@ -14,20 +13,18 @@
 
 namespace dtl {
 
-
 template<
     typename Tk,
     template<typename Ty> class hash_fn,
-    template<typename Ty> class hash_fn2,
     typename Tw = u64,
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
     u1 Sectorized = false,
     u32 UnrollFactor = 4
 >
-struct bloomfilter_h2_mod_vec {
+struct bloomfilter_hn_vec {
 
-  using bf_t = dtl::bloomfilter_h2_mod<Tk, hash_fn, hash_fn2, Tw, Alloc, K, Sectorized>;
+  using bf_t = dtl::bloomfilter_hn<Tk, hash_fn, Tw, Alloc, K, Sectorized>;
   const bf_t& bf;
 
   using key_t = typename bf_t::key_t;
@@ -42,7 +39,7 @@ struct bloomfilter_h2_mod_vec {
   __forceinline__
   vec<hash_value_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
-    const vec<hash_value_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
+    const vec<hash_value_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     return word_idx;
   }
 
@@ -53,12 +50,12 @@ struct bloomfilter_h2_mod_vec {
   which_bits(const vec<hash_value_t, n>& first_hash_val,
              const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
-    vec<word_t, n> words = vec<word_t, n>::make(1);
+    vec<word_t, n> words = 1;
     words <<= internal::vector_convert<hash_value_t, word_t, n>::convert(
         (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
     for ($u32 i = 1; i < bf_t::k; i++) {
       u32 shift = (bf_t::hash_value_bitlength - 2) - (i * bf_t::sector_bitlength_log2);
-      const vec<hash_value_t, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
+      const vec<$u32, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<word_t, n>::make(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs + sector_offset);
     }

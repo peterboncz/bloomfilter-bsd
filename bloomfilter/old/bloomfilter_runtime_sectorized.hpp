@@ -5,18 +5,18 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_mod.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_mod_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_mod.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_mod_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h3.hpp>
-#include <dtl/bloomfilter/bloomfilter_h3_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h3_mod.hpp>
-#include <dtl/bloomfilter/bloomfilter_h3_mod_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h1.hpp>
+#include <bloomfilter/old/bloomfilter_h1_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h1_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h1_mod_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h2.hpp>
+#include <bloomfilter/old/bloomfilter_h2_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h2_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h2_mod_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h3.hpp>
+#include <bloomfilter/old/bloomfilter_h3_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h3_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h3_mod_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 

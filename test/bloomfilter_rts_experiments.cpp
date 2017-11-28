@@ -13,7 +13,7 @@
 #include <boost/tokenizer.hpp>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_runtime.hpp>
+#include <bloomfilter/old/bloomfilter_runtime.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/thread.hpp>
 #include <dtl/env.hpp>

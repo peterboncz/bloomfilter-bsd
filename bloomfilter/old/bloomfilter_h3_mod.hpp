@@ -12,7 +12,7 @@
 #include <dtl/math.hpp>
 
 #include "immintrin.h"
-#include "dtl/bloomfilter/bloomfilter_h3.hpp"
+#include "bloomfilter_h3.hpp"
 
 namespace dtl {
 

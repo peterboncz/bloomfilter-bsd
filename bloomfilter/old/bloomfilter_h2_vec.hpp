@@ -4,32 +4,28 @@
 #include <vector>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_h3_mod.hpp>
-#include <dtl/div.hpp>
+#include <bloomfilter/old/bloomfilter_h2.hpp>
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
 #include "immintrin.h"
-#include "bloomfilter_h1_vec.hpp"
 
 namespace dtl {
-
 
 template<
     typename Tk,
     template<typename Ty> class hash_fn,
     template<typename Ty> class hash_fn2,
-    template<typename Ty> class hash_fn3,
     typename Tw = u64,
     typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of hash functions to use
     u1 Sectorized = false,
     u32 UnrollFactor = 4
 >
-struct bloomfilter_h3_mod_vec {
+struct bloomfilter_h2_vec {
 
-  using bf_t = dtl::bloomfilter_h3_mod<Tk, hash_fn, hash_fn2, hash_fn3, Tw, Alloc, K, Sectorized>;
+  using bf_t = dtl::bloomfilter_h2<Tk, hash_fn, hash_fn2, Tw, Alloc, K, Sectorized>;
   const bf_t& bf;
 
   using key_t = typename bf_t::key_t;
@@ -44,7 +40,7 @@ struct bloomfilter_h3_mod_vec {
   __forceinline__
   vec<hash_value_t, vector_len>
   which_word(const vec<hash_value_t, vector_len>& hash_val) const noexcept {
-    const vec<hash_value_t, vector_len> word_idx = dtl::fast_mod_u32(hash_val >> (static_cast<i32>(bf_t::hash_value_bitlength) - bf.word_cnt_log2), bf.fast_divisor);
+    const vec<hash_value_t, vector_len> word_idx = hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2);
     return word_idx;
   }
 
@@ -53,23 +49,15 @@ struct bloomfilter_h3_mod_vec {
   __forceinline__ __unroll_loops__
   vec<word_t, n>
   which_bits(const vec<hash_value_t, n>& first_hash_val,
-             const vec<hash_value_t, n>& second_hash_val,
-             const vec<hash_value_t, n>& third_hash_val) const noexcept {
+             const vec<hash_value_t, n>& second_hash_val) const noexcept {
     // take the LSBs of first hash value
     vec<word_t, n> words = vec<word_t, n>::make(1);
     words <<= internal::vector_convert<hash_value_t, word_t, n>::convert(
         (first_hash_val >> (bf_t::hash_value_bitlength - bf.word_cnt_log2 - bf_t::sector_bitlength_log2)) & bf_t::sector_mask());
-    constexpr u32 k_2nd = boost::static_unsigned_min<bf_t::k, 6u>::value;
-    for ($u32 i = 1; i < k_2nd; i++) {
+    for ($u32 i = 1; i < bf_t::k; i++) {
       u32 shift = (bf_t::hash_value_bitlength - 2) - (i * bf_t::sector_bitlength_log2);
       const vec<hash_value_t, n> bit_idxs = (second_hash_val >> shift) & bf_t::sector_mask();
       const u32 sector_offset = (i * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
-      words |= vec<word_t, n>::make(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs + sector_offset);
-    }
-    for ($u32 i = k_2nd; i < boost::static_unsigned_min<bf_t::k, k_2nd + 5u>::value; i++) {
-      u32 shift = (bf_t::hash_value_bitlength - 2) - ((i-k_2nd) * bf_t::sector_bitlength_log2);
-      const vec<hash_value_t, n> bit_idxs = (third_hash_val >> shift) & bf_t::sector_mask();
-      const u32 sector_offset = ((i-k_2nd) * bf_t::sector_bitlength) & bf_t::word_bitlength_mask;
       words |= vec<word_t, n>::make(1) << internal::vector_convert<hash_value_t, word_t, n>::convert(bit_idxs + sector_offset);
     }
     return words;
@@ -88,11 +76,10 @@ struct bloomfilter_h3_mod_vec {
 
     const hash_value_vt first_hash_vals = hash_fn<key_vt>::hash(keys);
     const hash_value_vt second_hash_vals = hash_fn2<key_vt>::hash(keys);
-    const hash_value_vt third_hash_vals = hash_fn3<key_vt>::hash(keys);
     const hash_value_vt word_idxs = which_word(first_hash_vals);
 //    const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     const word_vt words = internal::vector_gather<word_t, hash_value_t, n>::gather(bf.word_array.data(), word_idxs);
-    const word_vt search_masks = which_bits(first_hash_vals, second_hash_vals, third_hash_vals);
+    const word_vt search_masks = which_bits(first_hash_vals, second_hash_vals);
 // late gather   const word_vt words = dtl::gather(bf.word_array.data(), word_idxs);
     return (words & search_masks) == search_masks;
   }
