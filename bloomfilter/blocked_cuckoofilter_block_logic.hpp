@@ -32,6 +32,8 @@ struct blocked_cuckoofilter_block_logic {
   using hash_value_t = uint32_t;
   using hasher = dtl::hash::knuth_32<hash_value_t>;
 
+  static constexpr uint32_t block_size = table_t::table_size_bytes;
+  static constexpr uint32_t block_bitlength = table_t::table_size_bytes * 8;
   static constexpr uint32_t capacity = table_t::capacity;
   static constexpr uint32_t required_hash_bits = table_t::required_hash_bits;
 

@@ -92,5 +92,5 @@ fpr_blocked_sectorized(u64 m,
   return f;
 }
 
-} // namespace bloomfilter
+} // namespace bloomfilter_logic
 } // namespace dtl

@@ -20,7 +20,7 @@ namespace internal {
 template<typename _filter_t>
 __forceinline__ __unroll_loops__ __host__
 static std::size_t
-simd_batch_contains_8_4(const _filter_t& filter,
+simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_t* __restrict filter_data,
                         u32* __restrict keys, u32 key_cnt,
                         $u32* __restrict match_positions, u32 match_offset) {
   using namespace dtl;
@@ -40,7 +40,7 @@ simd_batch_contains_8_4(const _filter_t& filter,
   // process the unaligned keys sequentially
   $u64 read_pos = 0;
   for (; read_pos < unaligned_key_cnt; read_pos++) {
-    u1 is_match = filter.contains(*reader);
+    u1 is_match = filter.contains(filter_data, *reader);
     *match_writer = static_cast<$u32>(read_pos) + match_offset;
     match_writer += is_match;
     reader++;
@@ -51,15 +51,15 @@ simd_batch_contains_8_4(const _filter_t& filter,
   using key_vt = vec<key_t, vector_len>;
   using ptr_vt = vec<$u64, vector_len>;
 
-  constexpr u32 block_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::block_type)>::value;
-  constexpr u32 word_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::table_type::word_t)>::value;
+  constexpr u32 block_size_log2 = dtl::ct::log_2_u64<filter_t::block_t::block_size>::value;
+  constexpr u32 word_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::table_t::word_t)>::value;
 
   r256 offset_vec = {.i = _mm256_set1_epi32(match_offset + read_pos) };
   const r256 overflow_tag = {.i = _mm256_set1_epi64x(-1) };
   using mask_t = typename vec<key_t, vector_len>::mask;
   u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
 
-  if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_type::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
+  if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_t::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
 
     // --- contains hash ---
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
@@ -71,17 +71,17 @@ simd_batch_contains_8_4(const _filter_t& filter,
       // compute block address
       ptr_vt ptr_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(block_idx_v);
       ptr_v <<= block_size_log2;
-      ptr_v += reinterpret_cast<std::uintptr_t>(&filter.filter.blocks[0]);
+      ptr_v += reinterpret_cast<std::uintptr_t>(&filter_data[0]);
 
       auto bucket_hash_v = block_hash_v << filter.filter.addr.get_required_addressing_bits();
-      auto bucket_idx_v = filter_t::block_type::get_bucket_idxs(bucket_hash_v);
-      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_type::bucket_addressing_bits - filter_t::table_type::tag_size_bits))
-                   & static_cast<uint32_t>(filter_t::table_type::tag_mask);
+      auto bucket_idx_v = filter_t::block_t::get_bucket_idxs(bucket_hash_v);
+      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_t::bucket_addressing_bits - filter_t::table_t::tag_size_bits))
+                   & static_cast<uint32_t>(filter_t::table_t::tag_mask);
       tag_v[tag_v == 0] += 1; // tag must not be zero
-      auto alternative_bucket_idx_v = filter_t::block_type::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
+      auto alternative_bucket_idx_v = filter_t::block_t::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
 
-      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
+      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
+      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
 
 
 //      const auto bucket = word >> (bucket_size_bits * in_word_bucket_idx);
@@ -137,17 +137,17 @@ simd_batch_contains_8_4(const _filter_t& filter,
       // compute block address
       ptr_vt ptr_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(block_idx_v);
       ptr_v <<= block_size_log2;
-      ptr_v += reinterpret_cast<std::uintptr_t>(&filter.filter.blocks[0]);
+      ptr_v += reinterpret_cast<std::uintptr_t>(&filter_data[0]);
 
       auto bucket_hash_v = dtl::hash::knuth_32<key_vt>::hash(key_v);
-      auto bucket_idx_v = filter_t::block_type::get_bucket_idxs(bucket_hash_v);
-      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_type::bucket_addressing_bits - filter_t::table_type::tag_size_bits))
-                   & static_cast<uint32_t>(filter_t::table_type::tag_mask);
+      auto bucket_idx_v = filter_t::block_t::get_bucket_idxs(bucket_hash_v);
+      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_t::bucket_addressing_bits - filter_t::table_t::tag_size_bits))
+                   & static_cast<uint32_t>(filter_t::table_t::tag_mask);
       tag_v[tag_v == 0] += 1; // tag must not be zero
-      auto alternative_bucket_idx_v = filter_t::block_type::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
+      auto alternative_bucket_idx_v = filter_t::block_t::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
 
-      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
+      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
+      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
 
 
 //      const auto bucket = word >> (bucket_size_bits * in_word_bucket_idx);
@@ -197,7 +197,7 @@ simd_batch_contains_8_4(const _filter_t& filter,
 
   // process remaining keys sequentially
   for (; read_pos < key_cnt; read_pos++) {
-    u1 is_match = filter.contains(*reader);
+    u1 is_match = filter.contains(filter_data, *reader);
     *match_writer = static_cast<$u32>(read_pos) + match_offset;
     match_writer += is_match;
     reader++;
@@ -210,7 +210,7 @@ template<typename _filter_t>
 __forceinline__ __unroll_loops__ __host__
 static std::size_t
 //batch_contains(const dtl::blocked_cuckoo_filter<16, 4, addressing>& filter,
-simd_batch_contains_16_4(const _filter_t& filter,
+simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word_t* __restrict filter_data,
                          u32* __restrict keys, u32 key_cnt,
                          $u32* __restrict match_positions, u32 match_offset) {
   using namespace dtl;
@@ -230,7 +230,7 @@ simd_batch_contains_16_4(const _filter_t& filter,
   // process the unaligned keys sequentially
   $u64 read_pos = 0;
   for (; read_pos < unaligned_key_cnt; read_pos++) {
-    u1 is_match = filter.contains(*reader);
+    u1 is_match = filter.contains(filter_data, *reader);
     *match_writer = static_cast<$u32>(read_pos) + match_offset;
     match_writer += is_match;
     reader++;
@@ -241,15 +241,15 @@ simd_batch_contains_16_4(const _filter_t& filter,
   using key_vt = vec<key_t, vector_len>;
   using ptr_vt = vec<$u64, vector_len>;
 
-  constexpr u32 block_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::block_type)>::value;
-  constexpr u32 word_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::table_type::word_t)>::value;
+  constexpr u32 block_size_log2 = dtl::ct::log_2_u64<filter_t::block_t::block_size>::value;
+  constexpr u32 word_size_log2 = dtl::ct::log_2_u64<sizeof(typename filter_t::table_t::word_t)>::value;
 
   r128 offset_vec = {.i = _mm_set1_epi32(match_offset + read_pos) };
   const r256 overflow_tag = {.i = _mm256_set1_epi64x(-1) };
   using mask_t = typename vec<key_t, vector_len>::mask;
   u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
 
-  if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_type::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
+  if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_t::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
     // --- contains hash ---
     for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
 
@@ -260,17 +260,17 @@ simd_batch_contains_16_4(const _filter_t& filter,
       // compute block address
       ptr_vt ptr_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(block_idx_v);
       ptr_v <<= block_size_log2;
-      ptr_v += reinterpret_cast<std::uintptr_t>(&filter.filter.blocks[0]);
+      ptr_v += reinterpret_cast<std::uintptr_t>(&filter_data[0]);
 
       auto bucket_hash_v = block_hash_v << filter.filter.addr.get_required_addressing_bits();
-      auto bucket_idx_v = filter_t::block_type::get_bucket_idxs(bucket_hash_v);
-      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_type::bucket_addressing_bits - filter_t::table_type::tag_size_bits))
-                   & static_cast<uint32_t>(filter_t::table_type::tag_mask);
+      auto bucket_idx_v = filter_t::block_t::get_bucket_idxs(bucket_hash_v);
+      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_t::bucket_addressing_bits - filter_t::table_t::tag_size_bits))
+                   & static_cast<uint32_t>(filter_t::table_t::tag_mask);
       tag_v[tag_v == 0] += 1; // tag must not be zero
-      auto alternative_bucket_idx_v = filter_t::block_type::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
+      auto alternative_bucket_idx_v = filter_t::block_t::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
 
-      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
+      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
+      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
 //      const auto in_word_bucket_idx = bucket_idx >> word_cnt_log2;
 //      const auto bucket = word >> (bucket_size_bits * in_word_bucket_idx);
 
@@ -320,18 +320,18 @@ simd_batch_contains_16_4(const _filter_t& filter,
       // compute block address
       ptr_vt ptr_v = dtl::internal::vector_convert<$u32, $u64, vector_len>::convert(block_idx_v);
       ptr_v <<= block_size_log2;
-      ptr_v += reinterpret_cast<std::uintptr_t>(&filter.filter.blocks[0]);
+      ptr_v += reinterpret_cast<std::uintptr_t>(&filter_data[0]);
 
       // contains hash
       auto bucket_hash_v = dtl::hash::knuth_32<key_vt>::hash(key_v);
-      auto bucket_idx_v = filter_t::block_type::get_bucket_idxs(bucket_hash_v);
-      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_type::bucket_addressing_bits - filter_t::table_type::tag_size_bits))
-                   & static_cast<uint32_t>(filter_t::table_type::tag_mask);
+      auto bucket_idx_v = filter_t::block_t::get_bucket_idxs(bucket_hash_v);
+      auto tag_v = (bucket_hash_v >> (32 - filter_t::table_t::bucket_addressing_bits - filter_t::table_t::tag_size_bits))
+                   & static_cast<uint32_t>(filter_t::table_t::tag_mask);
       tag_v[tag_v == 0] += 1; // tag must not be zero
-      auto alternative_bucket_idx_v = filter_t::block_type::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
+      auto alternative_bucket_idx_v = filter_t::block_t::get_alternative_bucket_idxs(bucket_idx_v, tag_v);
 
-      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
-      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_type::word_cnt_log2) - 1);
+      const auto word_idx_v = bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
+      const auto alternative_word_idx_v = alternative_bucket_idx_v & ((1u << filter_t::table_t::word_cnt_log2) - 1);
 //      const auto in_word_bucket_idx = bucket_idx >> word_cnt_log2;
 //      const auto bucket = word >> (bucket_size_bits * in_word_bucket_idx);
 
@@ -374,7 +374,7 @@ simd_batch_contains_16_4(const _filter_t& filter,
 
   // process remaining keys sequentially
   for (; read_pos < key_cnt; read_pos++) {
-    u1 is_match = filter.contains(*reader);
+    u1 is_match = filter.contains(filter_data, *reader);
     *match_writer = static_cast<$u32>(read_pos) + match_offset;
     match_writer += is_match;
     reader++;

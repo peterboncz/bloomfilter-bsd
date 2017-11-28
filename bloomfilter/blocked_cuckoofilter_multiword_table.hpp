@@ -23,9 +23,9 @@ namespace internal {
 //===----------------------------------------------------------------------===//
 
 // Optimized for the case where at least two buckets fit into a single word.
-template<uint32_t _bucket_cnt_per_word>
+template<typename table_t, uint32_t _bucket_cnt_per_word>
 struct find_tag {
-  template<class table_t>
+//  template<typename table_t>
   __forceinline__ static bool
   find_tag_in_buckets(const typename table_t::word_t* __restrict block_ptr,
                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
@@ -45,9 +45,9 @@ struct find_tag {
 
 // Optimized for the case where only one bucket fits into a word.
 // Both candidate buckets need to be checked one after another.
-template<>
-struct find_tag<1> {
-  template<class table_t>
+template<typename table_t>
+struct find_tag<table_t, 1> {
+//  template<typename table_t>
   __forceinline__ static bool
   find_tag_in_buckets(const typename table_t::word_t* __restrict block_ptr,
                       uint32_t bucket_idx, uint32_t alternative_bucket_idx, uint32_t tag) {
@@ -220,13 +220,13 @@ struct blocked_cuckoofilter_multiword_table {
 
 
   __forceinline__
-  bool
+  static bool
   find_tag_in_buckets(const word_t* __restrict block_ptr,
-                      const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) const {
-    return internal::find_tag<bucket_cnt_per_word>::find_tag_in_buckets(block_ptr, bucket_idx, alternative_bucket_idx, tag);
+                      const uint32_t bucket_idx, const uint32_t alternative_bucket_idx, const uint32_t tag) {
+    return internal::find_tag<blocked_cuckoofilter_multiword_table, bucket_cnt_per_word>
+                   ::find_tag_in_buckets(block_ptr, bucket_idx, alternative_bucket_idx, tag);
   }
-
-
+//  blocked_cuckoofilter_multiword_table<__word_t, __table_size_bytes, __tag_size_bits, __tags_per_bucket>
 };
 //===----------------------------------------------------------------------===//
 

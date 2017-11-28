@@ -19,7 +19,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/dynamic/blocked_bloomfilter_logic.hpp
         bloomfilter/dynamic/blocked_bloomfilter_block_logic.hpp
         bloomfilter/dynamic/hash.hpp
-        bloomfilter/bloomfilter.hpp
+        bloomfilter/bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/old/bloomfilter_runtime.hpp
         bloomfilter/old/bloomfilter_runtime_sectorized.hpp
@@ -35,7 +35,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/old/bloomfilter_h1_mod_vec.hpp
         bloomfilter/old/bloomfilter_h2.hpp
         bloomfilter/old/bloomfilter_h2_logic.hpp
-#        bloomfilter/bloomfilter_h2_mb_logic.hpp
+#        bloomfilter_logic/bloomfilter_h2_mb_logic.hpp
         bloomfilter/old/bloomfilter_h2_vec.hpp
         bloomfilter/old/bloomfilter_h2_mod.hpp
         bloomfilter/old/bloomfilter_h2_mod_vec.hpp
@@ -46,28 +46,28 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter_block_logic.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w1.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w1.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w2.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w2.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w4.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w4.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w8.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u32_w8.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w1.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w1.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w2.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w2.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w4.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w4.cpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w8.hpp
-#        bloomfilter/old/blocked_bloomfilter_block_logic_u64_w8.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w1.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w1.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w2.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w2.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w4.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w4.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w8.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u32_w8.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w1.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w1.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w2.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w2.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w4.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w4.cpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w8.hpp
+#        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w8.cpp
         bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
         bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
         bloomfilter/old/bloomfilter_hn.hpp
         bloomfilter/old/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
-        bloomfilter/blocked_cuckoofilter.hpp
+        bloomfilter/blocked_cuckoofilter_logic.hpp
         bloomfilter/blocked_cuckoofilter_block_logic.hpp
         bloomfilter/blocked_cuckoofilter_multiword_table.hpp
         bloomfilter/blocked_cuckoofilter_simd.hpp

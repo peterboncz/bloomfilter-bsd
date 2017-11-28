@@ -22,18 +22,18 @@ namespace cuckoofilter {
 // A blocked cuckoo filter template.
 //===----------------------------------------------------------------------===//
 template<
-    typename __key_t = uint32_t,
-    typename __block_t = blocked_cuckoofilter_block_logic<__key_t>,
-    block_addressing __block_addressing = block_addressing::POWER_OF_TWO
+    typename _key_t = uint32_t,
+    typename _block_t = blocked_cuckoofilter_block_logic<_key_t>,
+    block_addressing _block_addressing = block_addressing::POWER_OF_TWO
 >
 struct blocked_cuckoofilter {
 
-  using key_t = __key_t;
-  using block_t = __block_t;
+  using key_t = _key_t;
+  using block_t = _block_t;
   using word_t = typename block_t::word_t;
   using hash_value_t = uint32_t;
   using hasher = dtl::hash::knuth_32_alt<hash_value_t>;
-  using addr_t = block_addressing_logic<__block_addressing>;
+  using addr_t = block_addressing_logic<_block_addressing>;
 
   static constexpr u32 word_cnt_per_block = block_t::table_t::word_cnt;
   static constexpr u32 word_cnt_per_block_log2 = dtl::ct::log_2<word_cnt_per_block>::value;
@@ -42,7 +42,6 @@ struct blocked_cuckoofilter {
   // Members
   //===----------------------------------------------------------------------===//
   const addr_t addr;
-//  std::vector<block_t, dtl::mem::numa_allocator<block_t>> blocks;
   //===----------------------------------------------------------------------===//
 
 
@@ -169,6 +168,16 @@ struct blocked_cuckoofilter {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
+  /// Returns the number of words the filter consists of.
+  __forceinline__ __host__ __device__
+  std::size_t
+  size() const noexcept {
+    return addr.block_cnt * word_cnt_per_block;
+  }
+  //===----------------------------------------------------------------------===//
+
+
 };
 //===----------------------------------------------------------------------===//
 
@@ -183,17 +192,17 @@ static constexpr uint64_t cache_line_size = 64;
 // Cuckoo filter base class.
 // using static polymorphism (CRTP)
 //===----------------------------------------------------------------------===//
-template<typename __key_t, typename __word_t, typename __derived>
-struct blocked_cuckoofilter_base {
+template<typename _key_t, typename _word_t, typename _derived>
+struct blocked_cuckoofilter_logic_base {
 
-  using key_t = __key_t;
-  using word_t = __word_t;
+  using key_t = _key_t;
+  using word_t = _word_t;
 
   //===----------------------------------------------------------------------===//
   __forceinline__ __host__ __device__
   void
   insert(word_t* __restrict filter_data, const key_t& key) {
-    return static_cast<__derived*>(this)->filter.insert(filter_data, key);
+    return static_cast<_derived*>(this)->filter.insert(filter_data, key);
   }
   //===----------------------------------------------------------------------===//
 
@@ -202,7 +211,7 @@ struct blocked_cuckoofilter_base {
   __forceinline__ __host__
   uint64_t
   batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) {
-    return static_cast<__derived*>(this)->filter.batch_insert(filter_data, keys, key_cnt);
+    return static_cast<_derived*>(this)->filter.batch_insert(filter_data, keys, key_cnt);
   }
   //===----------------------------------------------------------------------===//
 
@@ -211,7 +220,7 @@ struct blocked_cuckoofilter_base {
   __forceinline__ __host__ __device__
   bool
   contains(const word_t* __restrict filter_data, const key_t& key) const {
-    return static_cast<const __derived*>(this)->filter.contains(filter_data, key);
+    return static_cast<const _derived*>(this)->filter.contains(filter_data, key);
   }
   //===----------------------------------------------------------------------===//
 
@@ -222,8 +231,18 @@ struct blocked_cuckoofilter_base {
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return static_cast<const __derived*>(this)->filter.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
+    return static_cast<const _derived*>(this)->filter.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
   };
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  /// Returns the number of words the filter consists of.
+  __forceinline__ __host__ __device__
+  std::size_t
+  size() const noexcept {
+    return static_cast<const _derived*>(this)->filter.size();
+  }
   //===----------------------------------------------------------------------===//
 
 };
@@ -235,12 +254,12 @@ struct blocked_cuckoofilter_base {
 // Note, that not all instantiations are suitable for SIMD.
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, uint32_t bits_per_element, uint32_t associativity, block_addressing addressing>
-struct blocked_cuckoofilter {};
+struct blocked_cuckoofilter_logic {};
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -250,21 +269,23 @@ struct blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
   // use SIMD implementation
   __forceinline__ uint64_t
-  batch_contains(const key_t* __restrict keys, const uint32_t key_cnt,
+  batch_contains(const word_t* __restrict filter_data,
+                 const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::internal::simd_batch_contains_16_4(*this, keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_16_4(*this, filter_data,
+                                                                 keys, key_cnt, match_positions, match_offset);
   };
 
 };
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 16, 2, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 16, 2, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -274,14 +295,14 @@ struct blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
 };
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 12, 4, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 12, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -291,14 +312,14 @@ struct blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
 };
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 10, 6, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 10, 6, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -308,14 +329,14 @@ struct blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
 };
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 8, 8, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 8, 8, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -325,14 +346,14 @@ struct blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
 };
 
 
 template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, uint32_t, blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>> {
+struct blocked_cuckoofilter_logic<block_size_bytes, 8, 4, addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint32_t, blocked_cuckoofilter_logic<block_size_bytes, 8, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint32_t;
@@ -342,14 +363,15 @@ struct blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
   // use SIMD implementation
   __forceinline__ uint64_t
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::internal::simd_batch_contains_8_4(*this, keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_8_4(*this, filter_data,
+                                                                keys, key_cnt, match_positions, match_offset);
   };
 
 };

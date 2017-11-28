@@ -17,13 +17,15 @@
 
 namespace dtl {
 
-// TODO rename to bloomfilter_logic
+//===----------------------------------------------------------------------===//
+// A (standard) Bloom filter template.
+//===----------------------------------------------------------------------===//
 template<
     typename Tk,           // the key type
 //    typename HashFn,       // the hash function (family) to use
     block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the addressing scheme
 >
-struct bloomfilter {
+struct bloomfilter_logic {
 
   using key_t = Tk;
   using word_t = uint32_t;
@@ -58,19 +60,19 @@ struct bloomfilter {
  public:
 
   explicit
-  bloomfilter(const std::size_t length, const uint32_t k) noexcept
-      : addr(length, block_bitlength), k(k) { }
+  bloomfilter_logic(const std::size_t desired_length, const uint32_t k) noexcept
+      : addr(desired_length, block_bitlength), k(k) { }
 
-  bloomfilter(const bloomfilter&) noexcept = default;
+  bloomfilter_logic(const bloomfilter_logic&) noexcept = default;
 
-  bloomfilter(bloomfilter&&) noexcept = default;
+  bloomfilter_logic(bloomfilter_logic&&) noexcept = default;
 
 
   //===----------------------------------------------------------------------===//
-  /// Returns the size of the Bloom filter (in number of bits).
+  /// Returns the (actual) size of the Bloom filter (in number of bits).
   __forceinline__ __host__ __device__
   std::size_t
-  length() const noexcept {
+  get_length() const noexcept {
     return static_cast<std::size_t>(addr.block_cnt) * sizeof(word_t) * 8;
   }
   //===----------------------------------------------------------------------===//
@@ -80,7 +82,7 @@ struct bloomfilter {
   /// Returns the number of words the Bloom filter consists of.
   __forceinline__ __host__ __device__
   std::size_t
-  word_cnt() const noexcept {
+  size() const noexcept {
     return addr.block_cnt; // word == block
   }
   //===----------------------------------------------------------------------===//
@@ -90,7 +92,7 @@ struct bloomfilter {
   /// Insert the given key/element into the filter.
   __forceinline__ __host__
   void
-  insert(const key_t& key, word_t* __restrict filter) const noexcept {
+  insert(word_t* __restrict filter, const key_t& key) const noexcept {
     constexpr uint32_t word_bitlength = sizeof(word_t) * 8;
     constexpr uint32_t word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
     constexpr word_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
@@ -111,10 +113,10 @@ struct bloomfilter {
   /// Inserts multiple keys/elements into the filter.
   __forceinline__
   void
-  batch_insert(const key_t* __restrict keys, const uint32_t key_cnt,
-               word_t* __restrict filter) const {
+  batch_insert(word_t* __restrict filter_data,
+               const key_t* __restrict keys, const uint32_t key_cnt) const {
     for (uint32_t j = 0; j < key_cnt; j++) {
-      insert(keys[j], filter);
+      insert(filter_data, keys[j]);
     }
   };
   //===----------------------------------------------------------------------===//
@@ -123,7 +125,7 @@ struct bloomfilter {
   //===----------------------------------------------------------------------===//
   __forceinline__ __host__ __device__
   u1
-  contains(const key_t& key, const word_t* __restrict filter) const noexcept {
+  contains(const word_t* __restrict filter_data, const key_t& key) const noexcept {
     constexpr uint32_t word_bitlength = sizeof(word_t) * 8;
     constexpr uint32_t word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
     constexpr word_t word_mask = (word_t(1u) << word_bitlength_log2) - 1;
@@ -134,7 +136,7 @@ struct bloomfilter {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
       const hash_value_t word_idx = addr.get_block_idx(hash_val);
       const hash_value_t bit_idx = (hash_val >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
-      const bool hit = filter[word_idx] & (word_t(1u) << bit_idx);
+      const bool hit = filter_data[word_idx] & (word_t(1u) << bit_idx);
       // Early out
       if (!hit) return false;
     }
@@ -148,8 +150,8 @@ struct bloomfilter {
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   typename dtl::vec<key_t, dtl::vector_length<Tv>::value>::mask_t
-  simd_contains(const Tv& keys,
-                const word_t* __restrict filter) const noexcept {
+  simd_contains(const word_t* __restrict filter_data,
+                const Tv& keys) const noexcept {
     using vec_t = dtl::vec<key_t, dtl::vector_length<Tv>::value>;
     using hash_value_vt = dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>;
     using mask_t = typename vec_t::mask_t;
@@ -164,14 +166,14 @@ struct bloomfilter {
     const auto word_idxs = addr.get_block_idx(hash_vals);
     const auto bit_idxs = (hash_vals >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
     const auto lsb_set = vec_t::make(word_t(1u));
-    mask_t exec_mask = (dtl::gather(filter, word_idxs) & (lsb_set << bit_idxs)) != 0;
+    mask_t exec_mask = (dtl::gather(filter_data, word_idxs) & (lsb_set << bit_idxs)) != 0;
 
     if (exec_mask.any()) {
       for (uint32_t current_k = 1; current_k < k; current_k++) {
         const vec_t hash_vals = HashFn::hash(keys, current_k);
         const vec_t word_idxs = addr.get_block_idx(hash_vals).zero_mask(exec_mask);
         const auto bit_idxs = (hash_vals >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
-        exec_mask &= (dtl::gather(filter, word_idxs) & (lsb_set << bit_idxs)) != 0;
+        exec_mask &= (dtl::gather(filter_data, word_idxs) & (lsb_set << bit_idxs)) != 0;
         if (exec_mask.none()) return !exec_mask;
       }
 
@@ -184,7 +186,7 @@ struct bloomfilter {
   //===----------------------------------------------------------------------===//
   __forceinline__
   uint64_t
-  batch_contains(const word_t* __restrict filter,
+  batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
     constexpr u32 mini_batch_size = 16;
@@ -193,13 +195,13 @@ struct bloomfilter {
     $u32* match_writer = match_positions;
     for ($u32 mb = 0; mb < mini_batch_cnt; mb++) {
       for (uint32_t j = mb * mini_batch_size; j < ((mb + 1) * mini_batch_size); j++) {
-        const auto is_contained = contains(keys[j], filter);
+        const auto is_contained = contains(filter_data, keys[j]);
         *match_writer = j + match_offset;
         match_writer += is_contained;
       }
     }
     for (uint32_t j = (mini_batch_cnt * mini_batch_size); j < key_cnt; j++) {
-      const auto is_contained = contains(keys[j], filter);
+      const auto is_contained = contains(filter_data, keys[j]);
       *match_writer = j + match_offset;
       match_writer += is_contained;
     }
