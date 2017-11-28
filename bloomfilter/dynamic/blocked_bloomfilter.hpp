@@ -8,13 +8,12 @@
 
 
 namespace dtl {
-namespace bloomfilter {
-namespace dynamic {
+namespace bloomfilter_dynamic {
 
 
 struct blocked_bloomfilter {
   using key_t = uint32_t;
-  using filter_logic_t = dtl::bloomfilter::dynamic::blocked_bloomfilter_logic<dtl::bloomfilter::dynamic::hasher_mul32>;
+  using filter_logic_t = dtl::bloomfilter_dynamic::blocked_bloomfilter_logic<dtl::bloomfilter_dynamic::hasher_mul32>;
   using word_t = typename filter_logic_t::word_t;
 
   //===----------------------------------------------------------------------===//
@@ -65,6 +64,5 @@ struct blocked_bloomfilter {
 //===----------------------------------------------------------------------===//
 
 
-} // namespace dynamic
-} // namespace bloomfilter
+} // namespace bloomfilter_dynamic
 } // namespace dtl

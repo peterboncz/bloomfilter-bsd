@@ -23,7 +23,7 @@ template<
 //    typename HashFn,       // the hash function (family) to use
     block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the addressing scheme
 >
-struct std_bloomfilter {
+struct bloomfilter {
 
   using key_t = Tk;
   using word_t = uint32_t;
@@ -58,12 +58,12 @@ struct std_bloomfilter {
  public:
 
   explicit
-  std_bloomfilter(const std::size_t length, const uint32_t k) noexcept
+  bloomfilter(const std::size_t length, const uint32_t k) noexcept
       : addr(length, block_bitlength), k(k) { }
 
-  std_bloomfilter(const std_bloomfilter&) noexcept = default;
+  bloomfilter(const bloomfilter&) noexcept = default;
 
-  std_bloomfilter(std_bloomfilter&&) noexcept = default;
+  bloomfilter(bloomfilter&&) noexcept = default;
 
 
   //===----------------------------------------------------------------------===//

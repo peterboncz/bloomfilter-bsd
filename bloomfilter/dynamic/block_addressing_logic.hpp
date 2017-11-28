@@ -12,8 +12,7 @@
 
 
 namespace dtl {
-namespace bloomfilter {
-namespace dynamic {
+namespace bloomfilter_dynamic {
 
 
 //===----------------------------------------------------------------------===//
@@ -160,6 +159,5 @@ struct bloomfilter_addressing_logic_pow2 : block_addressing_logic {
 
 };
 
-} // namespace dynamic
-} // namespace bloomfilter
+} // namespace bloomfilter_dynamic
 } // namespace dtl

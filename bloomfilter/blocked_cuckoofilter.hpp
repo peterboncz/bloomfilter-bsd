@@ -256,7 +256,7 @@ struct blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>
   __forceinline__ uint64_t
   batch_contains(const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::simd_batch_contains_16_4(*this, keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_16_4(*this, keys, key_cnt, match_positions, match_offset);
   };
 
 };
@@ -349,7 +349,7 @@ struct blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::simd_batch_contains_8_4(*this, keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_8_4(*this, keys, key_cnt, match_positions, match_offset);
   };
 
 };

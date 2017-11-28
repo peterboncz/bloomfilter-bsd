@@ -8,6 +8,8 @@
 
 namespace dtl {
 namespace cuckoofilter {
+namespace internal {
+
 
 //===----------------------------------------------------------------------===//
 // SIMDized implementations for batch_contains.
@@ -381,5 +383,6 @@ simd_batch_contains_16_4(const _filter_t& filter,
 }
 
 
+} // namespace internal
 } // namespace cuckoofilter
 } // namespace dtl

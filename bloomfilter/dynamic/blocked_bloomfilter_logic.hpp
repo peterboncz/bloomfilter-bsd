@@ -15,8 +15,7 @@
 #include "blocked_bloomfilter_block_logic.hpp"
 
 namespace dtl {
-namespace bloomfilter {
-namespace dynamic {
+namespace bloomfilter_dynamic {
 
 
 template<
@@ -211,6 +210,5 @@ struct blocked_bloomfilter_logic {
 
 };
 
-} // namespace dynamic
-} // namespace hash
+} // namespace bloomfilter_dynamic
 } // namespace dtl

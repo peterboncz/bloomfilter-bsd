@@ -3,8 +3,7 @@
 #include <dtl/dtl.hpp>
 
 namespace dtl {
-namespace bloomfilter {
-namespace dynamic {
+namespace bloomfilter_dynamic {
 
 struct hasher_mul32 {
 
@@ -33,6 +32,5 @@ struct hasher_mul32 {
   }
 };
 
-} // namespace dynamic
-} // namespace bloomfilter
+} // namespace bloomfilter_dynamic
 } // namespace dtl

@@ -14,8 +14,7 @@
 #include "hash.hpp"
 
 namespace dtl {
-namespace bloomfilter {
-namespace dynamic {
+namespace bloomfilter_dynamic {
 
 
 /// A multi-word block. The k bits are distributed among all words of the block (optionally in a sectorized manner).
@@ -179,6 +178,5 @@ struct blocked_bloomfilter_block_logic {
 
 };
 
-} // namespace dynamic
-} // namespace hash
+} // namespace bloomfilter_dynamic
 } // namespace dtl
