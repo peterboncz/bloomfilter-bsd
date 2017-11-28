@@ -314,12 +314,13 @@ static constexpr uint64_t cache_line_size = 64;
 //===----------------------------------------------------------------------===//
 // Instantiations of some reasonable cuckoo filters
 //===----------------------------------------------------------------------===//
-template<typename __key_t, typename __derived>
+template<typename __key_t, typename __word_t, typename __derived>
 struct blocked_cuckoofilter_base {
 
   using key_t = __key_t;
-  using word_t = typename __derived::word_t;
+  using word_t = __word_t;
 
+  //===----------------------------------------------------------------------===//
   __forceinline__ __host__ __device__
   void
   insert(word_t* __restrict filter_data, const key_t& key) {
@@ -328,6 +329,7 @@ struct blocked_cuckoofilter_base {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   __forceinline__ __host__
   uint64_t
   batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) {
@@ -336,6 +338,7 @@ struct blocked_cuckoofilter_base {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   __forceinline__ __host__ __device__
   bool
   contains(const word_t* __restrict filter_data, const key_t& key) const {
@@ -344,6 +347,7 @@ struct blocked_cuckoofilter_base {
   //===----------------------------------------------------------------------===//
 
 
+  //===----------------------------------------------------------------------===//
   __forceinline__  __host__
   uint64_t
   batch_contains(const word_t* __restrict filter_data,
@@ -366,7 +370,7 @@ struct blocked_cuckoofilter {};
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -392,7 +396,7 @@ struct blocked_cuckoofilter<block_size_bytes, 16, 4, addressing>
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -411,7 +415,7 @@ struct blocked_cuckoofilter<block_size_bytes, 16, 2, addressing>
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -430,7 +434,7 @@ struct blocked_cuckoofilter<block_size_bytes, 12, 4, addressing>
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -440,7 +444,7 @@ struct blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>
 
   filter_t filter; // the actual filter instance
 
-  explicit blocked_cuckoo_filter(const std::size_t length) : filter(length) { }
+  explicit blocked_cuckoofilter(const std::size_t length) : filter(length) { }
 
 };
 //===----------------------------------------------------------------------===//
@@ -449,7 +453,7 @@ struct blocked_cuckoofilter<block_size_bytes, 10, 6, addressing>
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint64_t, blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint64_t;
@@ -468,7 +472,7 @@ struct blocked_cuckoofilter<block_size_bytes, 8, 8, addressing>
 //===----------------------------------------------------------------------===//
 template<uint32_t block_size_bytes, block_addressing addressing>
 struct blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>
-    : blocked_cuckoofilter_base<uint32_t, blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>> {
+    : blocked_cuckoofilter_base<uint32_t, uint32_t, blocked_cuckoofilter<block_size_bytes, 8, 4, addressing>> {
 
   using key_t = uint32_t;
   using word_t = uint32_t;
