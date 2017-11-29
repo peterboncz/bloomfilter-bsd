@@ -17,7 +17,7 @@ namespace internal {
 //       and AVX-2 only! // TODO implement for AVX512
 //===----------------------------------------------------------------------===//
 
-template<typename _filter_t>
+template<typename _filter_t, u64 vector_len>
 __forceinline__ __unroll_loops__ __host__
 static std::size_t
 simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_t* __restrict filter_data,
@@ -47,7 +47,7 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
   }
 
   // process the aligned keys vectorized
-  constexpr std::size_t vector_len = 64;
+//  constexpr std::size_t vector_len = 64;
   using key_vt = vec<key_t, vector_len>;
   using ptr_vt = vec<$u64, vector_len>;
 
@@ -206,7 +206,7 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
 }
 
 
-template<typename _filter_t>
+template<typename _filter_t, u64 vector_len>
 __forceinline__ __unroll_loops__ __host__
 static std::size_t
 //batch_contains(const dtl::blocked_cuckoo_filter<16, 4, addressing>& filter,
@@ -237,7 +237,7 @@ simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word
   }
 
   // process the aligned keys vectorized
-  constexpr std::size_t vector_len = 32;
+//  constexpr std::size_t vector_len = 32;
   using key_vt = vec<key_t, vector_len>;
   using ptr_vt = vec<$u64, vector_len>;
 

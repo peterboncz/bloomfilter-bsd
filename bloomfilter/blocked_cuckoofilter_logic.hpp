@@ -28,6 +28,14 @@ template<
 >
 struct blocked_cuckoofilter {
 
+  // TODO
+//  template<
+//      typename key_t,
+//      $u32 hash_fn_no
+//  >
+//  using hasher = dtl::hash::stat::mul32<key_t, hash_fn_no>;
+
+
   using key_t = _key_t;
   using block_t = _block_t;
   using word_t = typename block_t::word_t;
@@ -245,6 +253,14 @@ struct blocked_cuckoofilter_logic_base {
   }
   //===----------------------------------------------------------------------===//
 
+  /// Returns (actual) length in bits.
+  __forceinline__
+  std::size_t
+  get_length() const noexcept {
+    return static_cast<const _derived*>(this)->filter.size() * 8;
+  }
+  //===----------------------------------------------------------------------===//
+
 };
 //===----------------------------------------------------------------------===//
 
@@ -272,12 +288,13 @@ struct blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>
   explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
   // use SIMD implementation
+  template<u64 vector_len = dtl::simd::lane_count<key_t>>
   __forceinline__ uint64_t
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::internal::simd_batch_contains_16_4(*this, filter_data,
-                                                                 keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_16_4<blocked_cuckoofilter_logic, vector_len>(
+        *this, filter_data, keys, key_cnt, match_positions, match_offset);
   };
 
 };
@@ -366,12 +383,13 @@ struct blocked_cuckoofilter_logic<block_size_bytes, 8, 4, addressing>
   explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
   // use SIMD implementation
+  template<u64 vector_len = dtl::simd::lane_count<key_t>>
   __forceinline__ uint64_t
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, const uint32_t key_cnt,
                  uint32_t* __restrict match_positions, const uint32_t match_offset) const {
-    return dtl::cuckoofilter::internal::simd_batch_contains_8_4(*this, filter_data,
-                                                                keys, key_cnt, match_positions, match_offset);
+    return dtl::cuckoofilter::internal::simd_batch_contains_8_4<blocked_cuckoofilter_logic, vector_len>(
+        *this, filter_data, keys, key_cnt, match_positions, match_offset);
   };
 
 };

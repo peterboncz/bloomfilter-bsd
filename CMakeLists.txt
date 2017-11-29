@@ -67,6 +67,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/old/bloomfilter_hn.hpp
         bloomfilter/old/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
+        bloomfilter/blocked_cuckoofilter.hpp
         bloomfilter/blocked_cuckoofilter_logic.hpp
         bloomfilter/blocked_cuckoofilter_block_logic.hpp
         bloomfilter/blocked_cuckoofilter_multiword_table.hpp

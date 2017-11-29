@@ -12,7 +12,7 @@
 #include <dtl/mem.hpp>
 
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter_logic.hpp>
+#include <dtl/bloomfilter/blocked_cuckoofilter_logic.hpp>
 #include <dtl/bloomfilter/hash_family.hpp>
 
 #include <boost/math/common_factor.hpp>
@@ -60,19 +60,20 @@ std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/
 } // namespace internal
 
 
-template<typename Tw = $u32>
-struct blocked_bloomfilter {
+//template<typename Tw = $u32>
+struct blocked_cuckoofilter {
 
   using key_t = $u32;
   using hash_value_t = $u32;
-  using word_t = Tw;
+  using word_t = $u32;
 
 
-  template<
-      typename key_t,
-      $u32 hash_fn_no
-  >
-  using hasher = dtl::hash::stat::mul32<key_t, hash_fn_no>;
+// TODO ?
+//  template<
+//      typename key_t,
+//      $u32 hash_fn_no
+//  >
+//  using hasher = dtl::hash::stat::mul32<key_t, hash_fn_no>;
 
   // The operations used for dynamic dispatching.
   enum class op_t {
@@ -84,8 +85,8 @@ struct blocked_bloomfilter {
   static constexpr dtl::block_addressing power = dtl::block_addressing::POWER_OF_TWO;
   static constexpr dtl::block_addressing magic = dtl::block_addressing::MAGIC;
 
-  template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = power>
-  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr>;
+  template<u32 block_size_bytes, u32 tag_size_bits, u32 associativity, block_addressing addressing = power>
+  using bcf = dtl::blocked_cuckoofilter_logic<block_size_bytes, tag_size_bits, associativity, addressing>;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -94,12 +95,12 @@ struct blocked_bloomfilter {
   $u64 m;
   /// The (actual) bit length of the Bloom filter.
   $u64 m_actual;
-  /// The number of bits set per entry.
-  $u32 k;
-  /// The number of words per block.
-  $u32 word_cnt_per_block;
-  /// The number of sectors per block.
-  $u32 sector_cnt;
+  /// The block size in bytes.
+  $u32 block_size_bytes;
+  /// The size of a tag (aka signature) in bits.
+  $u32 tag_size_bits;
+  /// The number of slots per bucket.
+  $u32 associativity;
   /// Pointer to the Bloom filter logic instance.
   void* instance = nullptr;
   //===----------------------------------------------------------------------===//
@@ -125,8 +126,8 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  blocked_bloomfilter(const size_t m, u32 k, u32 word_cnt_per_block = 1, u32 sector_cnt = 1)
-      : m(m), k(k), word_cnt_per_block(word_cnt_per_block), sector_cnt(sector_cnt) {
+  blocked_cuckoofilter(const size_t m, u32 block_size_bytes = 64, u32 tag_size_bits = 16, u32 associativity = 4)
+      : m(m), block_size_bytes(block_size_bytes), tag_size_bits(tag_size_bits), associativity(associativity) {
 
     // Construct the Bloom filter logic instance.
     dispatch(*this, op_t::CONSTRUCT);
@@ -135,13 +136,13 @@ struct blocked_bloomfilter {
     dispatch(*this, op_t::BIND);
 
     // Check whether the constructed filter matches the given arguments.
-    if (this->k != k
-        || this->word_cnt_per_block != word_cnt_per_block
-        || this->sector_cnt != sector_cnt) {
+    if (this->block_size_bytes != block_size_bytes
+        || this->tag_size_bits != tag_size_bits
+        || this->associativity != associativity) {
       dispatch(*this, op_t::DESTRUCT);
-      throw std::invalid_argument("Invalid configuration: k=" + std::to_string(k)
-                                  + ", w=" + std::to_string(word_cnt_per_block)
-                                  + ", s=" + std::to_string(sector_cnt));
+      throw std::invalid_argument("Invalid configuration: block_size_bytes=" + std::to_string(k)
+                                  + ", tag_size_bits=" + std::to_string(tag_size_bits)
+                                  + ", associativity=" + std::to_string(associativity));
     }
 
   }
@@ -149,9 +150,11 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  blocked_bloomfilter(blocked_bloomfilter&& src)
-      : m(src.m), m_actual(src.m_actual), k(src.k),
-        word_cnt_per_block(src.word_cnt_per_block), sector_cnt(src.sector_cnt),
+  blocked_cuckoofilter(blocked_cuckoofilter&& src)
+      : m(src.m), m_actual(src.m_actual),
+        block_size_bytes(src.block_size_bytes),
+        tag_size_bits(src.tag_size_bits),
+        associativity(src.associativity),
         instance(src.instance),
         insert(std::move(src.insert)),
         batch_insert(std::move(src.batch_insert)),
@@ -164,7 +167,7 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  ~blocked_bloomfilter() {
+  ~blocked_cuckoofilter() {
     // Destruct logic instance (if any).
     if (instance != nullptr) dispatch(*this, op_t::DESTRUCT);
   }
@@ -172,13 +175,13 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  blocked_bloomfilter&
-  operator=(blocked_bloomfilter&& src) {
+  blocked_cuckoofilter&
+  operator=(blocked_cuckoofilter&& src) {
     m = src.m;
     m_actual = src.m_actual;
-    k = src.k;
-    word_cnt_per_block = src.word_cnt_per_block;
-    sector_cnt = src.sector_cnt;
+    block_size_bytes = src.block_size_bytes;
+    tag_size_bits = src.tag_size_bits;
+    associativity = src.associativity;
     instance = src.instance;
     insert = std::move(src.insert);
     batch_insert = std::move(src.batch_insert);
@@ -196,95 +199,86 @@ struct blocked_bloomfilter {
   //===----------------------------------------------------------------------===//
   //TODO make private
   static void
-  dispatch(blocked_bloomfilter& instance, op_t op) {
-      switch (instance.word_cnt_per_block) {
-        case  1: _s< 1>(instance, op); break;
-        case  2: _s< 2>(instance, op); break;
-        case  4: _s< 4>(instance, op); break;
-        case  8: _s< 8>(instance, op); break;
-        case 16: _s<16>(instance, op); break;
+  dispatch(blocked_cuckoofilter& instance, op_t op) {
+      switch (instance.block_size_bytes) {
+        case   8: _s<  8>(instance, op); break;
+        case  32: _s< 32>(instance, op); break;
+        case  64: _s< 64>(instance, op); break;
+        case 128: _s<128>(instance, op); break;
+        case 256: _s<256>(instance, op); break;
         default:
-          throw std::invalid_argument("The given 'word_cnt_per_block' is not supported.");
+          throw std::invalid_argument("The given 'block_size_bytes' is not supported.");
       }
   };
 
 
-  template<u32 w>
+  template<u32 b>
   static void
-  _s(blocked_bloomfilter& instance, op_t op) {
-    switch (instance.sector_cnt) {
-      case  1: _k<w,  1>(instance, op); break;
-      case  2: _k<w,  2>(instance, op); break;
-      case  4: _k<w,  4>(instance, op); break;
-      case  8: _k<w,  8>(instance, op); break;
-      case 16: _k<w, 16>(instance, op); break;
+  _s(blocked_cuckoofilter& instance, op_t op) {
+    switch (instance.tag_size_bits) {
+//      case  4: _k<b,  4>(instance, op); break;
+//      case  6: _k<b,  6>(instance, op); break;
+      case  8: _k<b,  8>(instance, op); break;
+      case 10: _k<b, 10>(instance, op); break;
+      case 12: _k<b, 12>(instance, op); break;
+      case 14: _k<b, 14>(instance, op); break;
+      case 16: _k<b, 16>(instance, op); break;
       default:
-        throw std::invalid_argument("The given 'sector_cnt' is not supported.");
+        throw std::invalid_argument("The given 'tag_size_bits' is not supported.");
     }
   }
 
 
-  template<u32 w, u32 s>
+  template<u32 b, u32 t>
   static void
-  _k(blocked_bloomfilter& instance, op_t op) {
-    switch (instance.k) {
-      case  1: _a<w, s, boost::static_unsigned_max<1, s>::value>(instance, op); break;
-      case  2: _a<w, s, boost::static_unsigned_max<( 2 % s == 0 ?  2 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  3: _a<w, s, boost::static_unsigned_max<( 3 % s == 0 ?  3 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  4: _a<w, s, boost::static_unsigned_max<( 4 % s == 0 ?  4 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  5: _a<w, s, boost::static_unsigned_max<( 5 % s == 0 ?  5 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  6: _a<w, s, boost::static_unsigned_max<( 6 % s == 0 ?  6 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  7: _a<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  8: _a<w, s, boost::static_unsigned_max<( 8 % s == 0 ?  8 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  9: _a<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 10: _a<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 11: _a<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 12: _a<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 13: _a<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
+  _k(blocked_cuckoofilter& instance, op_t op) {
+    switch (instance.associativity) {
+      case  1: _a<b, t, 1>(instance, op); break;
+      case  2: _a<b, t, 2>(instance, op); break;
+      case  4: _a<b, t, 4>(instance, op); break;
+//      case  8: _a<b, t, 8>(instance, op); break;
       default:
-        throw std::invalid_argument("The given 'k' is not supported.");
+        throw std::invalid_argument("The given 'associativity' is not supported.");
     }
   }
 
 
-  template<u32 w, u32 s, u32 k>
+  template<u32 b, u32 t, u32 s>
   static void
-  _a(blocked_bloomfilter& instance, op_t op) {
+  _a(blocked_cuckoofilter& instance, op_t op) {
     dtl::block_addressing addr = dtl::is_power_of_two(instance.m)
                                  ? dtl::block_addressing::POWER_OF_TWO
                                  : dtl::block_addressing::MAGIC;
     switch (addr) {
-      case dtl::block_addressing::POWER_OF_TWO: _u<w, s, k, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
-      case dtl::block_addressing::MAGIC:        _u<w, s, k, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::POWER_OF_TWO: _o<b, t, s, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
+      case dtl::block_addressing::MAGIC:        _o<b, t, s, dtl::block_addressing::MAGIC>(instance, op);        break;
     }
   }
 
 
-  template<u32 w, u32 s, u32 k, dtl::block_addressing a>
-  static void
-  _u(blocked_bloomfilter& instance, op_t op) {
-    switch (unroll_factor(k, a, w)) {
-      case  0: _o<w, s, k, a,  0>(instance, op); break;
-      case  1: _o<w, s, k, a,  1>(instance, op); break;
-      case  2: _o<w, s, k, a,  2>(instance, op); break;
-      case  4: _o<w, s, k, a,  4>(instance, op); break;
-//      case  8: _o<w, s, k, a,  8>(instance, op); break;
-      default:
-        throw std::invalid_argument("The given 'unroll_factor' is not supported.");
-    }
-  }
+//  template<u32 b, u32 t, u32 s, dtl::block_addressing a>
+//  static void
+//  _u(blocked_cuckoofilter& instance, op_t op) {
+//    switch (unroll_factor(k, a, w)) {
+//      case  0: _o<b, t, s, a,  0>(instance, op); break;
+//      case  1: _o<b, t, s, a,  1>(instance, op); break;
+//      case  2: _o<b, t, s, a,  2>(instance, op); break;
+//      case  4: _o<b, t, s, a,  4>(instance, op); break;
+////      case  8: _o<w, s, k, a,  8>(instance, op); break;
+//      default:
+//        throw std::invalid_argument("The given 'unroll_factor' is not supported.");
+//    }
+//  }
 
 
-  template<u32 w, u32 s, u32 k, dtl::block_addressing a, u32 unroll_factor>
+  template<u32 b, u32 t, u32 s, dtl::block_addressing a>
   static void
-  _o(blocked_bloomfilter& instance, op_t op) {
-    using _t = bbf<w, s, k, a>;
+  _o(blocked_cuckoofilter& instance, op_t op) {
+    using _t = bcf<b, t, s, a>;
     switch (op) {
       case op_t::CONSTRUCT: instance._construct_logic<_t>();           break;
-      case op_t::BIND:      instance._bind_logic<_t, unroll_factor>(); break;
+//      case op_t::BIND:      instance._bind_logic<_t, unroll_factor>(); break;
+      case op_t::BIND:      instance._bind_logic<_t>(); break;
       case op_t::DESTRUCT:  instance._destruct_logic<_t>();            break;
     }
   };
@@ -293,54 +287,50 @@ struct blocked_bloomfilter {
 
   //===----------------------------------------------------------------------===//
   /// Constructs a blocked Bloom filter logic instance.
-  template<
-      typename bf_t
-  >
+  template<typename bcf_t>
   void
   _construct_logic() {
     // Instantiate a Bloom filter logic.
-    bf_t* bf = new bf_t(m);
-    instance = bf;
-    k = bf_t::k;
-    word_cnt_per_block = bf_t::word_cnt_per_block;
-    sector_cnt = bf_t::sector_cnt;
+    bcf_t* bcf = new bcf_t(m);
+    instance = bcf;
+    block_size_bytes = bcf_t::block_size_bytes;
+    tag_size_bits = bcf_t::tag_size_bits;
+    associativity = bcf_t::associativity;
 
     // Get the actual size of the filter.
-    m_actual = bf->get_length();
+    m_actual = bcf->get_length();
   }
   //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
-  /// Bind API functions to the (previously constructed) Bloom filter logic.
-  template<
-      typename bf_t,
-      u32 unroll_factor = 1
-  >
+  /// Bind API functions to the (previously constructed) filter logic.
+  template<typename bcf_t>
   void
   _bind_logic() {
     using namespace std::placeholders;
-    auto* bf = static_cast<bf_t*>(instance);
+    auto* bcf = static_cast<bcf_t*>(instance);
 
     // Bind the API functions.
-    insert = std::bind(&bf_t::insert, bf, _1, _2);
-    batch_insert = std::bind(&bf_t::batch_insert, bf, _1, _2, _3);
-    contains = std::bind(&bf_t::contains, bf, _1, _2);
+    insert = std::bind(&bcf_t::insert, bcf, _1, _2);
+//    batch_insert = std::bind(&bcf_t::batch_insert, bcf, _1, _2, _3);
+    contains = std::bind(&bcf_t::contains, bcf, _1, _2);
 
     // SIMD vector length (0 = run scalar code)
-    static constexpr u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor;
-    batch_contains = std::bind(&bf_t::template batch_contains<vector_len>, bf, _1, _2, _3, _4, _5);
+    static constexpr u64 vector_len = dtl::simd::lane_count<key_t>; // * unroll_factor;
+//    batch_contains = std::bind(&bcf_t::template batch_contains<vector_len>, bcf, _1, _2, _3, _4, _5);
+    batch_contains = std::bind(&bcf_t::batch_contains, bcf, _1, _2, _3, _4, _5);
   }
   //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
   /// Destructs the Bloom filter logic.
-  template<typename bf_t>
+  template<typename bcf_t>
   void
   _destruct_logic() {
-    bf_t* bf = static_cast<bf_t*>(instance);
-    delete bf;
+    bcf_t* bcf = static_cast<bcf_t*>(instance);
+    delete bcf;
     instance = nullptr;
   }
   //===----------------------------------------------------------------------===//
@@ -433,13 +423,13 @@ struct blocked_bloomfilter {
               $u32 sector_cnt = w;
               try {
                 // with sectorization
-                blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt); // word_cnt = sector_cnt
+                blocked_cuckoofilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt); // word_cnt = sector_cnt
               }
               catch (...) {
                 // fall back to 1 sector
                 sector_cnt = 1;
               }
-              blocked_bloomfilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
+              blocked_cuckoofilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
               std::vector<word_t, dtl::mem::numa_allocator<word_t>> filter_data(bbf.size(), 0);
 
               $u64 rep_cntr = 0;
