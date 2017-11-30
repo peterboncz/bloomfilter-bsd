@@ -123,11 +123,12 @@ struct blocked_cuckoofilter_multiword_table {
   __forceinline__
   static void
   write_bucket(word_t* __restrict block_ptr, const uint32_t bucket_idx, const word_t bucket_content) {
-    const auto to_write = word_t(read_bucket(block_ptr, bucket_idx) ^ bucket_content);
     const auto word_idx = bucket_idx & ((1u << word_cnt_log2) - 1);
     word_t word = block_ptr[word_idx];
     const auto in_word_bucket_idx = bucket_idx >> word_cnt_log2;
-    word ^= to_write << (bucket_size_bits * in_word_bucket_idx);
+    const auto shift_amount = bucket_size_bits * in_word_bucket_idx;
+    const auto to_write = word ^ (bucket_content << shift_amount);
+    word ^= to_write;
     block_ptr[word_idx] = word;
   }
 
@@ -203,7 +204,7 @@ struct blocked_cuckoofilter_multiword_table {
     if (bucket == overflow_bucket) {
       return overflow_tag;
     }
-    // Check the buckets' entries for free space.
+    // Check the buckets' entries for free space. // TODO optimize!
     for (uint32_t tag_idx = 0; tag_idx < tags_per_bucket; tag_idx++) {
       auto t = read_tag_from_bucket(bucket, tag_idx);
       if (t == tag) {

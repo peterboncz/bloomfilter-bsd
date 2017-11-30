@@ -209,7 +209,7 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
 template<typename _filter_t, u64 vector_len>
 __forceinline__ __unroll_loops__ __host__
 static std::size_t
-//batch_contains(const dtl::blocked_cuckoo_filter<16, 4, addressing>& filter,
+//batch_contains(const dtl::blocked_cuckoo_filter<16, 4, _addressing>& filter,
 simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word_t* __restrict filter_data,
                          u32* __restrict keys, u32 key_cnt,
                          $u32* __restrict match_positions, u32 match_offset) {

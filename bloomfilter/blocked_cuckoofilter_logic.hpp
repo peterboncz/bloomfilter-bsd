@@ -257,7 +257,7 @@ struct blocked_cuckoofilter_logic_base {
   __forceinline__
   std::size_t
   get_length() const noexcept {
-    return static_cast<const _derived*>(this)->filter.size() * 8;
+    return static_cast<const _derived*>(this)->filter.size() * sizeof(word_t) * 8;
   }
   //===----------------------------------------------------------------------===//
 
@@ -269,19 +269,23 @@ struct blocked_cuckoofilter_logic_base {
 // Instantiations of some reasonable cuckoo filters.
 // Note, that not all instantiations are suitable for SIMD.
 //===----------------------------------------------------------------------===//
-template<uint32_t block_size_bytes, uint32_t bits_per_element, uint32_t associativity, block_addressing addressing>
+template<uint32_t _block_size_bytes, uint32_t _bits_per_element, uint32_t _associativity, block_addressing _addressing>
 struct blocked_cuckoofilter_logic {};
 
 
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>> {
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 16, 4, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<_block_size_bytes, 16, 4, _addressing>> {
+
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 16;
+  static constexpr uint32_t associativity = 4;
 
   using key_t = uint32_t;
   using word_t = uint64_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 16, 4>;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
   using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
 
   filter_t filter; // the actual filter instance
 
@@ -300,83 +304,105 @@ struct blocked_cuckoofilter_logic<block_size_bytes, 16, 4, addressing>
 };
 
 
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 16, 2, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 16, 2, addressing>> {
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 16, 2, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint32_t, blocked_cuckoofilter_logic<_block_size_bytes, 16, 2, _addressing>> {
 
-  using key_t = uint32_t;
-  using word_t = uint64_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 16, 2>;
-  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
-
-  filter_t filter; // the actual filter instance
-
-  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
-
-};
-
-
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 12, 4, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 12, 4, addressing>> {
-
-  using key_t = uint32_t;
-  using word_t = uint64_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 12, 4>;
-  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
-
-  filter_t filter; // the actual filter instance
-
-  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
-
-};
-
-
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 10, 6, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 10, 6, addressing>> {
-
-  using key_t = uint32_t;
-  using word_t = uint64_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 10, 6>;
-  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
-
-  filter_t filter; // the actual filter instance
-
-  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
-
-};
-
-
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 8, 8, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<block_size_bytes, 8, 8, addressing>> {
-
-  using key_t = uint32_t;
-  using word_t = uint64_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 8, 8>;
-  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
-
-  filter_t filter; // the actual filter instance
-
-  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
-
-};
-
-
-template<uint32_t block_size_bytes, block_addressing addressing>
-struct blocked_cuckoofilter_logic<block_size_bytes, 8, 4, addressing>
-    : blocked_cuckoofilter_logic_base<uint32_t, uint32_t, blocked_cuckoofilter_logic<block_size_bytes, 8, 4, addressing>> {
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 16;
+  static constexpr uint32_t associativity = 2;
 
   using key_t = uint32_t;
   using word_t = uint32_t;
-  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, 8, 4>;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
   using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
-  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, addressing>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
+
+  filter_t filter; // the actual filter instance
+
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
+
+  //TODO <- maybe -  SIMD implementation
+
+};
+
+
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 12, 4, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<_block_size_bytes, 12, 4, _addressing>> {
+
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 12;
+  static constexpr uint32_t associativity = 4;
+
+  using key_t = uint32_t;
+  using word_t = uint64_t;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
+  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
+
+  filter_t filter; // the actual filter instance
+
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
+
+};
+
+
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 10, 6, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<_block_size_bytes, 10, 6, _addressing>> {
+
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 10;
+  static constexpr uint32_t associativity = 6;
+
+  using key_t = uint32_t;
+  using word_t = uint64_t;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
+  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
+
+  filter_t filter; // the actual filter instance
+
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
+
+};
+
+
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 8, 8, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint64_t, blocked_cuckoofilter_logic<_block_size_bytes, 8, 8, _addressing>> {
+
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 8;
+  static constexpr uint32_t associativity = 8;
+
+  using key_t = uint32_t;
+  using word_t = uint64_t;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
+  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
+
+  filter_t filter; // the actual filter instance
+
+  explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
+
+};
+
+
+template<uint32_t _block_size_bytes, block_addressing _addressing>
+struct blocked_cuckoofilter_logic<_block_size_bytes, 8, 4, _addressing>
+    : blocked_cuckoofilter_logic_base<uint32_t, uint32_t, blocked_cuckoofilter_logic<_block_size_bytes, 8, 4, _addressing>> {
+
+  static constexpr uint32_t block_size_bytes = _block_size_bytes;
+  static constexpr uint32_t tag_size_bits = 8;
+  static constexpr uint32_t associativity = 4;
+
+  using key_t = uint32_t;
+  using word_t = uint32_t;
+  using table_t = cuckoofilter::blocked_cuckoofilter_multiword_table<word_t, block_size_bytes, tag_size_bits, associativity>;
+  using block_t = cuckoofilter::blocked_cuckoofilter_block_logic<key_t, table_t>;
+  using filter_t = cuckoofilter::blocked_cuckoofilter<uint32_t, block_t, _addressing>;
 
   filter_t filter; // the actual filter instance
 

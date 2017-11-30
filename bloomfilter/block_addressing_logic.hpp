@@ -27,7 +27,7 @@ enum class block_addressing : u32 {
 
 
 template<
-    block_addressing          // the block addressing mode
+    block_addressing          // the block _addressing mode
 >
 struct block_addressing_logic {};
 

@@ -27,7 +27,7 @@ namespace internal {
 static constexpr u32 max_k = 16;
 
 static
-std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*/>
     unroll_factors_32 = {
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
@@ -42,7 +42,7 @@ std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/
   };
 
 static
-std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*/>
     unroll_factors_64 = {
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
@@ -55,6 +55,60 @@ std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  8, a = magic
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w = 16, a = magic
   };
+//===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+// TODO remove
+template<typename _word_src_t, typename _cuckoo_t>
+struct blocked_cuckoofilter_api_adapter {
+
+  using word_t = _word_src_t;
+
+  using key_t = typename _cuckoo_t::key_t;
+  using word_dst_t = typename _cuckoo_t::word_t;
+
+  _cuckoo_t* filter;
+
+  //===----------------------------------------------------------------------===//
+  __forceinline__ __host__ __device__
+  void
+  insert(word_t* __restrict filter_data, const key_t& key) {
+    return filter->insert(reinterpret_cast<word_dst_t*>(filter_data), key);
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  __forceinline__ __host__
+  uint64_t
+  batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) {
+    return filter->batch_insert(reinterpret_cast<word_dst_t*>(filter_data),
+                                keys, key_cnt);
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  __forceinline__ __host__ __device__
+  bool
+  contains(const word_t* __restrict filter_data, const key_t& key) const {
+    return filter->contains(reinterpret_cast<const word_dst_t*>(filter_data), key);
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  __forceinline__  __host__
+  uint64_t
+  batch_contains(const word_t* __restrict filter_data,
+                 const key_t* __restrict keys, const uint32_t key_cnt,
+                 uint32_t* __restrict match_positions, const uint32_t match_offset) const {
+    return filter->batch_contains(reinterpret_cast<const word_dst_t*>(filter_data),
+                                  keys, key_cnt, match_positions, match_offset);
+  };
+  //===----------------------------------------------------------------------===//
+};
 //===----------------------------------------------------------------------===//
 
 } // namespace internal
@@ -77,9 +131,9 @@ struct blocked_cuckoofilter {
 
   // The operations used for dynamic dispatching.
   enum class op_t {
-    CONSTRUCT,  // constructs the Bloom filter logic
-    BIND,       // assigns the function pointers of the Bloom filter API
-    DESTRUCT,   // destructs the Bloom filter logic
+    CONSTRUCT,  // constructs the filter logic
+    BIND,       // assigns the function pointers of the filter API
+    DESTRUCT,   // destructs the filter logic
   };
 
   static constexpr dtl::block_addressing power = dtl::block_addressing::POWER_OF_TWO;
@@ -91,9 +145,9 @@ struct blocked_cuckoofilter {
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
-  /// The (desired) bit length of the Bloom filter.
+  /// The (desired) bit length of the filter.
   $u64 m;
-  /// The (actual) bit length of the Bloom filter.
+  /// The (actual) bit length of the filter.
   $u64 m_actual;
   /// The block size in bytes.
   $u32 block_size_bytes;
@@ -101,8 +155,9 @@ struct blocked_cuckoofilter {
   $u32 tag_size_bits;
   /// The number of slots per bucket.
   $u32 associativity;
-  /// Pointer to the Bloom filter logic instance.
+  /// Pointer to the filter logic instance.
   void* instance = nullptr;
+  void* adapter_instance = nullptr;
   //===----------------------------------------------------------------------===//
 
 
@@ -112,13 +167,13 @@ struct blocked_cuckoofilter {
   std::function<void(__restrict word_t* /*filter data*/, const key_t /*key*/)>
   insert;
 
-  std::function<void(__restrict word_t* /*filter data*/, const key_t* /*keys*/, u32 /*key_cnt*/)>
+  std::function<void(__restrict word_t* /*filter_data*/, const key_t* /*keys*/, u32 /*key_cnt*/)>
   batch_insert;
 
-  std::function<$u1(const __restrict word_t* /*filter data*/, const key_t /*key*/)>
+  std::function<$u1(const __restrict word_t* /*filter_data*/, const key_t /*key*/)>
   contains;
 
-  std::function<$u64(const __restrict word_t* /*filter data*/,
+  std::function<$u64(const __restrict word_t* /*filter_ data*/,
                      const key_t* /*keys*/, u32 /*key_cnt*/,
                      $u32* /*match_positions*/, u32 /*match_offset*/)>
   batch_contains;
@@ -129,7 +184,7 @@ struct blocked_cuckoofilter {
   blocked_cuckoofilter(const size_t m, u32 block_size_bytes = 64, u32 tag_size_bits = 16, u32 associativity = 4)
       : m(m), block_size_bytes(block_size_bytes), tag_size_bits(tag_size_bits), associativity(associativity) {
 
-    // Construct the Bloom filter logic instance.
+    // Construct the filter logic instance.
     dispatch(*this, op_t::CONSTRUCT);
 
     // Bind the API functions.
@@ -140,7 +195,7 @@ struct blocked_cuckoofilter {
         || this->tag_size_bits != tag_size_bits
         || this->associativity != associativity) {
       dispatch(*this, op_t::DESTRUCT);
-      throw std::invalid_argument("Invalid configuration: block_size_bytes=" + std::to_string(k)
+      throw std::invalid_argument("Invalid configuration: block_size_bytes=" + std::to_string(block_size_bytes)
                                   + ", tag_size_bits=" + std::to_string(tag_size_bits)
                                   + ", associativity=" + std::to_string(associativity));
     }
@@ -206,6 +261,7 @@ struct blocked_cuckoofilter {
         case  64: _s< 64>(instance, op); break;
         case 128: _s<128>(instance, op); break;
         case 256: _s<256>(instance, op); break;
+        case 512: _s<512>(instance, op); break;
         default:
           throw std::invalid_argument("The given 'block_size_bytes' is not supported.");
       }
@@ -216,30 +272,30 @@ struct blocked_cuckoofilter {
   static void
   _s(blocked_cuckoofilter& instance, op_t op) {
     switch (instance.tag_size_bits) {
-//      case  4: _k<b,  4>(instance, op); break;
-//      case  6: _k<b,  6>(instance, op); break;
-      case  8: _k<b,  8>(instance, op); break;
-      case 10: _k<b, 10>(instance, op); break;
-      case 12: _k<b, 12>(instance, op); break;
-      case 14: _k<b, 14>(instance, op); break;
-      case 16: _k<b, 16>(instance, op); break;
-      default:
-        throw std::invalid_argument("The given 'tag_size_bits' is not supported.");
+      case  8:
+        switch (instance.associativity) {
+          case  4: _a<b,  8, 4>(instance, op); return;
+          case  8: _a<b,  8, 8>(instance, op); return;
+        }
+        break;
+      case 10:
+        switch (instance.associativity) {
+          case  6: _a<b, 10, 6>(instance, op); return;
+        }
+        break;
+      case 12:
+        switch (instance.associativity) {
+          case  4: _a<b, 12, 4>(instance, op); return;
+        }
+        break;
+      case 16:
+        switch (instance.associativity) {
+          case  2: _a<b, 16, 2>(instance, op); return;
+          case  4: _a<b, 16, 4>(instance, op); return;
+        }
+        break;
     }
-  }
-
-
-  template<u32 b, u32 t>
-  static void
-  _k(blocked_cuckoofilter& instance, op_t op) {
-    switch (instance.associativity) {
-      case  1: _a<b, t, 1>(instance, op); break;
-      case  2: _a<b, t, 2>(instance, op); break;
-      case  4: _a<b, t, 4>(instance, op); break;
-//      case  8: _a<b, t, 8>(instance, op); break;
-      default:
-        throw std::invalid_argument("The given 'associativity' is not supported.");
-    }
+    throw std::invalid_argument("The given 'tag_size_bits/associativity' is not supported.");
   }
 
 
@@ -286,11 +342,11 @@ struct blocked_cuckoofilter {
 
 
   //===----------------------------------------------------------------------===//
-  /// Constructs a blocked Bloom filter logic instance.
+  /// Constructs a blocked filter logic instance.
   template<typename bcf_t>
   void
   _construct_logic() {
-    // Instantiate a Bloom filter logic.
+    // Instantiate a filter logic.
     bcf_t* bcf = new bcf_t(m);
     instance = bcf;
     block_size_bytes = bcf_t::block_size_bytes;
@@ -299,6 +355,10 @@ struct blocked_cuckoofilter {
 
     // Get the actual size of the filter.
     m_actual = bcf->get_length();
+
+    using adapter_t = internal::blocked_cuckoofilter_api_adapter<word_t, bcf_t>;
+    adapter_t* adapter = new adapter_t { bcf };
+    adapter_instance = adapter;
   }
   //===----------------------------------------------------------------------===//
 
@@ -309,26 +369,39 @@ struct blocked_cuckoofilter {
   void
   _bind_logic() {
     using namespace std::placeholders;
-    auto* bcf = static_cast<bcf_t*>(instance);
+    using adapter_t = internal::blocked_cuckoofilter_api_adapter<word_t, bcf_t>;
+//    auto* bcf = static_cast<bcf_t*>(instance);
+    auto* bcf_adapter = static_cast<adapter_t*>(adapter_instance);
 
     // Bind the API functions.
-    insert = std::bind(&bcf_t::insert, bcf, _1, _2);
-//    batch_insert = std::bind(&bcf_t::batch_insert, bcf, _1, _2, _3);
-    contains = std::bind(&bcf_t::contains, bcf, _1, _2);
+    insert = std::bind(&adapter_t::insert, bcf_adapter, _1, _2);
+    batch_insert = std::bind(&adapter_t::batch_insert, bcf_adapter, _1, _2, _3);
+    contains = std::bind(&adapter_t::contains, bcf_adapter, _1, _2);
+    batch_contains = std::bind(&adapter_t::batch_contains, bcf_adapter, _1, _2, _3, _4, _5);
 
-    // SIMD vector length (0 = run scalar code)
-    static constexpr u64 vector_len = dtl::simd::lane_count<key_t>; // * unroll_factor;
-//    batch_contains = std::bind(&bcf_t::template batch_contains<vector_len>, bcf, _1, _2, _3, _4, _5);
-    batch_contains = std::bind(&bcf_t::batch_contains, bcf, _1, _2, _3, _4, _5);
+//    // Bind the API functions.
+//    insert = std::bind(&bcf_t::insert, bcf, _1, _2);
+////    batch_insert = std::bind(&bcf_t::batch_insert, bcf, _1, _2, _3);
+//    contains = std::bind(&bcf_t::contains, bcf, _1, _2);
+//
+//    // SIMD vector length (0 = run scalar code)
+//    static constexpr u64 vector_len = dtl::simd::lane_count<key_t>; // * unroll_factor;
+////    batch_contains = std::bind(&bcf_t::template batch_contains<vector_len>, bcf, _1, _2, _3, _4, _5);
+//    batch_contains = std::bind(&bcf_t::batch_contains, bcf, _1, _2, _3, _4, _5);
   }
   //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
-  /// Destructs the Bloom filter logic.
+  /// Destructs the filter logic.
   template<typename bcf_t>
   void
   _destruct_logic() {
+    using adapter_t = internal::blocked_cuckoofilter_api_adapter<word_t, bcf_t>;
+    adapter_t* bcf_adapter = static_cast<adapter_t*>(adapter_instance);
+    delete bcf_adapter;
+    adapter_instance = nullptr;
+
     bcf_t* bcf = static_cast<bcf_t*>(instance);
     delete bcf;
     instance = nullptr;
@@ -366,18 +439,16 @@ struct blocked_cuckoofilter {
 
 
   //===----------------------------------------------------------------------===//
-  /// Returns the name of the Bloom filter instance including the most
+  /// Returns the name of the filter instance including the most
   /// important parameters (in JSON format).
   std::string
-  name() {
-    return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
-         + ",\"word_size\":" + std::to_string(sizeof(word_t))
-         + ",\"k\":" + std::to_string(k)
-         + ",\"w\":" + std::to_string(word_cnt_per_block)
-         + ",\"s\":" + std::to_string(sector_cnt)
-         + ",\"u\":" + std::to_string(unroll_factor(k, get_addressing_mode(), word_cnt_per_block))
-         + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
-         + "}";
+  name() const {
+    return "{\"name\":\"blocked_cuckoo\", \"size\":" + std::to_string(size_in_bytes())
+        + ",\"block_size\":" + std::to_string(block_size_bytes)
+        + ",\"tag_bits\":" + std::to_string(tag_size_bits)
+        + ",\"associativity\":" + std::to_string(associativity)
+        + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
+        + "}";
   }
   //===----------------------------------------------------------------------===//
 
@@ -505,7 +576,7 @@ struct blocked_cuckoofilter {
 //  void
 //  print() const noexcept {
 //    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-//    std::cout << "-- Bloom filter dump --" << std::endl;
+//    std::cout << "-- filter dump --" << std::endl;
 //    $u64 i = 0;
 //    for (const word_t word : filter_data) {
 //      std::cout << std::bitset<word_bitlength>(word);
@@ -522,5 +593,7 @@ struct blocked_cuckoofilter {
 //  //===----------------------------------------------------------------------===//
 
 };
+
+
 
 } // namespace dtl

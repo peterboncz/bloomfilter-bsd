@@ -177,14 +177,14 @@ struct blocked_bloomfilter_logic {
   // The maximum size of a filter instance.
   static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME remove limitation
 
-  // The first hash function to use inside the block. Note: 0 is used for block addressing
+  // The first hash function to use inside the block. Note: 0 is used for block _addressing
   static constexpr u32 block_hash_fn_idx = 1;
 
   // The block type. Determined based on word and sector counts.
   using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
                                                            Hasher, hash_value_t, block_hash_fn_idx>::type;
 
-  // The block addressing logic (either MAGIC or POWER_OF_TWO).
+  // The block _addressing logic (either MAGIC or POWER_OF_TWO).
   using addr_t = block_addressing_logic<block_addressing>;
   //===----------------------------------------------------------------------===//
 

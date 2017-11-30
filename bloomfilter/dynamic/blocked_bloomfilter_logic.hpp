@@ -49,7 +49,7 @@ struct blocked_bloomfilter_logic {
 
 
   //===----------------------------------------------------------------------===//
-  // Determine addressing logic depending on the length.
+  // Determine _addressing logic depending on the length.
   //===----------------------------------------------------------------------===//
   static std::unique_ptr<block_addressing_logic>
   determine_addressing_logic(std::size_t length /* in bits */,

@@ -27,7 +27,7 @@ namespace internal {
 static constexpr u32 max_k = 16;
 
 static
-std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*/>
     unroll_factors_32 = {
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
@@ -42,7 +42,7 @@ std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/
   };
 
 static
-std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*/>
     unroll_factors_64 = {
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2

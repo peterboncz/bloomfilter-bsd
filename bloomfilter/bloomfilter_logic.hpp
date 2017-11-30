@@ -23,7 +23,7 @@ namespace dtl {
 template<
     typename Tk,           // the key type
 //    typename HashFn,       // the hash function (family) to use
-    block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the addressing scheme
+    block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the _addressing scheme
 >
 struct bloomfilter_logic {
 
