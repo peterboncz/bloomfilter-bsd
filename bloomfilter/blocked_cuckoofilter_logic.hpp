@@ -10,9 +10,11 @@
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_block_logic.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_multiword_table.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_simd.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_word_table.hpp>
+#ifdef __AVX2__
+#include <dtl/bloomfilter/blocked_cuckoofilter_simd.hpp>
+#endif
 
 
 namespace dtl {
@@ -291,6 +293,7 @@ struct blocked_cuckoofilter_logic<_block_size_bytes, 16, 4, _addressing>
 
   explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
+#ifdef __AVX2__
   // use SIMD implementation
   template<u64 vector_len = dtl::simd::lane_count<key_t>>
   __forceinline__ uint64_t
@@ -300,6 +303,7 @@ struct blocked_cuckoofilter_logic<_block_size_bytes, 16, 4, _addressing>
     return dtl::cuckoofilter::internal::simd_batch_contains_16_4<blocked_cuckoofilter_logic, vector_len>(
         *this, filter_data, keys, key_cnt, match_positions, match_offset);
   };
+#endif
 
 };
 
@@ -408,6 +412,7 @@ struct blocked_cuckoofilter_logic<_block_size_bytes, 8, 4, _addressing>
 
   explicit blocked_cuckoofilter_logic(const std::size_t length) : filter(length) { }
 
+#ifdef __AVX2__
   // use SIMD implementation
   template<u64 vector_len = dtl::simd::lane_count<key_t>>
   __forceinline__ uint64_t
@@ -417,6 +422,7 @@ struct blocked_cuckoofilter_logic<_block_size_bytes, 8, 4, _addressing>
     return dtl::cuckoofilter::internal::simd_batch_contains_8_4<blocked_cuckoofilter_logic, vector_len>(
         *this, filter_data, keys, key_cnt, match_positions, match_offset);
   };
+#endif // __AVX2__
 
 };
 //===----------------------------------------------------------------------===//

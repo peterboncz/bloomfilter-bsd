@@ -9,7 +9,6 @@
 
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_multiword_table.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_simd.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_word_table.hpp>
 
