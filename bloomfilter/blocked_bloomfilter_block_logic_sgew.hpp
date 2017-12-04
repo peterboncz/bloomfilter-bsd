@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <bitset>
 #include <functional>
 #include <numeric>
@@ -243,7 +244,8 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt>
-        ::insert(block_ptr, key, hash_val);
+//        ::insert(block_ptr, key, hash_val);
+        ::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -271,6 +273,36 @@ struct multiword_block {
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
         ::insert(block_ptr, key, hash_val);
+  }
+  //===----------------------------------------------------------------------===//
+
+  __forceinline__ __unroll_loops__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+
+    word_t bit_mask = 0;
+
+    using word_block_t =
+      word_block<key_t, word_t, sector_cnt_per_word, k_cnt_per_word,
+        hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
+        k_cnt_per_word>;
+    word_block_t::which_bits(key, hash_val, bit_mask);
+
+    word_t* word_ptr = &block_ptr[current_word_idx()];
+    std::atomic<word_t>* atomic_word_ptr = reinterpret_cast<std::atomic<word_t>*>(word_ptr);
+    $u1 success = false;
+    do {
+      // Load the word of interest
+      word_t word = atomic_word_ptr->load();
+      // Update the bit vector (atomically)
+      word_t updated_word = word | bit_mask;
+      success = atomic_word_ptr->compare_exchange_weak(word, updated_word);
+    } while (!success);
+
+    // Process remaining words recursively, if any
+    multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
+        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
+        ::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -325,7 +357,8 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+//  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& block_start_word_idxs) noexcept {
@@ -405,6 +438,11 @@ struct multiword_block<key_t, word_t, word_cnt, s, k,
   __forceinline__ __unroll_loops__
   static void
   insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+    // End of recursion
+  }
+  __forceinline__ __unroll_loops__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // End of recursion
   }
   //===----------------------------------------------------------------------===//

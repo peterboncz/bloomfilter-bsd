@@ -90,7 +90,8 @@ struct multiword_sector {
     multiword_sector<key_t, word_t, word_cnt, k,
                      hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
                      remaining_k_cnt>
-                     ::insert(sector_ptr, key, hash_val);
+                     ::insert_atomic(sector_ptr, key, hash_val);
+//                     ::insert(sector_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -126,6 +127,46 @@ struct multiword_sector {
                      remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0,
                      remaining_k_cnt - 1>
       ::insert(sector_ptr, key, hash_val);
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  // Insert Atomic (Recursive)
+  //===----------------------------------------------------------------------===//
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+
+    hash_val = rehash ? hasher<key_t, hash_fn_idx>::hash(key) : hash_val;
+
+    // Determine the word of interest
+    constexpr u32 word_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2;
+    u32 word_idx = ((hash_val >> word_idx_shift) & word_cnt_log2_mask);
+
+    // Set a bit in the given word
+    constexpr u32 bit_idx_shift = remaining_hash_bit_cnt_after_rehash - word_cnt_log2 - word_bitlength_log2;
+    u32 bit_idx = ((hash_val >> bit_idx_shift) & word_bitlength_log2_mask);
+    const word_t which_bit = word_t(1) << bit_idx;
+
+    word_t* word_ptr = &sector_ptr[word_idx];
+    std::atomic<word_t>* atomic_word_ptr = reinterpret_cast<std::atomic<word_t>*>(word_ptr);
+    $u1 success = false;
+    do {
+      // Load the word of interest
+      word_t word = atomic_word_ptr->load();
+      // Update the bit vector
+      word_t updated_word = word | which_bit;
+      success = atomic_word_ptr->compare_exchange_weak(word, updated_word);
+    } while (!success);
+
+    // Process remaining k's recursively, if any
+    multiword_sector<key_t, word_t, word_cnt, k,
+                     hasher, hash_value_t,
+                     rehash ? hash_fn_idx + 1 : hash_fn_idx,
+                     remaining_hash_bit_cnt_after_rehash >= hash_bit_cnt_per_k ? remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_k : 0,
+                     remaining_k_cnt - 1>
+      ::insert_atomic(sector_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -305,6 +346,11 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
   insert(word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // End of recursion.
   }
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict sector_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+    // End of recursion.
+  }
   //===----------------------------------------------------------------------===//
 
 
@@ -419,7 +465,8 @@ struct multisector_block {
       multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                        hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
                        k_cnt_per_sector>;
-    sector_t::insert(sector_ptr, key, hash_val);
+    sector_t::insert_atomic(sector_ptr, key, hash_val);
+//    sector_t::insert(sector_ptr, key, hash_val);
 
     multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
                       hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,

@@ -328,8 +328,10 @@ struct blocked_bloomfilter {
     contains = std::bind(&bf_t::contains, bf, _1, _2);
 
     // SIMD vector length (0 = run scalar code)
+    // TODO fix unrolling for word_t = u64
     static constexpr u64 vector_len = dtl::simd::lane_count<key_t> * unroll_factor;
     batch_contains = std::bind(&bf_t::template batch_contains<vector_len>, bf, _1, _2, _3, _4, _5);
+//    batch_contains = std::bind(&bf_t::template batch_contains<0>, bf, _1, _2, _3, _4, _5);
   }
   //===----------------------------------------------------------------------===//
 

@@ -111,7 +111,6 @@ struct blocked_cuckoofilter_block_logic {
     }
     // Failed to find a place for the current tag through partial-key cuckoo hashing.
     // Introduce an overflow bucket.
-//    std::cout << "!";
     table_t::mark_overflow(block_ptr, current_idx);
   }
   //===----------------------------------------------------------------------===//

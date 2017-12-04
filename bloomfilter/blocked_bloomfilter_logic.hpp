@@ -35,7 +35,7 @@ struct dispatch {
   using vec_t = vec<key_t, vector_len>;
   using mask_t = typename vec<key_t, vector_len>::mask;
 
-  __forceinline__
+//  __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
@@ -92,7 +92,7 @@ struct dispatch<filter_t, 0> {
   using key_t = typename filter_t::key_t;
   using word_t = typename filter_t::word_t;
 
-  __forceinline__
+//  __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
@@ -216,7 +216,7 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Insert
   //===----------------------------------------------------------------------===//
-  __forceinline__ __host__
+//  __forceinline__ __host__
   void
   insert(word_t* __restrict filter_data,
          const key_t key) noexcept {
@@ -234,7 +234,7 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Batch Insert
   //===----------------------------------------------------------------------===//
-  __forceinline__ __host__
+//  __forceinline__ __host__
   void
   batch_insert(word_t* __restrict filter_data,
                const key_t* keys, u32 key_cnt) noexcept {
@@ -248,7 +248,7 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-  __forceinline__ __host__ __device__
+//  __forceinline__ __host__ __device__
   u1
   contains(const word_t* __restrict filter_data,
            const key_t key) const noexcept {
@@ -290,8 +290,9 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Batch-wise Contains
   //===----------------------------------------------------------------------===//
-  template<u64 vector_len = dtl::simd::lane_count<key_t>>
-  __forceinline__
+//  template<u64 vector_len = dtl::simd::lane_count<word_t>>
+  template<u64 vector_len>
+//  __forceinline__
   $u64
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, u32 key_cnt,
@@ -304,7 +305,7 @@ struct blocked_bloomfilter_logic {
 
 
   /// Returns (actual) length in bits.
-  __forceinline__
+//  __forceinline__
   size_t
   get_length() const noexcept {
     return addr.get_block_cnt() * block_bitlength;

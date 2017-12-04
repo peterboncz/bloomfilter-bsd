@@ -202,4 +202,13 @@ struct mul32 {
 
 
 } // namespace hash
+
+
+template<
+    typename key_t,
+    $u32 hash_fn_no
+>
+using hasher = dtl::hash::stat::mul32<key_t, hash_fn_no>;
+
+
 } // namespace dtl
