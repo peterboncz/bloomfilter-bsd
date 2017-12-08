@@ -70,6 +70,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_cuckoofilter.hpp
         bloomfilter/blocked_cuckoofilter_logic.hpp
         bloomfilter/blocked_cuckoofilter_block_logic.hpp
+        bloomfilter/blocked_cuckoofilter_concurrent_multiword_table.hpp
         bloomfilter/blocked_cuckoofilter_multiword_table.hpp
         bloomfilter/blocked_cuckoofilter_simd.hpp
         bloomfilter/blocked_cuckoofilter_util.hpp

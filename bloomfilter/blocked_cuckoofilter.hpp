@@ -114,7 +114,6 @@ struct blocked_cuckoofilter_api_adapter {
 } // namespace internal
 
 
-//template<typename Tw = $u32>
 struct blocked_cuckoofilter {
 
   using key_t = $u32;
@@ -157,6 +156,7 @@ struct blocked_cuckoofilter {
   $u32 associativity;
   /// Pointer to the filter logic instance.
   void* instance = nullptr;
+  // necessary because internally the word_t may differ
   void* adapter_instance = nullptr;
   //===----------------------------------------------------------------------===//
 
