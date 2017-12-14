@@ -67,6 +67,8 @@ struct blocked_bloomfilter {
   using hash_value_t = $u32;
   using word_t = Tw;
 
+  static constexpr u1 early_out = true; // TODO make configurable and also adaptive
+
 
   template<
       typename key_t,
@@ -84,8 +86,8 @@ struct blocked_bloomfilter {
   static constexpr dtl::block_addressing power = dtl::block_addressing::POWER_OF_TWO;
   static constexpr dtl::block_addressing magic = dtl::block_addressing::MAGIC;
 
-  template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = power>
-  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr>;
+  template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = power, u1 early_out = false>
+  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr, early_out>;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -281,7 +283,7 @@ struct blocked_bloomfilter {
   template<u32 w, u32 s, u32 k, dtl::block_addressing a, u32 unroll_factor>
   static void
   _o(blocked_bloomfilter& instance, op_t op) {
-    using _t = bbf<w, s, k, a>;
+    using _t = bbf<w, s, k, a, early_out>;
     switch (op) {
       case op_t::CONSTRUCT: instance._construct_logic<_t>();           break;
       case op_t::BIND:      instance._bind_logic<_t, unroll_factor>(); break;
@@ -388,6 +390,7 @@ struct blocked_bloomfilter {
          + ",\"w\":" + std::to_string(word_cnt_per_block)
          + ",\"s\":" + std::to_string(sector_cnt)
          + ",\"u\":" + std::to_string(unroll_factor(k, get_addressing_mode(), word_cnt_per_block))
+         + ",\"e\":" + std::to_string(early_out ? 1 : 0)
          + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
          + "}";
   }

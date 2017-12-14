@@ -139,7 +139,8 @@ template<
     u32 Wc = 2,                   // the number of words per block
     u32 s = Wc,                   // the word type to use for the bitset
     u32 K = 8,                    // the number of hash functions to use
-    dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO
+    dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
+    u1 early_out = false
 >
 struct blocked_bloomfilter_logic {
 
@@ -182,7 +183,7 @@ struct blocked_bloomfilter_logic {
 
   // The block type. Determined based on word and sector counts.
   using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
-                                                           Hasher, hash_value_t, block_hash_fn_idx>::type;
+                                                           Hasher, hash_value_t, early_out, block_hash_fn_idx>::type;
 
   // The block _addressing logic (either MAGIC or POWER_OF_TWO).
   using addr_t = block_addressing_logic<block_addressing>;

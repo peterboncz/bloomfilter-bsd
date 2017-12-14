@@ -412,7 +412,9 @@ template<
 
     u32 hash_fn_idx,              // current hash function index (used for recursion)
     u32 remaining_hash_bit_cnt,   // the number of remaining hash bits (used for recursion)
-    u32 remaining_sector_cnt      // the remaining number of sector (used for recursion)
+    u32 remaining_sector_cnt,     // the remaining number of sector (used for recursion)
+
+    u1 early_out = false          // allows for branching out during lookups (before the next sector is tested)
 >
 struct multisector_block {
 
@@ -444,7 +446,7 @@ struct multisector_block {
     static constexpr u32 remaining_hash_bits = 0;
     multisector_block<key_t, word_t, word_cnt, s, k,
                       hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
-                      remaining_sector_cnt>
+                      remaining_sector_cnt, early_out>
       ::insert(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
@@ -470,7 +472,7 @@ struct multisector_block {
 
     multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
                       hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
-                      remaining_sector_cnt - 1>
+                      remaining_sector_cnt - 1, early_out>
       ::insert(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
@@ -489,7 +491,7 @@ struct multisector_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
-                             remaining_sector_cnt>
+                             remaining_sector_cnt, early_out>
       ::contains(block_ptr, key, hash_val, true);
   }
   //===----------------------------------------------------------------------===//
@@ -512,10 +514,15 @@ struct multisector_block {
                        k_cnt_per_sector>;
     auto found_in_sector = sector_t::contains(sector_ptr, key, hash_val, true);
 
+    // Early out
+    if (early_out) {
+      if (likely(!found_in_sector)) return false;
+    }
+
     // Process remaining sectors recursively, if any
     return multisector_block<key_t, word_t, word_cnt, s, k,
                       hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
-                      remaining_sector_cnt - 1>
+                      remaining_sector_cnt - 1, early_out>
         ::contains(block_ptr, key, hash_val, found_in_sector & is_contained_in_block);
   }
   //===----------------------------------------------------------------------===//
@@ -538,7 +545,7 @@ struct multisector_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multisector_block<key_t, word_t, word_cnt, s, k,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
-                             remaining_sector_cnt>
+                             remaining_sector_cnt, early_out>
       ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_in_block_mask);
 
   }
@@ -572,10 +579,15 @@ struct multisector_block {
                              k_cnt_per_sector>;
     auto found_in_sector_mask = sector_t::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, vec<word_t,n>::mask::make_all_mask());
 
+    // Early out
+    if (early_out) {
+      if (likely(found_in_sector_mask.none())) return found_in_sector_mask;
+    }
+
     // Process remaining sectors recursively, if any
     return multisector_block<key_t, word_t, word_cnt, s, k,
                              hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
-                             remaining_sector_cnt - 1>
+                             remaining_sector_cnt - 1, early_out>
       ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, found_in_sector_mask & is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
@@ -594,10 +606,12 @@ template<
     typename hash_value_t,        // the hash value type to use
 
     u32 hash_fn_idx,              // current hash function index (used for recursion)
-    u32 remaining_hash_bit_cnt    // the number of remaining hash bits (used for recursion)
+    u32 remaining_hash_bit_cnt,   // the number of remaining hash bits (used for recursion)
+
+    u1 early_out                  // allows for branching out during lookups (before the next sector is tested)
 >
 struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
-                         0 /* no more remaining sectors */>  {
+                         0 /* no more remaining sectors */, early_out>  {
 
   //===----------------------------------------------------------------------===//
   // Insert

@@ -37,6 +37,7 @@ template<
     u32 hash_fn_idx,              // current hash function index (used for recursion)
     u32 remaining_hash_bit_cnt,   // the number of remaining hash bits (used for recursion)
     u32 remaining_k_cnt           // current k (used for recursion)
+
 >
 struct word_block {
 
@@ -207,7 +208,9 @@ template<
 
     u32 hash_fn_idx,              // current hash function index (used for recursion)
     u32 remaining_hash_bit_cnt,   // the number of remaining hash bits (used for recursion)
-    u32 remaining_word_cnt        // the remaining number of words to process in the block (used for recursion)
+    u32 remaining_word_cnt,       // the remaining number of words to process in the block (used for recursion)
+
+    u1 early_out = false          // allows for branching out during lookups (before the next word is loaded)
 >
 struct multiword_block {
 
@@ -243,7 +246,7 @@ struct multiword_block {
     // Call the recursive function
     static constexpr u32 remaining_hash_bits = 0;
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt>
+        hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt, early_out>
 //        ::insert(block_ptr, key, hash_val);
         ::insert_atomic(block_ptr, key, hash_val);
   }
@@ -271,7 +274,7 @@ struct multiword_block {
 
     // Process remaining words recursively, if any
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
+        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1, early_out>
         ::insert(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
@@ -301,7 +304,7 @@ struct multiword_block {
 
     // Process remaining words recursively, if any
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
+        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1, early_out>
         ::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
@@ -319,7 +322,7 @@ struct multiword_block {
     // Call the recursive function
     static constexpr u32 remaining_hash_bits = 0;
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt>
+        hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt, early_out>
         ::contains(block_ptr, key, hash_val, true);
   }
   //===----------------------------------------------------------------------===//
@@ -344,9 +347,15 @@ struct multiword_block {
     // Update the bit vector
     u1 found_in_word = (word & bit_mask) == bit_mask;
 
+    // Early out
+    if (early_out) {
+      if (likely(!found_in_word)) return false;
+    }
+
+
     // Process remaining words recursively, if any
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
+        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1, early_out>
         ::contains(block_ptr, key, hash_val, found_in_word & is_contained_in_block);
   }
   //===----------------------------------------------------------------------===//
@@ -370,7 +379,8 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
                            hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
-                           remaining_word_cnt>
+                           remaining_word_cnt,
+                           early_out>
         ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
@@ -405,9 +415,15 @@ struct multiword_block {
     // Update the bit vector
     auto found_in_word = (words & bit_masks) == bit_masks;
 
+    // Early out
+    if (early_out) {
+      if (likely(found_in_word.none())) return found_in_word;
+    }
+
     // Process remaining words recursively, if any
     return multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1>
+        hasher, hash_value_t, word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits, remaining_word_cnt - 1,
+        early_out>
         ::contains(keys, hash_vals, bitvector_base_address, block_start_word_idxs, found_in_word & is_contained_in_block_mask);
   }
   //===----------------------------------------------------------------------===//
@@ -426,11 +442,13 @@ template<
     typename hash_value_t,        // the hash value type to use
 
     u32 hash_fn_idx,              // current hash function index (used for recursion)
-    u32 remaining_hash_bit_cnt    // the number of remaining hash bits (used for recursion)
+    u32 remaining_hash_bit_cnt,   // the number of remaining hash bits (used for recursion)
+
+    u1 early_out                  // allows for branching out during lookups (before the next sector is tested)
 >
 struct multiword_block<key_t, word_t, word_cnt, s, k,
     hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
-    0 /* no more words remaining */> {
+    0 /* no more words remaining */, early_out> {
 
   //===----------------------------------------------------------------------===//
   // Insert

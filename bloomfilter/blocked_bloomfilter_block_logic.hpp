@@ -19,15 +19,16 @@ template<
     u32 k,                        // the number of bits to set/test
     template<typename Ty, u32 i> class hasher,      // the hash function family to use
     typename hash_value_t,        // the hash value type to use
+    u1 early_out,                 // allows for branching out during lookups
     u32 hash_fn_idx               // current hash function index (used for recursion)
 >
 struct blocked_bloomfilter_block_logic {
 
   using sgew_t = multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
-                                 hasher, hash_value_t, hash_fn_idx, 0, word_cnt>;
+                                 hasher, hash_value_t, hash_fn_idx, 0, word_cnt, early_out>;
 
   using sltw_t = multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
-                                   hasher, hash_value_t, hash_fn_idx, 0, sector_cnt>;
+                                   hasher, hash_value_t, hash_fn_idx, 0, sector_cnt, early_out>;
 
   // Refers to the implementation
   using type = typename std::conditional<sector_cnt >= word_cnt, sgew_t, sltw_t>::type;
