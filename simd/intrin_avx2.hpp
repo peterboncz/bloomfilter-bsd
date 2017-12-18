@@ -16,12 +16,15 @@ namespace simd {
 namespace internal {
 namespace avx2 {
 
+constexpr dtl::r256 ALL_ONES { .i64 = {-1, -1, -1, -1}};
 
 struct mask4 {
   __m256i data;
   __forceinline__ u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+//  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
+//  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+  __forceinline__ u1 any() const { return _mm256_testz_si256(data, ALL_ONES.i) == 0; };
+  __forceinline__ u1 none() const { return _mm256_testz_si256(data, ALL_ONES.i) != 0; };
   __forceinline__ void set(u1 value) {
     if (value) {
       data = _mm256_set1_epi64x(-1);
@@ -85,8 +88,10 @@ struct mask4 {
 struct mask8 {
   __m256i data;
   __forceinline__ u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+//  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
+//  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
+  __forceinline__ u1 any() const { return _mm256_testz_si256(data, ALL_ONES.i) == 0; };
+  __forceinline__ u1 none() const { return _mm256_testz_si256(data, ALL_ONES.i) != 0; };
   __forceinline__ void set(u1 value) {
     if (value) {
       data = _mm256_set1_epi64x(-1);
