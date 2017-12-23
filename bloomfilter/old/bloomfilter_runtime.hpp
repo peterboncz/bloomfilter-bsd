@@ -4,25 +4,55 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_runtime_types.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_mod.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_mod_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_mod.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_mod_vec.hpp>
+#include <dtl/bloomfilter/block_addressing_logic.hpp>
+#include <bloomfilter/old/bloomfilter_h1.hpp>
+#include <bloomfilter/old/bloomfilter_h1_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h1_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h1_mod_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h2.hpp>
+#include <bloomfilter/old/bloomfilter_h2_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h2_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h2_mod_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h3.hpp>
+#include <bloomfilter/old/bloomfilter_h3_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h3_mod.hpp>
+#include <bloomfilter/old/bloomfilter_h3_mod_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 
+// use 'bloomfilter_h2' for k > 1 (used for benchmarking purposes only!)
+// #define USE_BF2
 
 namespace dtl {
 
 /// A runtime wrapper for a Bloom filter instance.
 /// The actual Bloom filter type is determined by the parameters 'm' and 'k'.
 /// Note: This wrapper should only be used if the parameters is NOT known at compile time.
+template<typename Tw = $u32>
 struct bloomfilter_runtime {
+
+  using key_t = $u32;
+  using word_t = Tw;
+
+//using word_t = $u64; // FIXME
+//using word_t = $u32;
+
+  template<typename T>
+  using hash_fn_0 = dtl::hash::knuth<T>;
+// -- alternative hash functions
+//using hash_fn_0 = dtl::hash::murmur_32<T>;
+//using hash_fn_0 = dtl::hash::fnv_32<T>;
+//using hash_fn_0 = dtl::hash::identity<T>;
+
+  template<typename T>
+  using hash_fn_1 = dtl::hash::knuth_alt<T>;
+// -- alternative hash functions
+//using hash_fn_1 = dtl::hash::murmur_32_alt<T>;
+//using hash_fn_1 = dtl::hash::fnv_32_alt<T>;
+//using hash_fn_1 = dtl::hash::identity<T>;
+
+  template<typename T>
+  using hash_fn_2 = dtl::hash::knuth_alt2<T>;
 
   /// The bit length of the Bloom filter.
   $u64 m;
@@ -31,9 +61,9 @@ struct bloomfilter_runtime {
   /// The number of bits set per entry.
   $u32 k;
   /// Pointer to the Bloom filter instance.
-  void* instance;
+  void* instance = nullptr;
   /// Pointer to the Bloom filter vector extension.
-  void* instance_vec;
+  void* instance_vec = nullptr;
 
   // ---- The API functions. ----
   std::function<void(const key_t /*key*/)>
@@ -54,6 +84,9 @@ struct bloomfilter_runtime {
   std::function<u32()>
   hash_function_count;
 
+  std::function<u64()>
+  length;
+
   std::function<void()>
   print_info;
 
@@ -73,6 +106,7 @@ struct bloomfilter_runtime {
         load_factor(std::move(src.load_factor)),
         pop_count(std::move(src.pop_count)),
         hash_function_count(std::move(src.hash_function_count)),
+        length(std::move(src.length)),
         print_info(std::move(src.print_info)),
         print(std::move(src.print)) {
     // invalidate pointers
@@ -80,8 +114,12 @@ struct bloomfilter_runtime {
     src.instance_vec = nullptr;
   }
 
+  ~bloomfilter_runtime() {
+    if (instance != nullptr) destruct();
+  }
+
   bloomfilter_runtime&
-  operator=(dtl::bloomfilter_runtime&& src) {
+  operator=(bloomfilter_runtime&& src) {
     m = src.m;
     h = src.h;
     k = src.k;
@@ -93,6 +131,7 @@ struct bloomfilter_runtime {
     load_factor = std::move(src.load_factor);
     pop_count = std::move(src.pop_count);
     hash_function_count = std::move(src.hash_function_count);
+    length = std::move(src.length);
     print_info = std::move(src.print_info);
     print = std::move(src.print);
     // invalidate pointers
@@ -103,14 +142,88 @@ struct bloomfilter_runtime {
 
 
   // Vectorization related compile time constants.
-  static constexpr u32 unroll_factors_avx2_bf1[7]   { 0u,       8u, 4u, 4u, 4u, 4u, 4u };
-  static constexpr u32 unroll_factors_avx2_bf2[8]   { 0u, 0u,   2u, 2u, 1u, 1u, 1u, 1u };
-  static constexpr u32 unroll_factors_avx512_bf1[7] { 0u,       4u, 4u, 4u, 4u, 4u, 4u };
-  static constexpr u32 unroll_factors_avx512_bf2[8] { 0u, 0u,   4u, 4u, 4u, 2u, 2u, 1u };
+  static constexpr u32 unroll_factors_avx2_bf1_32[7]    { 0u,                       8u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx2_bf2_32[8]    { 0u, 0u,                   2u, 2u, 1u, 1u, 1u, 1u };
+  static constexpr u32 unroll_factors_avx2_bf3_32[12]   { 0u, 0u, 0u, 0u, 0u, 0u,   2u, 2u, 1u, 1u, 1u, 1u };
+  static constexpr u32 unroll_factors_avx2_bf1_64[7]    { 0u,                       8u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx2_bf2_64[8]    { 0u, 0u,                   4u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx2_bf3_64[12]   { 0u, 0u, 0u, 0u, 0u, 0u,   4u, 4u, 4u, 4u, 4u, 4u };
+
+  static constexpr u32 unroll_factors_avx512_bf1_32[7]  { 0u,                       4u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx512_bf2_32[8]  { 0u, 0u,                   4u, 4u, 4u, 2u, 2u, 1u };
+  static constexpr u32 unroll_factors_avx512_bf3_32[12] { 0u, 0u, 0u, 0u, 0u, 0u,   4u, 2u, 4u, 2u, 2u, 1u };
+  static constexpr u32 unroll_factors_avx512_bf1_64[7]  { 0u,                       4u, 4u, 4u, 4u, 4u, 4u };
+  static constexpr u32 unroll_factors_avx512_bf2_64[8]  { 0u, 0u,                   4u, 4u, 4u, 2u, 2u, 1u };
+  static constexpr u32 unroll_factors_avx512_bf3_64[12] { 0u, 0u, 0u, 0u, 0u, 0u,   4u, 2u, 4u, 2u, 2u, 1u };
 
   // Pick the optimal (empirically determined) unrolling factors for the current architecture.
-  static constexpr auto unroll_factors_bf1 = dtl::simd::bitwidth::value == 512 ? unroll_factors_avx512_bf1 : unroll_factors_avx2_bf1;
-  static constexpr auto unroll_factors_bf2 = dtl::simd::bitwidth::value == 512 ? unroll_factors_avx512_bf2 : unroll_factors_avx2_bf2;
+  static constexpr auto is32bit = sizeof(word_t) == 4;
+  static constexpr auto unroll_factors_bf1 = dtl::simd::bitwidth::value == 512 ? (is32bit ? unroll_factors_avx512_bf1_32 : unroll_factors_avx512_bf1_64) : (is32bit ? unroll_factors_avx2_bf1_32 : unroll_factors_avx2_bf1_64);
+  static constexpr auto unroll_factors_bf2 = dtl::simd::bitwidth::value == 512 ? (is32bit ? unroll_factors_avx512_bf2_32 : unroll_factors_avx512_bf2_64) : (is32bit ? unroll_factors_avx2_bf2_32 : unroll_factors_avx2_bf2_64);
+  static constexpr auto unroll_factors_bf3 = dtl::simd::bitwidth::value == 512 ? (is32bit ? unroll_factors_avx512_bf3_32 : unroll_factors_avx512_bf3_64) : (is32bit ? unroll_factors_avx2_bf3_32 : unroll_factors_avx2_bf3_64);
+
+
+
+  // The supported Bloom filter implementations. (Note: Sectorization is not yes supported via the runtime API.)
+  using bf1_k1_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
+
+  using bf1_k1_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 1, false>;
+#ifndef USE_BF2
+  using bf1_k2_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf1_k3_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf1_k4_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf1_k5_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf1_k6_t = dtl::bloomfilter_h1<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+
+  using bf1_k2_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf1_k3_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf1_k4_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf1_k5_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf1_k6_mod_t = dtl::bloomfilter_h1_mod<key_t, hash_fn_0, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+#else
+  #warning "Using Bloom filter with H=2."
+using bf1_k2_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+using bf1_k3_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+using bf1_k4_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+using bf1_k5_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+using bf1_k6_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+
+using bf1_k2_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+using bf1_k3_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+using bf1_k4_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+using bf1_k5_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+using bf1_k6_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+#endif
+
+  using bf2_k2_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf2_k3_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf2_k4_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf2_k5_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf2_k6_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf2_k7_t = dtl::bloomfilter_h2<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+
+  using bf2_k4_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 4, false>;
+  using bf2_k3_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 3, false>;
+  using bf2_k2_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 2, false>;
+  using bf2_k5_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 5, false>;
+  using bf2_k6_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf2_k7_mod_t = dtl::bloomfilter_h2_mod<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+
+
+  using bf3_k6_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf3_k7_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+  using bf3_k8_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 8, false>;
+  using bf3_k9_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 9, false>;
+  using bf3_k10_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 10, false>;
+  using bf3_k11_t = dtl::bloomfilter_h3<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 11, false>;
+
+  using bf3_k6_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 6, false>;
+  using bf3_k7_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 7, false>;
+  using bf3_k8_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 8, false>;
+  using bf3_k9_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 9, false>;
+  using bf3_k10_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 10, false>;
+  using bf3_k11_mod_t = dtl::bloomfilter_h3_mod<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 11, false>;
+
 
 
   // The supported Bloom filter vectorization extensions.
@@ -157,6 +270,20 @@ struct bloomfilter_runtime {
   using bf2_k6_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[6]>;
   using bf2_k7_mod_vt = dtl::bloomfilter_h2_mod_vec<key_t, hash_fn_0, hash_fn_1, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[7]>;
 
+  using bf3_k6_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[2]>;
+  using bf3_k7_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[3]>;
+  using bf3_k8_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 8, false, unroll_factors_bf2[4]>;
+  using bf3_k9_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 9, false, unroll_factors_bf2[5]>;
+  using bf3_k10_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 10, false, unroll_factors_bf2[6]>;
+  using bf3_k11_vt = dtl::bloomfilter_h3_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 11, false, unroll_factors_bf2[7]>;
+
+  using bf3_k6_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 6, false, unroll_factors_bf2[2]>;
+  using bf3_k7_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 7, false, unroll_factors_bf2[3]>;
+  using bf3_k8_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 8, false, unroll_factors_bf2[4]>;
+  using bf3_k9_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 9, false, unroll_factors_bf2[5]>;
+  using bf3_k10_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 10, false, unroll_factors_bf2[6]>;
+  using bf3_k11_mod_vt = dtl::bloomfilter_h3_mod_vec<key_t, hash_fn_0, hash_fn_1, hash_fn_2, word_t, dtl::mem::numa_allocator<word_t>, 11, false, unroll_factors_bf2[7]>;
+
 
   template<
       typename bf_t, // the scalar bloomfilter_h1 type
@@ -182,6 +309,7 @@ struct bloomfilter_runtime {
     load_factor = std::bind(&bf_t::load_factor, bf);
     pop_count = std::bind(&bf_t::popcnt, bf);
     hash_function_count = std::bind(&bf_t::hash_function_cnt, bf);
+    length = std::bind(&bf_t::length, bf);
     print_info = std::bind(&bf_t::print_info, bf);
     print = std::bind(&bf_t::print, bf);
   }
@@ -213,6 +341,7 @@ struct bloomfilter_runtime {
     copy.load_factor = std::bind(&bf_t::load_factor, bf_dst);
     copy.pop_count = std::bind(&bf_t::popcnt, bf_dst);
     copy.hash_function_count = std::bind(&bf_t::hash_function_cnt, bf_dst);
+    copy.length = std::bind(&bf_t::length, bf_dst);
     copy.print_info = std::bind(&bf_t::print_info, bf_dst);
     copy.print = std::bind(&bf_t::print, bf_dst);
   }
@@ -246,12 +375,22 @@ struct bloomfilter_runtime {
     $u64 word_bit_cnt = dtl::log_2(actual_m / bf_t::word_bitlength);
     if (!dtl::is_power_of_two(m) && !only_pow_of_two) {
       using bf_mod_t = bf2_k2_mod_t;
-      actual_m = bf_mod_t::determine_word_cnt(m) * bf_mod_t::word_bitlength;
+      actual_m = std::min(actual_m, bf_mod_t::determine_word_cnt(m) * bf_mod_t::word_bitlength);
+    }
+
+    if (actual_m > (1ull << 32)) {
+      throw "m must not exceed 2^32 bits.";
     }
 
     // Determine the number of hash functions needed.
-    // Note: Currently only 1 or 2 hash functions are supported.
-    u64 hash_fn_cnt = ((bf_t::hash_value_bitlength - word_bit_cnt) / (bf_t::bit_cnt_per_k * k)) > 0 ? 1 : 2;
+    $u64 hash_fn_cnt = ((bf_t::hash_value_bitlength - word_bit_cnt) / (bf_t::bit_cnt_per_k * k)) > 0 ? 1 : 2;
+    if (sizeof(word_t) == 8 && k > 6) {
+      hash_fn_cnt = 3;
+    }
+    if (sizeof(word_t) == 4 && k > 7) {
+      hash_fn_cnt = 3;
+    }
+
 
     bloomfilter_runtime wrapper;
     wrapper.m = actual_m;
@@ -286,6 +425,20 @@ struct bloomfilter_runtime {
               throw std::invalid_argument("The given 'k' is not supported.");
           }
           break;
+        case 3:
+          // Instantiate a Bloom filter with two hash functions.
+          switch (wrapper.k) {
+            // k must be >  6 or 7, otherwise bf1 should be used.
+            case 6: wrapper._construct_and_bind<bf3_k6_t, bf3_k6_vt>(m); break;
+            case 7: wrapper._construct_and_bind<bf3_k7_t, bf3_k7_vt>(m); break;
+            case 8: wrapper._construct_and_bind<bf3_k8_t, bf3_k8_vt>(m); break;
+            case 9: wrapper._construct_and_bind<bf3_k9_t, bf3_k9_vt>(m); break;
+            case 10: wrapper._construct_and_bind<bf3_k10_t, bf3_k10_vt>(m); break;
+            case 11: wrapper._construct_and_bind<bf3_k11_t, bf3_k11_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
         default:
           throw std::invalid_argument("The given 'h' is not supported.");
       }
@@ -316,6 +469,19 @@ struct bloomfilter_runtime {
             case 5: wrapper._construct_and_bind<bf2_k5_mod_t, bf2_k5_mod_vt>(m); break;
             case 6: wrapper._construct_and_bind<bf2_k6_mod_t, bf2_k6_mod_vt>(m); break;
             case 7: wrapper._construct_and_bind<bf2_k7_mod_t, bf2_k7_mod_vt>(m); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 3:
+          // Instantiate a Bloom filter with two hash functions.
+          switch (wrapper.k) {
+            case 6: wrapper._construct_and_bind<bf3_k6_mod_t, bf3_k6_mod_vt>(m); break;
+            case 7: wrapper._construct_and_bind<bf3_k7_mod_t, bf3_k7_mod_vt>(m); break;
+            case 8: wrapper._construct_and_bind<bf3_k8_mod_t, bf3_k8_mod_vt>(m); break;
+            case 9: wrapper._construct_and_bind<bf3_k9_mod_t, bf3_k9_mod_vt>(m); break;
+            case 10: wrapper._construct_and_bind<bf3_k10_mod_t, bf3_k10_mod_vt>(m); break;
+            case 11: wrapper._construct_and_bind<bf3_k11_mod_t, bf3_k11_mod_vt>(m); break;
             default:
               throw std::invalid_argument("The given 'k' is not supported.");
           }
@@ -361,6 +527,18 @@ struct bloomfilter_runtime {
               throw std::invalid_argument("The given 'k' is not supported.");
           }
           break;
+        case 3:
+          switch (k) {
+            case 6: _copy_and_bind<bf3_k6_t, bf3_k6_vt>(copy, allocator_config); break;
+            case 7: _copy_and_bind<bf3_k7_t, bf3_k7_vt>(copy, allocator_config); break;
+            case 8: _copy_and_bind<bf3_k8_t, bf3_k8_vt>(copy, allocator_config); break;
+            case 9: _copy_and_bind<bf3_k9_t, bf3_k9_vt>(copy, allocator_config); break;
+            case 10: _copy_and_bind<bf3_k10_t, bf3_k10_vt>(copy, allocator_config); break;
+            case 11: _copy_and_bind<bf3_k11_t, bf3_k11_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
         default:
           throw std::invalid_argument("The given 'h' is not supported.");
       }
@@ -388,6 +566,18 @@ struct bloomfilter_runtime {
             case 5: _copy_and_bind<bf2_k5_mod_t, bf2_k5_mod_vt>(copy, allocator_config); break;
             case 6: _copy_and_bind<bf2_k6_mod_t, bf2_k6_mod_vt>(copy, allocator_config); break;
             case 7: _copy_and_bind<bf2_k7_mod_t, bf2_k7_mod_vt>(copy, allocator_config); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
+        case 3:
+          switch (k) {
+            case 6: _copy_and_bind<bf3_k6_mod_t, bf3_k6_mod_vt>(copy, allocator_config); break;
+            case 7: _copy_and_bind<bf3_k7_mod_t, bf3_k7_mod_vt>(copy, allocator_config); break;
+            case 8: _copy_and_bind<bf3_k8_mod_t, bf3_k8_mod_vt>(copy, allocator_config); break;
+            case 9: _copy_and_bind<bf3_k9_mod_t, bf3_k9_mod_vt>(copy, allocator_config); break;
+            case 10: _copy_and_bind<bf3_k10_mod_t, bf3_k10_mod_vt>(copy, allocator_config); break;
+            case 11: _copy_and_bind<bf3_k11_mod_t, bf3_k11_mod_vt>(copy, allocator_config); break;
             default:
               throw std::invalid_argument("The given 'k' is not supported.");
           }
@@ -430,6 +620,18 @@ struct bloomfilter_runtime {
               throw std::invalid_argument("The given 'k' is not supported.");
           }
           break;
+        case 3:
+          switch (k) {
+            case 6: _destruct<bf3_k6_t, bf3_k6_vt>(); break;
+            case 7: _destruct<bf3_k7_t, bf3_k7_vt>(); break;
+            case 8: _destruct<bf3_k8_t, bf3_k8_vt>(); break;
+            case 9: _destruct<bf3_k9_t, bf3_k9_vt>(); break;
+            case 10: _destruct<bf3_k10_t, bf3_k10_vt>(); break;
+            case 11: _destruct<bf3_k11_t, bf3_k11_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
         default:
           throw std::invalid_argument("The given 'h' is not supported.");
       }
@@ -461,6 +663,18 @@ struct bloomfilter_runtime {
               throw std::invalid_argument("The given 'k' is not supported.");
           }
           break;
+        case 3:
+          switch (k) {
+            case 6: _destruct<bf3_k6_mod_t, bf3_k6_mod_vt>(); break;
+            case 7: _destruct<bf3_k7_mod_t, bf3_k7_mod_vt>(); break;
+            case 8: _destruct<bf3_k8_mod_t, bf3_k8_mod_vt>(); break;
+            case 9: _destruct<bf3_k9_mod_t, bf3_k9_mod_vt>(); break;
+            case 10: _destruct<bf3_k10_mod_t, bf3_k10_mod_vt>(); break;
+            case 11: _destruct<bf3_k11_mod_t, bf3_k11_mod_vt>(); break;
+            default:
+              throw std::invalid_argument("The given 'k' is not supported.");
+          }
+          break;
         default:
           throw std::invalid_argument("The given 'h' is not supported.");
       }
@@ -485,6 +699,14 @@ struct bloomfilter_runtime {
     auto n = element_cnt;
     return std::pow(1.0 - std::pow(1.0 - (1.0 / m), k * n), k);
   }
+
+
+  block_addressing get_addressing_mode() const {
+    return dtl::is_power_of_two(m)
+           ? block_addressing::POWER_OF_TWO
+           : block_addressing::MAGIC;
+  }
+
 
 };
 

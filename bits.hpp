@@ -18,8 +18,12 @@ u32 pop_count(u32 a) { return __popc(a); }
 __forceinline__ __device__
 u32 pop_count(u64 a) { return __popcll(a); }
 #else
-__forceinline__
-constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
+//__forceinline__
+//constexpr u32 pop_count(u8 a) { return __builtin_popcount(a); }
+//__forceinline__
+//constexpr u32 pop_count(u16 a) { return __builtin_popcount(a); }
+//__forceinline__
+//constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
 __forceinline__
 constexpr u32 pop_count(u64 a) { return __builtin_popcountll(a); }
 #endif
@@ -83,13 +87,19 @@ extract(u64 a, u32 start, u32 len) {
 
 /// return the i-th bit in a
 __forceinline__ __host__ __device__
-u1
+constexpr u1
+bit_test(u8 a, u32 i) {
+  return a & (u8(1) << i);
+}
+
+__forceinline__ __host__ __device__
+constexpr u1
 bit_test(u32 a, u32 i) {
   return a & (u32(1) << i);
 }
 
 __forceinline__ __host__ __device__
-u1
+constexpr u1
 bit_test(u64 a, u32 i) {
   return a & (u64(1) << i);
 }

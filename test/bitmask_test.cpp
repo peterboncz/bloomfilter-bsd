@@ -52,7 +52,13 @@ TEST(bitmask, tree_decode) {
 template<u64 N>
 static void
 test_enc_dec(std::bitset<N> bitmask) {
-  ASSERT_EQ(bitmask, tree_mask<N>::decode(tree_mask<N>::encode(bitmask)));
+  auto et = tree_mask<N>::encode(bitmask);
+//  std::cout << bitmask << " -> ";
+  for ($u64 i = 0; i < et.size(); i++) {
+    std::cout << (et[i] ? "1" : "0");
+  };
+  std::cout << " (" << N << " -> " << et.size() << ")" << std::endl;
+  ASSERT_EQ(bitmask, tree_mask<N>::decode(et));
 };
 
 TEST(bitmask, tree_encode_decode) {
@@ -74,6 +80,33 @@ TEST(bitmask, tree_encode_decode) {
   test_enc_dec(std::bitset<4>("0000"));
   test_enc_dec(std::bitset<1>("1"));
   test_enc_dec(std::bitset<1>("0"));
+  test_enc_dec(std::bitset<16>("1010101000001111"));
+  test_enc_dec(std::bitset<16>("1011111000001111"));
+  test_enc_dec(std::bitset<16>("1111111100001111"));
+  test_enc_dec(std::bitset<16>("1111111000001111"));
+  test_enc_dec(std::bitset<16>("0111111000001111"));
+  test_enc_dec(std::bitset<16>("0000111000001111"));
+  test_enc_dec(std::bitset<16>("1000000000000001"));
+  auto b = std::bitset<16>("1000000000000000");
+  for (int i = 0; i < 16; i++) {
+    test_enc_dec(b);
+    b = b >> 1;
+  }
+  b = std::bitset<16>("1100000000000000");
+  for (int i = 0; i < 15; i++) {
+    test_enc_dec(b);
+    b = b >> 1;
+  }
+  auto b1 = std::bitset<4096>();
+  b1[0] = true;
+  b1[1000] = true;
+  b1[1050] = true;
+  for (int i = 0; i < 140; i++) {
+    test_enc_dec(b1);
+    b1 |= b1 << 1;
+  }
+  test_enc_dec(b1);
+
 }
 
 template<u64 LEN>

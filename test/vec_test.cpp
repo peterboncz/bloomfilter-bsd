@@ -293,3 +293,40 @@ TEST(vec, mask_to_32bit_positions) {
     }
   }
 }
+
+TEST(vec, is_vector) {
+  using value_t = i32;
+  constexpr u64 vec_len = simd::lane_count<value_t> * 2;
+  using vec_t = v<value_t, vec_len>;
+  constexpr auto scalar_is_vector = is_vector<value_t>::value;
+  ASSERT_FALSE(scalar_is_vector);
+  constexpr auto vector_is_vector = is_vector<vec_t>::value;
+  ASSERT_TRUE(vector_is_vector);
+  constexpr auto determined_length = vector_length<vec_t>::value;
+  ASSERT_EQ(vec_len, determined_length);
+}
+
+
+TEST(vec, cast_mask) {
+std::cout << std::endl;
+  using src_value_t = $i64;
+  using dst_value_t = $i32;
+  constexpr u64 vec_len = simd::lane_count<src_value_t> * 2;
+  using src_vec_t = v<src_value_t, vec_len>;
+  using dst_vec_t = v<dst_value_t, vec_len>;
+
+  auto s = src_vec_t::make(0);
+  s.insert(1, 1);
+  s.insert(1, 3);
+  s.insert(1, 5);
+  s.insert(1, 7);
+  auto ms = s > 0;
+
+//  std::cout << std::bitset<32>(ms.to_int()) << std::endl;
+//  dst_vec_t::m b = dst_vec_t::m::from_int(ms.to_int());
+//  std::cout << std::bitset<32>(b.to_int()) << std::endl;
+
+  auto md = cast_mask<dst_vec_t::m>(ms);
+  ASSERT_EQ(md.to_int(), ms.to_int());
+
+}

@@ -28,7 +28,8 @@ struct bloomfilter_h2_logic {
 
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
@@ -75,8 +76,9 @@ struct bloomfilter_h2_logic {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // ---- Members ----
-  size_t length_mask; // the length of the bitvector (length_mask + 1) is not stored explicitly
-  size_t word_cnt_log2; // the number of bits to address the individual words of the bitvector
+  const size_t bitvector_length; // the length of the bitvector
+  const hash_value_t length_mask; // the length mask (same type as the hash values)
+  const hash_value_t word_cnt_log2; // The number of bits to address the individual words of the bitvector
   // ----
 
 
@@ -94,9 +96,10 @@ struct bloomfilter_h2_logic {
   /// C'tor
   explicit
   bloomfilter_h2_logic(const size_t length)
-      : length_mask(determine_actual_length(length) - 1),
-        word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)) {
-    if (((length_mask + 1)) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+      : bitvector_length(determine_actual_length(length)),
+        length_mask(static_cast<hash_value_t>(bitvector_length - 1)),
+        word_cnt_log2(static_cast<hash_value_t>(dtl::log_2(bitvector_length / word_bitlength))) {
+    if (bitvector_length > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
   /// Copy c'tor
@@ -104,9 +107,9 @@ struct bloomfilter_h2_logic {
 
 
   __forceinline__ __host__ __device__
-  size_t
+  hash_value_t
   which_word(const hash_value_t hash_val) const noexcept {
-    const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
+    const auto word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
     return word_idx;
   }
 
@@ -117,7 +120,7 @@ struct bloomfilter_h2_logic {
              const hash_value_t second_hash_val) const noexcept {
     u32 first_bit_idx = (first_hash_val >> (hash_value_bitlength - word_cnt_log2 - sector_bitlength_log2)) & sector_mask;
     word_t word = word_t(1) << first_bit_idx;
-    for (size_t i = 1; i < k; i++) {
+    for ($u32 i = 1; i < k; i++) {
       u32 shift = (hash_value_bitlength - 2) - (i * sector_bitlength_log2);
       u32 bit_idx = (second_hash_val >> shift) & sector_mask;
       u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
@@ -132,7 +135,7 @@ struct bloomfilter_h2_logic {
   contains(const key_t& key, const word_t* word_array) const noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
-    u32 word_idx = which_word(first_hash_val);
+    const hash_value_t word_idx = which_word(first_hash_val);
     const word_t search_mask = which_bits(first_hash_val, second_hash_val);
 #if defined(__CUDA_ARCH__)
     const word_t word = cub::ThreadLoad<cub::LOAD_CS>(word_array + word_idx);
@@ -148,7 +151,7 @@ struct bloomfilter_h2_logic {
   insert(const key_t& key, word_t* word_array) noexcept {
     const hash_value_t first_hash_val = HashFn<key_t>::hash(key);
     const hash_value_t second_hash_val = HashFn2<key_t>::hash(key);
-    u32 word_idx = which_word(first_hash_val);
+    const hash_value_t word_idx = which_word(first_hash_val);
     word_t word = word_array[word_idx];
     word |= which_bits(first_hash_val, second_hash_val);
     word_array[word_idx] = word;
@@ -158,14 +161,14 @@ struct bloomfilter_h2_logic {
   __forceinline__
   size_t
   length() const noexcept {
-    return length_mask + 1;
+    return bitvector_length;
   }
 
 
   __forceinline__ __host__ __device__
   size_t
   word_cnt() const noexcept {
-    return (length_mask + 1) / sizeof(word_t);
+    return length() / sizeof(word_t);
   }
 
 

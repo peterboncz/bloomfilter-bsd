@@ -83,6 +83,21 @@ struct knuth_32_alt {
 };
 
 
+template<typename T, u32 p = 32>
+struct knuth_32_alt2 {
+  using Ty = typename std::remove_cv<T>::type;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    Ty knuth = 2654435769u; // 0b10011110001101110111100110111001
+//    Ty knuth = 596572387u; // Peter 1
+    return (key * knuth) >> (32 - p);
+  }
+};
+
+
+
 template<typename T>
 struct knuth {
   using Ty = typename std::remove_cv<T>::type;
@@ -100,6 +115,19 @@ template<typename T>
 struct knuth_alt {
   using Ty = typename std::remove_cv<T>::type;
   using F = knuth_32_alt<T, 32>;
+
+  __host__ __device__
+  static inline Ty
+  hash(const Ty& key) {
+    return F::hash(key);
+  }
+};
+
+
+template<typename T>
+struct knuth_alt2 {
+  using Ty = typename std::remove_cv<T>::type;
+  using F = knuth_32_alt2<T, 32>;
 
   __host__ __device__
   static inline Ty

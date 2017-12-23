@@ -4,11 +4,11 @@
 #include <bitset>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/bloomfilter_runtime.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1.hpp>
-#include <dtl/bloomfilter/bloomfilter_h1_vec.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2.hpp>
-#include <dtl/bloomfilter/bloomfilter_h2_vec.hpp>
+#include <bloomfilter/old/bloomfilter_runtime.hpp>
+#include <bloomfilter/old/bloomfilter_h1.hpp>
+#include <bloomfilter/old/bloomfilter_h1_vec.hpp>
+#include <bloomfilter/old/bloomfilter_h2.hpp>
+#include <bloomfilter/old/bloomfilter_h2_vec.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>

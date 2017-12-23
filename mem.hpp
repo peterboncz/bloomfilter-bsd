@@ -58,6 +58,26 @@ struct bitmask_wrap {
       copy_bitmask_to_bitmask(other.ptr, ptr);
     }
   };
+  bitmask_wrap& operator=(const bitmask_wrap& other) {
+    if (ptr) {
+      numa_bitmask_free(ptr);
+      ptr = nullptr;
+    }
+    if (other.ptr) {
+      ptr = numa_bitmask_alloc(other.ptr->size);
+      copy_bitmask_to_bitmask(other.ptr, ptr);
+    }
+    return *this;
+  }
+  bitmask_wrap& operator=(bitmask_wrap&& other) {
+    if (ptr) {
+      numa_bitmask_free(ptr);
+      ptr = nullptr;
+    }
+    ptr = other.ptr;
+    other.ptr = nullptr;
+    return *this;
+  }
   /// d'tor
   ~bitmask_wrap() { if (ptr) numa_bitmask_free(ptr); };
 };
@@ -275,7 +295,7 @@ class allocator_config {
 private:
   allocation_policy policy;
   detail::bitmask_wrap node_mask;
-  u32 numa_node;
+  $u32 numa_node;
 
   /// c'tor for interleaved allocation
   allocator_config(detail::bitmask_wrap node_mask)
@@ -295,6 +315,11 @@ public:
   allocator_config(allocator_config&& src) = default;
   /// copy c'tor
   allocator_config(const allocator_config& src) = default;
+
+  allocator_config& operator=(const allocator_config& other) = default;
+
+  allocator_config& operator=(allocator_config&& other) = default;
+
 
   /// interleaved memory allocation (also includes HBM nodes)
   static allocator_config

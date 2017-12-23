@@ -57,16 +57,24 @@ struct vs<T, 32> {
 };
 */
 
+struct v_base {};
+
+template<class T>
+struct is_vector {
+  static constexpr bool value = std::is_base_of<v_base, T>::value;
+};
 
 
-/// The general vector class with N components of the (primitive) type T.
+
+/// The general vector class with N components of the (primitive) type Tp.
 ///
-/// If there exists a native vector type that can hold N values of type T, e.g. __m256i,
+/// If there exists a native vector type that can hold N values of type Tp, e.g. __m256i,
 /// then an instance makes direct use of it. If the N exceeds the size of the largest
 /// available native vector type an instance will be a composition of multiple (smaller)
 /// native vectors.
 template<typename Tp, u64 N>
-struct v {
+struct v : v_base {
+
   static_assert(is_power_of_two(N), "Template parameter 'N' must be a power of two.");
   // TODO assert fundamental type
   // TODO unroll loops in compound types - __attribute__((optimize("unroll-loops")))
@@ -80,6 +88,9 @@ struct v {
   /// The native vector wrapper that is used under the hood.
   /// Note: The wrapper determines the largest available native vector type.
   using nested_vector = vs<scalar_type, N>; // TODO (maybe) make it a template parameter. give the user the possibility to specify the native vector type
+
+  /// The alignment of the vector.
+  static constexpr std::size_t byte_alignment = std::alignment_of<typename nested_vector::type>::value;
 
   /// The length of the native vector, in terms of number of elements.
   static constexpr u64 nested_vector_length = nested_vector::value;
@@ -105,7 +116,7 @@ struct v {
   /// The actual vector data. (the one and only non-static member variable of this class).
   compound_type data;
 
-  /// The native 'mask' type of the surrounding vector.
+    /// The native 'mask' type of the surrounding vector.
   using nested_mask_type = typename nested_vector::mask_type;
 
   /// The 'mask' type is a composition if the surrounding vector is also a composition.
@@ -138,6 +149,18 @@ struct v {
 
     /// The actual mask data. (the one and only non-static member variable of this class)
     compound_mask_type data;
+
+    m() {
+      set<is_compound>(this->data, false);
+    }
+    m(u32 i) {
+      set<is_compound>(this->data, i);
+    }
+    m(const m&) = default;
+    m(m&&) = default;
+    m(compound_mask_type&& d) : data { std::move(d) } {};
+    m& operator=(const m&) = default;
+    m& operator=(m&&) = default;
 
     struct all_fn {
       constexpr u1 operator()(const nested_mask_type& mask) const {
@@ -364,6 +387,58 @@ struct v {
     }
 
 
+    /// Converts the mask into an integer.
+    template<u1 Compound = false>
+    static __forceinline__ $u64
+    to_int(const nested_mask_type& mask) {
+      return mask.to_int();
+    }
+
+    /// Converts the mask into an integer.
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static __forceinline__ $u64
+    to_int(const compound_mask_type& compound_mask) {
+      $u64 int_bitmask = 0;
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        u64 t = to_int<!Compound>(compound_mask[i]);
+        int_bitmask |= t << ((N/nested_vector_cnt) * i);
+      }
+      return int_bitmask;
+    }
+
+    /// Converts the mask into an integer.
+    __forceinline__ $u64
+    to_int() const {
+      static_assert(N <= 64, "Mask to integer conversion requires the vector length to be less or equal to 64.");
+      return to_int<is_compound>(data);
+    }
+
+
+
+    /// Initializes the mask according to the bits set in the integer.
+    template<u1 Compound = false>
+    static __forceinline__ void
+    from_int(nested_mask_type& mask, u64 int_bitmask) {
+      mask.set_from_int(int_bitmask);
+    }
+
+    /// Converts the mask into an integer.
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static __forceinline__ void
+    from_int(compound_mask_type& compound_mask, u64 int_bitmask) {
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        from_int<!Compound>(compound_mask[i], int_bitmask >> ((N/nested_vector_cnt) * i));
+      }
+    }
+
+    /// Creates a mask from an integer.
+    static __forceinline__ m
+    from_int(u64 int_bitmask) {
+      m result;
+      from_int<is_compound>(result.data, int_bitmask);
+      return result;
+    }
+
 //    // Creates a mask instance from a bitset
 //    template<std::size_t Nb>
 //    static __forceinline__ m
@@ -451,9 +526,13 @@ struct v {
   v() = default;
 
   v(const scalar_type scalar_value) {
-    *this = scalar_value;
+    *this = make(scalar_value);
   }
 
+  v(compound_type&& d) : data { std::move(d) } {};
+
+  v(const v& other) = default;
+  v(v&& other) = default;
 //  template<typename Tp_other>
 //  explicit
 //  v(const v<Tp_other, N>& other) {
@@ -461,10 +540,10 @@ struct v {
 //  }
 
   // brace-initializer list c'tor
-  template<typename ...T>
-  explicit
-  v(T&&... t) : data { std::forward<T>(t)... } { }
-
+//  template<typename ...T>
+//  explicit
+//  v(T&&... t) : data { std::forward<T>(t)... } { }
+//
 //  explicit
 //  v(v&& other) : data(std::move(other.data)) { }
 
@@ -476,10 +555,8 @@ struct v {
   __forceinline__ v&
   operator=(const v& other) = default;
 
-//  __forceinline__ v&
-//  operator=(v&& other) {
-//    data = std::move(other.data);
-//  }
+  __forceinline__ v&
+  operator=(v&& other) = default;
 
 
   /// Assigns the given scalar value to all vector components.
@@ -579,7 +656,7 @@ struct v {
            const compound_type& a) noexcept {
     compound_type result;
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-      result[i] = unary_op<!Compound>(op, a);
+      result[i] = unary_op<!Compound>(op, a[i]);
     }
     return result;
   }
@@ -728,6 +805,7 @@ struct v {
     return result;
   }
 
+
 //  template<typename Fn>
 //  static __forceinline__ nested_type
 //  binary_op(Fn op, const nested_type& lhs, i32& rhs) noexcept {
@@ -789,7 +867,16 @@ struct v {
   __forceinline__ v operator<<(const v& o) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data) }; }
   __forceinline__ v operator<<(const i32& s) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)) }; } // TODO optimize
   __forceinline__ v& operator<<=(const v& o) noexcept { data = binary_op<is_compound>(typename op::shift_left_var(), data, o.data); return (*this); }
-  __forceinline__ v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left(), data, s); return (*this); }
+  __forceinline__ v& operator<<=(const i32& s) noexcept  { data = binary_op<is_compound>(typename op::shift_left_var(), data, make_nested(s)); return (*this); }
+
+  template<typename Trhs, typename = std::enable_if_t<is_vector<Trhs>::value>>
+  __forceinline__ v operator<<(const Trhs& o) const noexcept {
+    v rhs;
+    for ($u64 i = 0; i < N; i++) {
+      rhs.insert(o[i], i);
+    }
+    return v { binary_op<is_compound>(typename op::shift_left_var(), data, rhs.data) };
+  }
 
   __forceinline__ v mask_shift_left(const v& o, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::shift_left_var(), data, o.data, data, op_mask.data) }; }
   __forceinline__ v mask_shift_left(const i32& s, const m& op_mask) const noexcept { return v { binary_op<is_compound>(typename op::shift_left(), data, make_nested(s), data, op_mask.data) }; }
@@ -836,6 +923,11 @@ struct v {
   __forceinline__ v& mask_assign_bit_xor(const v& o, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, o.data, data, op_mask.data ); return *this; }
   __forceinline__ v& mask_assign_bit_xor(const scalar_type& s, const m& op_mask) noexcept { data = binary_op<is_compound>(typename op::bit_xor(), data, make_nested(s), data, op_mask.data ); return *this; }
 
+  __forceinline__ v zero_mask(const m& mask) {
+    return v {unary_op<is_compound>(typename op::blend(), /*data,*/ make(0).data, data, (!mask).data) };
+  }
+
+  __forceinline__ v operator~() const noexcept { return v { unary_op<is_compound>(typename op::bit_not(), data) }; }
 
   static __forceinline__ scalar_type
   extract(const nested_type& native_vector, u64 idx) noexcept {
@@ -885,12 +977,12 @@ struct v {
 
   __forceinline__ m
   operator>(const v& o) const noexcept {
-    return m { binary_op<is_compound>(typename op::less(), o.data, data) };
+    return m { binary_op<is_compound>(typename op::greater(), data, o.data) };
   }
 
   __forceinline__ m
   operator>(const scalar_type& s) const noexcept {
-    return m { binary_op<is_compound>(typename op::less(), make_nested(s), data) };
+    return m { binary_op<is_compound>(typename op::greater(), data, make_nested(s)) };
   }
 
   __forceinline__ m
@@ -1050,7 +1142,7 @@ struct v {
   cast() const {
     v<Tp_target, N> result;
     for ($u64 i = 0; i < N; i++) {
-      result.data[i] = data[i];
+      result.insert((*this)[i], i);
     }
     return result;
   }
@@ -1062,6 +1154,16 @@ struct v {
   struct masked_reference {
     v& vector;
     m mask;
+
+//    m(u32 i) {
+//      set<is_compound>(this->data, i);
+//    }
+//    masked_reference(const masked_reference&) = default;
+//    masked_reference(masked_reference&&) = default;
+//    masked_reference(compound_mask_type&& d) : data { std::move(d) } {};
+//    masked_reference& operator=(const masked_reference&) = default;
+//    masked_reference& operator=(masked_reference&&) = default;
+
 
     __forceinline__ v& operator=(const v& o) { vector.mask_assign(o, mask); return vector; }
     __forceinline__ v& operator=(const scalar_type& s) { vector.mask_assign(s, mask); return vector; }
@@ -1103,7 +1205,8 @@ struct v {
 
   __forceinline__ masked_reference
   operator[](const m& op_mask) noexcept {
-    return masked_reference{ *this, m{op_mask.data} };
+//    return masked_reference{ *this, m{op_mask.data} };
+    return masked_reference{ *this, op_mask };
   }
 
 //  __forceinline__ masked_reference
@@ -1131,6 +1234,18 @@ v<T, N> operator<<(const T& lhs, const v<T, N>& rhs) {
   v<T, N> lhs_vec = v<T, N>::make(lhs);
   return lhs_vec << rhs;
 }
+
+template<typename Tlhs, typename Trhs, typename = std::enable_if_t<is_vector<Trhs>::value>>
+__forceinline__ Tlhs
+operator<<(const Tlhs& lhs, const Trhs& o) noexcept {
+  Tlhs rhs;
+  for ($u64 i = 0; i < Tlhs::length; i++) {
+    rhs.insert(o[i], i);
+  }
+  return lhs << rhs;
+}
+
+
 // not sure if this is causing problems...
 template<typename Tl, typename T, u64 N>
 v<T, N> operator<<(const Tl& lhs, const v<T, N>& rhs) {
@@ -1162,7 +1277,7 @@ template<u1 Compound,
 static __forceinline__ typename Trv::compound_type
 __gather(const Tp* const base_addr,
          const typename Tiv::compound_type& idxs) {
-  typename Tiv::compound_type result;
+  typename Trv::compound_type result;
   for ($u64 i = 0; i < Tiv::nested_vector_cnt; i++) {
     result[i] = __gather<!Compound, Tp, Trv, Tiv>(base_addr, idxs[i]);
   }
@@ -1238,5 +1353,53 @@ scatter(const Tvv& vals, Tp* base_addr, const Tiv& idxs) {
   __scatter<index_vec_t::is_compound, Tp, index_vec_t, value_vec_t>(base_addr, idxs.data, vals.data);
 }
 
+
+//===----------------------------------------------------------------------===//
+// Type conversion
+//===----------------------------------------------------------------------===//
+//TODO implement casts in SIMD
+template<typename Tp_target, typename Tp_source, std::size_t N>
+__forceinline__ dtl::simd::v<Tp_target, N>
+cast(const dtl::simd::v<Tp_source, N> src) {
+  dtl::simd::v<Tp_target, N> result;
+  for ($u64 i = 0; i < N; i++) {
+    result.insert(src[i], i);
+  }
+  return result;
+}
+
+
+template<typename Tm_dst, typename Tm_src>
+__forceinline__ Tm_dst
+cast_mask(const Tm_src& src_mask) {
+  return Tm_dst::from_int(src_mask.to_int());
+};
+//===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+// Type support
+//===----------------------------------------------------------------------===//
+
+template<class T>
+struct is_vector {
+  static constexpr bool value = std::is_base_of<dtl::simd::v_base, T>::value;
+};
+
+namespace internal {
+
+template<typename Tv, std::size_t _vector_length = Tv::length>
+struct vector_len_helper {
+  static constexpr std::size_t value = _vector_length;
+};
+
+} // namespace internal
+
+template<typename Tv>
+struct vector_length {
+  static_assert(is_vector<Tv>::value, "The given type is not a vector.");
+  static constexpr std::size_t value = internal::vector_len_helper<Tv>::value;
+};
+//===----------------------------------------------------------------------===//
 
 } // namespace dtl

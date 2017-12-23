@@ -5,6 +5,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <random>
 #include <sched.h>
 #include <thread>
 
@@ -23,9 +24,14 @@ using cpu_mask = dtl::bitset<CPU_SETSIZE>;
 namespace this_thread {
 
 
+// Pseudo random number generator (per thread, to avoid synchronization)
+static thread_local std::mt19937 rand32(static_cast<u32>(std::rand()));
+static thread_local std::mt19937_64 rand64(static_cast<u64>(std::rand()));
+
+
 /// pins the current thread to the specified CPU(s)
 static void
-set_cpu_affinity(dtl::cpu_mask& cpu_mask) {
+set_cpu_affinity(const dtl::cpu_mask& cpu_mask) {
   cpu_set_t mask;
   CPU_ZERO(&mask);
   // convert bitset to CPU mask
@@ -164,12 +170,17 @@ run_in_parallel(std::function<void()> fn,
 }
 
 
+static auto identity(u32 thread_id) -> u32 {
+  return thread_id;
+}
+
 static void
 run_in_parallel(std::function<void(u32 thread_id)> fn,
-                u32 thread_cnt = std::thread::hardware_concurrency()) {
+                u32 thread_cnt = std::thread::hardware_concurrency(),
+                std::function<u32(u32)> cpu_map = identity) {
 
-  auto thread_fn = [](u32 thread_id, std::function<void(u32 thread_id)> fn) {
-    thread_affinitize(thread_id);
+  auto thread_fn = [&cpu_map](u32 thread_id, std::function<void(u32 thread_id)> fn) {
+    thread_affinitize(cpu_map(thread_id));
     fn(thread_id);
   };
 
@@ -181,6 +192,38 @@ run_in_parallel(std::function<void(u32 thread_id)> fn,
   for (auto& worker : workers) {
     worker.join();
   }
+}
+
+static void
+run_in_parallel(std::function<void(u32 thread_id)> fn,
+                const dtl::cpu_mask& cpu_mask,
+                u32 thread_cnt) {
+
+  const auto affinity_saved = dtl::this_thread::get_cpu_affinity();
+
+  std::vector<$u32> map;
+  for (auto it = cpu_mask.on_bits_begin(); it != cpu_mask.on_bits_end(); it++) {
+    map.push_back(*it);
+  }
+
+  auto cpu_map = [&](u32 thread_id) {
+    return map[thread_id % map.size()];
+  };
+
+  auto thread_fn = [&cpu_map](u32 thread_id, std::function<void(u32 thread_id)> fn) {
+    thread_affinitize(cpu_map(thread_id));
+    fn(thread_id);
+  };
+
+  std::vector<std::thread> workers;
+  for (std::size_t i = 0; i < thread_cnt - 1; i++) {
+    workers.push_back(std::move(std::thread(thread_fn, i, fn)));
+  }
+  std::thread(thread_fn, thread_cnt - 1, fn).join();
+  for (auto& worker : workers) {
+    worker.join();
+  }
+  dtl::this_thread::set_cpu_affinity(affinity_saved);
 }
 
 

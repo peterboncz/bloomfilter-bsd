@@ -2,18 +2,17 @@
 
 #include <bitset>
 #include <functional>
-#include <iostream>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
 
-#include <x86intrin.h>
-
 #include <dtl/dtl.hpp>
 #include <dtl/bits.hpp>
+#include <dtl/div.hpp>
 #include <dtl/math.hpp>
 
 #include "immintrin.h"
+#include "bloomfilter_h1.hpp"
 
 namespace dtl {
 
@@ -22,17 +21,18 @@ namespace dtl {
 /// filter is somewhat limited (depending on K and whether Sectorization is enabled).
 template<typename Tk,      // the key type
     template<typename Ty> class HashFn,     // the hash function to use
-    typename Tw/* = u64*/,     // the word type to use for the bit array. Note: one word = one block.
-    typename Alloc /* = std::allocator<Tw> */,
+    typename Tw = u64,     // the word type to use for the bit array. Note: one word = one block.
+    typename Alloc = std::allocator<Tw>,
     u32 K = 2,             // the number of bits set per inserted element
-    u1 Sectorized = false  //
+    u1 Sectorized = false
 >
-struct bloomfilter_h1 {
+struct bloomfilter_h1_mod {
 
   using key_t = typename std::remove_cv<Tk>::type;
   using word_t = typename std::remove_cv<Tw>::type;
   using allocator_t = Alloc;
-  using size_t = $u32;
+  using size_t = $u64;
+//  using size_t = $u32;
 
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
@@ -78,69 +78,77 @@ struct bloomfilter_h1 {
   static constexpr u64 max_m = (1ull << remaining_hash_bit_cnt) * word_bitlength;
 
   // ---- Members ----
-  size_t length_mask; // The length of the bitvector - 1. Note the actual length (length_mask + 1) is not stored explicitly.
-  size_t word_cnt_log2; // The number of bits to address the individual words of the bitvector
-  allocator_t allocator;
+  const hash_value_t word_cnt; // the number of words/blocks
+  const hash_value_t word_cnt_log2; // The (minimum) number of bits required to address the individual words of the bitvector
+  const dtl::fast_divisor_u32_t fast_divisor;
+  const allocator_t allocator;
   std::vector<word_t, allocator_t> word_array;
   // ----
 
 
-  static
+  static constexpr
   size_t
-  determine_actual_length(const size_t length) {
-    // round up to the next power of two
-    const size_t m = static_cast<size_t>(dtl::next_power_of_two(length));
-    const size_t min = static_cast<size_t>(min_m);
-    return std::max(m, min);
+  determine_word_cnt(const size_t length) {
+    const auto desired_word_cnt = (length + (word_bitlength - 1)) / word_bitlength;
+    const hash_value_t actual_word_cnt = dtl::next_cheap_magic(desired_word_cnt).divisor; // TODO support filter with more then 512 MiB
+    const hash_value_t min_word_cnt = static_cast<hash_value_t>(min_m / word_bitlength);
+    return std::max(actual_word_cnt, min_word_cnt);
   }
 
 
   __forceinline__
   size_t
   length() const noexcept {
-    return length_mask + 1;
+    return word_array.size() * sizeof(word_t) * 8;
   }
 
 
   /// C'tor
-  bloomfilter_h1(const size_t length,
-                 const allocator_t allocator = allocator_t())
-      : length_mask(determine_actual_length(length) - 1),
-        word_cnt_log2(dtl::log_2((length_mask + 1) / word_bitlength)),
+  explicit
+  bloomfilter_h1_mod(const size_t length,
+                     const allocator_t allocator = allocator_t())
+      : word_cnt(determine_word_cnt(length)),
+        word_cnt_log2(dtl::log_2(dtl::next_power_of_two(word_cnt))),
+        fast_divisor(dtl::next_cheap_magic(word_cnt)),
         allocator(allocator),
-        word_array((length_mask + 1) / word_bitlength, 0, this->allocator) {
-    if (((length_mask + 1)) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
+        word_array(word_cnt, 0, this->allocator) {
+    if ((word_cnt * word_bitlength) > max_m) throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
 
   /// Copy c'tor
-  bloomfilter_h1(const bloomfilter_h1&) = default;
-  bloomfilter_h1(const bloomfilter_h1& other,
-                 const allocator_t& allocator)
-      : length_mask(other.length_mask),
+  bloomfilter_h1_mod(const bloomfilter_h1_mod&) = default;
+  bloomfilter_h1_mod(const bloomfilter_h1_mod& other,
+                     const allocator_t& allocator)
+      : word_cnt(other.word_cnt),
         word_cnt_log2(other.word_cnt_log2),
+        fast_divisor(other.fast_divisor),
         allocator(allocator),
         word_array(other.word_array.begin(), other.word_array.end(), this->allocator) { }
+
+  ~bloomfilter_h1_mod() {
+    word_array.clear();
+    word_array.shrink_to_fit();
+  }
 
 
   /// Creates a copy of the bloomfilter (allows to specify a different allocator type)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>
+  bloomfilter_h1_mod<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>
   make_copy(AllocOfCopy alloc = AllocOfCopy()) const {
-    using return_t = bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
-    return_t bf_copy(this->length_mask + 1, alloc);
+    using return_t = bloomfilter_h1_mod<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
+    return_t bf_copy(word_cnt * word_bitlength, alloc);
     bf_copy.word_array.clear();
     bf_copy.word_array.insert(bf_copy.word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
   }
 
 
-  // TODO implement copy c'tor
   /// Creates a copy of the bloomfilter (allows to specify a different allocator)
   template<typename AllocOfCopy = Alloc>
-  bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>*
+  bloomfilter_h1_mod<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>*
   make_heap_copy(AllocOfCopy alloc = AllocOfCopy()) const {
-    using bf_t = bloomfilter_h1<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
-    bf_t* bf_copy = new bf_t(this->length_mask + 1, alloc);
+    using bf_t = bloomfilter_h1_mod<Tk, HashFn, Tw, AllocOfCopy, K, Sectorized>;
+    bf_t* bf_copy = new bf_t(word_cnt * word_bitlength, alloc);
     bf_copy->word_array.clear();
     bf_copy->word_array.insert(bf_copy->word_array.begin(), word_array.begin(), word_array.end());
     return bf_copy;
@@ -148,25 +156,21 @@ struct bloomfilter_h1 {
 
 
   __forceinline__ __host__ __device__
-  static size_t
-  which_word(const uint32_t /*hash_value_t*/ hash_val,
-             const size_t length_mask,
-             const size_t word_cnt_log2) noexcept {
-    const size_t word_idx = hash_val >> (hash_value_bitlength - word_cnt_log2);
-    assert(word_idx < ((length_mask + 1) / word_bitlength));
+  hash_value_t
+  which_word(const hash_value_t hash_val) const noexcept {
+    const size_t word_idx = dtl::fast_mod_u32(hash_val >> (hash_value_bitlength - word_cnt_log2), fast_divisor);
     return word_idx;
   }
 
 
   __forceinline__ __unroll_loops__ __host__ __device__
-  static word_t
-//  which_bits(const uint32_t /*hash_value_t*/ hash_val,
-  which_bits(const hash_value_t hash_val,
-             const size_t word_cnt_log2) noexcept {
+  word_t
+  which_bits(const hash_value_t hash_val) const noexcept {
     word_t word = 0;
-    for (size_t i = 0; i < k; i++) {
-      const u32 bit_idx = (hash_val >> (((hash_value_bitlength - word_cnt_log2) - ((i + 1) * sector_bitlength_log2)))) & sector_mask;
-      const u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
+    for ($u32 i = 0; i < k; i++) {
+      u32 shift = (hash_value_bitlength - word_cnt_log2) - ((i + 1) * sector_bitlength_log2);
+      u32 bit_idx = (hash_val >> shift) & sector_mask;
+      u32 sector_offset = (i * sector_bitlength) & word_bitlength_mask;
       word |= word_t(1) << (bit_idx + sector_offset);
     }
     return word;
@@ -177,9 +181,9 @@ struct bloomfilter_h1 {
   void
   insert(const key_t& key) noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val, length_mask, word_cnt_log2);
+    const hash_value_t word_idx = which_word(hash_val);
     word_t word = word_array[word_idx];
-    word |= which_bits(hash_val, word_cnt_log2);
+    word |= which_bits(hash_val);
     word_array[word_idx] = word;
   }
 
@@ -188,8 +192,8 @@ struct bloomfilter_h1 {
   u1
   contains(const key_t& key) const noexcept {
     const hash_value_t hash_val = HashFn<key_t>::hash(key);
-    u32 word_idx = which_word(hash_val, length_mask, word_cnt_log2);
-    const word_t search_mask = which_bits(hash_val, word_cnt_log2);
+    const hash_value_t word_idx = which_word(hash_val);
+    const word_t search_mask = which_bits(hash_val);
     return (word_array[word_idx] & search_mask) == search_mask;
   }
 
@@ -203,7 +207,7 @@ struct bloomfilter_h1 {
 
   f64
   load_factor() const noexcept {
-    f64 m = length_mask + 1;
+    f64 m = word_cnt * word_bitlength;
     return popcnt() / m;
   }
 
@@ -232,8 +236,8 @@ struct bloomfilter_h1 {
     std::cout << "  max m:                " << max_m << std::endl;
     std::cout << "  max size [MiB]:       " << (max_m / 8.0 / 1024.0 / 1024.0 ) << std::endl;
     std::cout << "dynamic" << std::endl;
-    std::cout << "  m:                    " << (length_mask + 1) << std::endl;
-    f64 size_MiB = (length_mask + 1) / 8.0 / 1024.0 / 1024.0;
+    std::cout << "  m:                    " << (word_cnt * word_bitlength) << std::endl;
+    f64 size_MiB = (word_cnt * word_bitlength) / 8.0 / 1024.0 / 1024.0;
     if (size_MiB < 1) {
       std::cout << "  size [KiB]:           " << (size_MiB * 1024) << std::endl;
     }
