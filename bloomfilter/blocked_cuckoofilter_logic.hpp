@@ -57,7 +57,8 @@ struct blocked_cuckoofilter {
 
   //===----------------------------------------------------------------------===//
   explicit
-  blocked_cuckoofilter(const std::size_t length) : addr(length, block_t::block_bitlength) { }
+  blocked_cuckoofilter(const std::size_t desired_length)
+      : addr((desired_length + (block_t::block_bitlength - 1)) / block_t::block_bitlength) { }
 
   blocked_cuckoofilter(const blocked_cuckoofilter&) noexcept = default;
 

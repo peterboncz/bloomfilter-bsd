@@ -203,7 +203,7 @@ struct blocked_bloomfilter_logic {
   /// desired length. The function get_length() returns the actual length.
   explicit
   blocked_bloomfilter_logic(const size_t desired_length)
-      : addr(desired_length, block_bitlength) {
+      : addr((desired_length + (block_bitlength - 1)) / block_bitlength) {
     if (addr.get_block_cnt() * block_bitlength > max_m)
       throw std::invalid_argument("Length must not exceed 'max_m'.");
   }

@@ -308,6 +308,7 @@ struct blocked_cuckoofilter {
     switch (addr) {
       case dtl::block_addressing::POWER_OF_TWO: _o<b, t, s, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
       case dtl::block_addressing::MAGIC:        _o<b, t, s, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::DYNAMIC:      /* must not happen */                                           break;
     }
   }
 
