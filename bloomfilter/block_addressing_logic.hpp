@@ -31,6 +31,9 @@ struct block_addressing_logic {};
 //===----------------------------------------------------------------------===//
 
 
+//===----------------------------------------------------------------------===//
+// Magic addressing
+//===----------------------------------------------------------------------===//
 template<>
 struct block_addressing_logic<block_addressing::MAGIC>
     : block_addressing_logic_base {
@@ -92,7 +95,8 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__ __device__
   hash_value_t
   get_block_idx(const hash_value_t hash_value) const noexcept {
-    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
+//    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
+    const auto h = hash_value;
     const auto block_idx = dtl::fast_mod_u32(h, fast_divisor);
     return block_idx;
   }
@@ -105,7 +109,8 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__
   dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_block_idxs(const Tv& hash_value) const noexcept {
-    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
+//    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
+    const auto h = hash_value;
     const auto block_idx = dtl::fast_mod_u32(h, fast_divisor);
     return block_idx;
   }
@@ -117,7 +122,8 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__ __device__
   uint32_t
   get_required_addressing_bits() const noexcept {
-    return block_cnt_log2;
+//    return block_cnt_log2;
+    return hash_value_bitlength;
   }
   //===----------------------------------------------------------------------===//
 
@@ -125,6 +131,9 @@ struct block_addressing_logic<block_addressing::MAGIC>
 //===----------------------------------------------------------------------===//
 
 
+//===----------------------------------------------------------------------===//
+// Power of two addressing
+//===----------------------------------------------------------------------===//
 template<>
 struct block_addressing_logic<block_addressing::POWER_OF_TWO>
     : block_addressing_logic_base {
