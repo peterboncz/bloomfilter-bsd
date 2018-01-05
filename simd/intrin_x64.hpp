@@ -42,6 +42,11 @@ struct mask {
   __forceinline__ mask bit_or(const mask& o) const { return mask { data | o.data }; };
   __forceinline__ mask bit_xor(const mask& o) const { return mask { data ^ o.data }; };
   __forceinline__ mask bit_not() const { return mask { !data }; };
+  __forceinline__ $u64
+  to_positions($u32* positions, $u32 offset) const {
+    positions[0] = offset;
+    return data;
+  }
 };
 
 } // anonymous namespace

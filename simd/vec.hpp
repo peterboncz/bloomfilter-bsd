@@ -525,6 +525,7 @@ struct v : v_base {
 
   v() = default;
 
+  __forceinline__
   v(const scalar_type scalar_value) {
     *this = make(scalar_value);
   }

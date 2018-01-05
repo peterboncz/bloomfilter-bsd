@@ -18,8 +18,31 @@ namespace simd {
 template<>
 struct vs<$i32, 4> : base<$i32, 4> {
   using type = __m128i;
+  using mask_type = __m128i;
   type data;
 };
+template<>
+struct vs<$u32, 4> : base<$u32, 4> {
+  using type = __m128i;
+  using mask_type = __m128i;
+  type data;
+};
+
+/// Define native vector type for SIMD-256: 4 x i64
+template<>
+struct vs<$i64, 2> : base<$i64, 2> {
+  using type = __m128i;
+  using mask_type = __m128i;
+  type data;
+};
+template<>
+struct vs<$u64, 2> : base<$u64, 2> {
+  using type = __m128i;
+  using mask_type = __m128i;
+  type data;
+};
+
+
 
 template<>
 struct set<$i32, __m128i, $i32> : vector_fn<$i32, __m128i, $i32> {

@@ -133,8 +133,6 @@ struct not_equal : vector_fn<primitive_t, vector_t, argument_t, return_t> {};
 //#include "intrin_sse.hpp"
 //#endif
 
-//#if defined(__AVX512F__)
-//#include "intrin_avx512.hpp"
-//#else
-//#include "intrin_x64.hpp"
-//#endif
+#if !defined(__AVX2__) && !defined(__AVX512F__)
+#include "intrin_x64.hpp"
+#endif

@@ -3,8 +3,9 @@
 #include <limits>
 
 #include <dtl/dtl.hpp>
+//#include <dtl/simd.hpp>
 
-#include "immintrin.h"
+//#include "immintrin.h"
 
 // TODO remove dependency
 #include "thirdparty/libdivide/libdivide.h"

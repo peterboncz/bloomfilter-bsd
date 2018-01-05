@@ -67,7 +67,7 @@ struct blocked_bloomfilter {
   using hash_value_t = $u32;
   using word_t = Tw;
 
-  static constexpr u1 early_out = true; // TODO make configurable and also adaptive
+  static constexpr u1 early_out = false; // TODO make configurable and also adaptive
 
 
   template<
@@ -261,6 +261,7 @@ struct blocked_bloomfilter {
     switch (addr) {
       case dtl::block_addressing::POWER_OF_TWO: _u<w, s, k, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
       case dtl::block_addressing::MAGIC:        _u<w, s, k, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::DYNAMIC:      /* must not happen */                                           break;
     }
   }
 
@@ -402,6 +403,9 @@ struct blocked_bloomfilter {
   // TODO memoization in a global file / tool to calibrate
   static void
   calibrate() __attribute__ ((noinline)) {
+    if (early_out) {
+      std::cerr << "WARNING: Using 'early out' in combination with SIMD unrolling may cause performance degradations!" << std::endl;
+    }
     std::cerr << "Running calibration..." << std::endl;
     std::random_device rd;
     std::mt19937 gen(rd());
