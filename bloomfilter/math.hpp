@@ -44,9 +44,7 @@ fpr_blocked(u64 m,
   $f64 lambda = B / c;
   boost::math::poisson_distribution<> poisson(lambda);
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  for ($i32 i = 0; i < 1000; i++) {
+  for ($i32 i = 0; i < 10000; i++) {
     f += boost::math::pdf(poisson, i) * fpr(B, i, k);
   }
   return f;
@@ -86,11 +84,25 @@ fpr_blocked_sectorized(u64 m,
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  for ($i32 i = 0; i < 10000; i++) {
+  for ($i32 i = 0; i < 1000; i++) {
     f += boost::math::pdf(poisson, i) * std::pow(fpr(S, i, (k * 1.0)/s), s);
   }
   return f;
 }
 
-} // namespace bloomfilter_logic
+} // namespace bloomfilter
+
+namespace cuckoofilter {
+
+//// TODO
+f64
+fpr(u64 num_buckets,
+    u64 associativity,
+    u64 tag_bitlength,
+    f64 load_factor) {
+  return (2.0 * associativity * load_factor) / (std::pow(2, tag_bitlength) - 1);
+}
+
+
+} // namespace cuckoofilter
 } // namespace dtl
