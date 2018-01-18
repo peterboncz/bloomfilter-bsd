@@ -89,7 +89,7 @@ struct vector_gather<uint32_t, uint32_t, n> {
     auto r = reinterpret_cast<__m512i*>(&result.data);
     const auto b = reinterpret_cast<const int *>(base_addr);
     for (std::size_t j = 0; j < idxs.nested_vector_cnt; j++) {
-      r[j] = _mm512_i32gather_epi32(b, i[j], 4);
+      r[j] = _mm512_i32gather_epi32(i[j], b, 4);
     }
 #endif // defined(__AVX512F__)
 
@@ -125,11 +125,11 @@ struct vector_gather<uint64_t, uint32_t, n> {
     vec<uint64_t, n> result;
 
 #if defined(__AVX512F__)
-    const auto i = reinterpret_cast<const __256i*>(&idxs.data);
+    const auto i = reinterpret_cast<const __m256i*>(&idxs.data);
     auto r = reinterpret_cast<__m512i*>(&result.data);
-    const auto b = reinterpret_cast<const void*>(base_addr);
+    const auto b = reinterpret_cast<const long long*>(base_addr);
     for (std::size_t j = 0; j < result.nested_vector_cnt; j++) {
-      r[j] = _mm512_i32gather_epi64(b, i[j], 8);
+      r[j] = _mm512_i32gather_epi64(i[j], b, 8);
     }
 #endif // defined(__AVX512F__)
 
@@ -165,10 +165,10 @@ struct vector_gather<uint32_t, uint64_t, n> {
     vec<uint32_t, n> result;
 
 #if defined(__AVX512F__)
-    const auto i = reinterpret_cast<const __m512*>(&idxs.data);
+    const auto i = reinterpret_cast<const __m512i*>(&idxs.data);
     auto r = reinterpret_cast<__m256i*>(&result.data);
     for (std::size_t j = 0; j < idxs.nested_vector_cnt; j++) {
-      r[j] = _mm512_i64gather_epi32(0, i[j], 1);
+      r[j] = _mm512_i64gather_epi32(i[j], 0, 1);
     }
 #endif // defined(__AVX512F__)
 
@@ -206,7 +206,7 @@ struct vector_gather<uint64_t, uint64_t, n> {
     const auto a = reinterpret_cast<const __m512i*>(&addrs.data);
     auto r = reinterpret_cast<__m512i*>(&result.data);
     for (std::size_t i = 0; i < result.nested_vector_cnt; i++) {
-      r[i] = _mm512_i64gather_epi64(0, a[i], 1);
+      r[i] = _mm512_i64gather_epi64(a[i], 0, 1);
     }
 #endif defined(__AVX512F__)
 

@@ -10,7 +10,7 @@
 
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
-#include <thread.hpp>
+#include <dtl/thread.hpp>
 
 namespace dtl {
 namespace cuckoofilter {

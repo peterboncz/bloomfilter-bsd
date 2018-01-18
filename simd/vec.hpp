@@ -116,7 +116,7 @@ struct v : v_base {
   /// The actual vector data. (the one and only non-static member variable of this class).
   compound_type data;
 
-    /// The native 'mask' type of the surrounding vector.
+  /// The native 'mask' type of the surrounding vector.
   using nested_mask_type = typename nested_vector::mask_type;
 
   /// The 'mask' type is a composition if the surrounding vector is also a composition.
