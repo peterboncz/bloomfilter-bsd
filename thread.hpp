@@ -23,10 +23,14 @@ using cpu_mask = dtl::bitset<CPU_SETSIZE>;
 
 namespace this_thread {
 
+auto random_seed() {
+  static std::random_device rd;
+  return rd();
+}
 
 // Pseudo random number generator (per thread, to avoid synchronization)
-static thread_local std::mt19937 rand32(static_cast<u32>(std::rand()));
-static thread_local std::mt19937_64 rand64(static_cast<u64>(std::rand()));
+static thread_local std::mt19937 rand32(random_seed());
+static thread_local std::mt19937_64 rand64(random_seed());
 
 
 /// pins the current thread to the specified CPU(s)
