@@ -23,7 +23,8 @@ using cpu_mask = dtl::bitset<CPU_SETSIZE>;
 
 namespace this_thread {
 
-auto random_seed() {
+static auto
+random_seed() {
   static std::random_device rd;
   return rd();
 }
