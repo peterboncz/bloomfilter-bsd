@@ -308,6 +308,7 @@ struct blocked_cuckoofilter {
     switch (addr) {
       case dtl::block_addressing::POWER_OF_TWO: _o<b, t, s, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
       case dtl::block_addressing::MAGIC:        _o<b, t, s, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::DYNAMIC:      /* must not happen */                                           break;
     }
   }
 
@@ -570,27 +571,6 @@ struct blocked_cuckoofilter {
     }
   }
   //===----------------------------------------------------------------------===//
-
-
-//  //===----------------------------------------------------------------------===//
-//  void
-//  print() const noexcept {
-//    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-//    std::cout << "-- filter dump --" << std::endl;
-//    $u64 i = 0;
-//    for (const word_t word : filter_data) {
-//      std::cout << std::bitset<word_bitlength>(word);
-//      i++;
-//      if (i % (128 / word_bitlength) == 0) {
-//        std::cout << std::endl;
-//      }
-//      else {
-//        std::cout << " ";
-//      }
-//    }
-//    std::cout << std::endl;
-//  }
-//  //===----------------------------------------------------------------------===//
 
 };
 

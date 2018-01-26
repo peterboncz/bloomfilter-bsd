@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
+#include <dtl/bits.hpp>
 #include <dtl/div.hpp>
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
@@ -61,7 +62,7 @@ struct bloomfilter_logic {
 
   explicit
   bloomfilter_logic(const std::size_t desired_length, const uint32_t k) noexcept
-      : addr(desired_length, block_bitlength), k(k) { }
+      : addr((desired_length + (block_bitlength - 1)) / block_bitlength), k(k) { }
 
   bloomfilter_logic(const bloomfilter_logic&) noexcept = default;
 
@@ -136,7 +137,7 @@ struct bloomfilter_logic {
       const hash_value_t hash_val = HashFn::hash(key, current_k);
       const hash_value_t word_idx = addr.get_block_idx(hash_val);
       const hash_value_t bit_idx = (hash_val >> (word_bitlength - word_bitlength_log2 - addressing_bits)) & word_mask;
-      const bool hit = filter_data[word_idx] & (word_t(1u) << bit_idx);
+      const bool hit = dtl::bits::bit_test(filter_data[word_idx], bit_idx);
       // Early out
       if (!hit) return false;
     }

@@ -44,7 +44,6 @@ struct block_addressing_logic {
   /// Returns the index of the block the hash value maps to.
   virtual size_t get_block_idx(hash_value_t hash_value) const noexcept = 0;
 
-
 };
 
 
@@ -69,7 +68,7 @@ struct bloomfilter_addressing_logic_magic : block_addressing_logic {
     u32 actual_block_cnt = dtl::next_cheap_magic(desired_block_cnt).divisor;
     return actual_block_cnt;
   }
-//===----------------------------------------------------------------------===//
+  //===----------------------------------------------------------------------===//
 
 
  public:

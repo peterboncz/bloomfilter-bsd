@@ -42,7 +42,7 @@ std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*
   };
 
 static
-std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* _addressing modes*/>
+std::array<$u32, max_k * 5 /* different block sizes */ * 2 /* addressing modes*/>
     unroll_factors_64 = {
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  1, a = pow2
     1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // w =  2, a = pow2
@@ -67,7 +67,7 @@ struct blocked_bloomfilter {
   using hash_value_t = $u32;
   using word_t = Tw;
 
-  static constexpr u1 early_out = true; // TODO make configurable and also adaptive
+  static constexpr u1 early_out = false; // TODO make configurable and also adaptive
 
 
   template<
@@ -261,6 +261,7 @@ struct blocked_bloomfilter {
     switch (addr) {
       case dtl::block_addressing::POWER_OF_TWO: _u<w, s, k, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
       case dtl::block_addressing::MAGIC:        _u<w, s, k, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::DYNAMIC:      /* must not happen */                                           break;
     }
   }
 
@@ -381,7 +382,7 @@ struct blocked_bloomfilter {
 
   //===----------------------------------------------------------------------===//
   /// Returns the name of the Bloom filter instance including the most
-  /// important parameters (in JSON format).
+  /// important parameters (in JSON).
   std::string
   name() {
     return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
@@ -402,6 +403,9 @@ struct blocked_bloomfilter {
   // TODO memoization in a global file / tool to calibrate
   static void
   calibrate() __attribute__ ((noinline)) {
+    if (early_out) {
+      std::cerr << "WARNING: Using 'early out' in combination with SIMD unrolling may cause performance degradations!" << std::endl;
+    }
     std::cerr << "Running calibration..." << std::endl;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -514,27 +518,6 @@ struct blocked_bloomfilter {
     }
   }
   //===----------------------------------------------------------------------===//
-
-
-//  //===----------------------------------------------------------------------===//
-//  void
-//  print() const noexcept {
-//    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-//    std::cout << "-- Bloom filter dump --" << std::endl;
-//    $u64 i = 0;
-//    for (const word_t word : filter_data) {
-//      std::cout << std::bitset<word_bitlength>(word);
-//      i++;
-//      if (i % (128 / word_bitlength) == 0) {
-//        std::cout << std::endl;
-//      }
-//      else {
-//        std::cout << " ";
-//      }
-//    }
-//    std::cout << std::endl;
-//  }
-//  //===----------------------------------------------------------------------===//
 
 };
 

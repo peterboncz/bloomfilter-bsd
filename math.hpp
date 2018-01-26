@@ -272,7 +272,7 @@ namespace ct {
   template<size_t n>
   struct log_2{
     enum : size_t {
-      value = 8 * sizeof(size_t) - dtl::bits::lz_count(n) - 1
+      value = 8 * sizeof(size_t) - lz_count_u64<n>::value - 1
     };
   };
 

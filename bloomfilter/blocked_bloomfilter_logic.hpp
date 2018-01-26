@@ -35,7 +35,6 @@ struct dispatch {
   using vec_t = vec<key_t, vector_len>;
   using mask_t = typename vec<key_t, vector_len>::mask;
 
-//  __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
@@ -137,7 +136,7 @@ template<
     template<typename Ty, u32 i> class Hasher,      // the hash function family to use
     typename Tw,                  // the word type to use for the bitset
     u32 Wc = 2,                   // the number of words per block
-    u32 s = Wc,                   // the word type to use for the bitset
+    u32 s = Wc,                   // the number of sectors
     u32 K = 8,                    // the number of hash functions to use
     dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
     u1 early_out = false
@@ -178,14 +177,14 @@ struct blocked_bloomfilter_logic {
   // The maximum size of a filter instance.
   static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME remove limitation
 
-  // The first hash function to use inside the block. Note: 0 is used for block _addressing
+  // The first hash function to use inside the block. Note: 0 is used for block addressing
   static constexpr u32 block_hash_fn_idx = 1;
 
   // The block type. Determined based on word and sector counts.
   using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
                                                            Hasher, hash_value_t, early_out, block_hash_fn_idx>::type;
 
-  // The block _addressing logic (either MAGIC or POWER_OF_TWO).
+  // The block addressing logic (either MAGIC or POWER_OF_TWO).
   using addr_t = block_addressing_logic<block_addressing>;
   //===----------------------------------------------------------------------===//
 
@@ -203,7 +202,7 @@ struct blocked_bloomfilter_logic {
   /// desired length. The function get_length() returns the actual length.
   explicit
   blocked_bloomfilter_logic(const size_t desired_length)
-      : addr(desired_length, block_bitlength) {
+      : addr((desired_length + (block_bitlength - 1)) / block_bitlength) {
     if (addr.get_block_cnt() * block_bitlength > max_m)
       throw std::invalid_argument("Length must not exceed 'max_m'.");
   }
@@ -235,7 +234,6 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Batch Insert
   //===----------------------------------------------------------------------===//
-//  __forceinline__ __host__
   void
   batch_insert(word_t* __restrict filter_data,
                const key_t* keys, u32 key_cnt) noexcept {
@@ -249,7 +247,6 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
-//  __forceinline__ __host__ __device__
   u1
   contains(const word_t* __restrict filter_data,
            const key_t key) const noexcept {
@@ -291,9 +288,7 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Batch-wise Contains
   //===----------------------------------------------------------------------===//
-//  template<u64 vector_len = dtl::simd::lane_count<word_t>>
   template<u64 vector_len>
-//  __forceinline__
   $u64
   batch_contains(const word_t* __restrict filter_data,
                  const key_t* __restrict keys, u32 key_cnt,
@@ -305,11 +300,20 @@ struct blocked_bloomfilter_logic {
   }
 
 
+  //===----------------------------------------------------------------------===//
   /// Returns (actual) length in bits.
-//  __forceinline__
   size_t
   get_length() const noexcept {
     return addr.get_block_cnt() * block_bitlength;
+  }
+  //===----------------------------------------------------------------------===//
+
+
+  //===----------------------------------------------------------------------===//
+  /// Returns (actual) length in number of words.
+  size_t
+  word_cnt() const noexcept {
+    return addr.get_block_cnt() * word_cnt_per_block;
   }
   //===----------------------------------------------------------------------===//
 

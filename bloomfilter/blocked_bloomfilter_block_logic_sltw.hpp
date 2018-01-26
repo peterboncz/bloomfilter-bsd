@@ -48,10 +48,6 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   // Static part
   //===----------------------------------------------------------------------===//
-// TODO goes to multisector_block
-//  static constexpr u32 sector_cnt = s;
-//  static_assert(dtl::is_power_of_two(sector_cnt), "Parameter 'sector_cnt' must be a power of two.");
-//  static constexpr u32 sector_cnt_log2 = dtl::ct::log_2<sector_cnt>::value;
 
   static constexpr u32 word_cnt_log2 = dtl::ct::log_2<word_cnt>::value;
   static constexpr u32 word_cnt_log2_mask = (1u << word_cnt_log2) - 1;
@@ -59,7 +55,6 @@ struct multiword_sector {
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
   static constexpr u32 word_bitlength_log2 = dtl::ct::log_2<word_bitlength>::value;
   static constexpr u32 word_bitlength_log2_mask = (1u << word_bitlength_log2) - 1;
-
 
 
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
@@ -72,7 +67,6 @@ struct multiword_sector {
 
   static constexpr u1 rehash = remaining_hash_bit_cnt < hash_bit_cnt_per_k;
   static constexpr u32 remaining_hash_bit_cnt_after_rehash = rehash ? hash_value_bitlength : remaining_hash_bit_cnt;
-
   //===----------------------------------------------------------------------===//
 
 

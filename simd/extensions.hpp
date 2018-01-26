@@ -22,6 +22,16 @@ namespace simd {
 template<typename primitive_t, typename vector_t, typename argument_t>
 struct mulhi_u32 : dtl::simd::vector_fn<primitive_t, vector_t, argument_t> {};
 
+#if !defined(__AVX2__)
+template<>
+struct mulhi_u32<$u32, $u32, $u32> : dtl::simd::vector_fn<$u32, $u32, $u32> {
+  __forceinline__
+  $u32 operator()(const $u32& a, const $u32& b) const noexcept {
+    return dtl::mulhi_u32(a, b);
+  }
+};
+#endif
+
 #if defined(__AVX2__)
 template<>
 struct mulhi_u32<$u32, __m256i, __m256i> : dtl::simd::vector_fn<$u32, __m256i, __m256i> {
@@ -67,7 +77,7 @@ mulhi_u32(const Tv& a, const typename Tv::scalar_type& b) {
 // Fast modulus
 //===----------------------------------------------------------------------===//
 
-template<typename Tv>
+template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
 __forceinline__
 static Tv
 fast_mod_u32(const Tv& dividend, const fast_divisor_u32_t& divisor) {

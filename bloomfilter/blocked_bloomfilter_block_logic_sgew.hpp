@@ -366,7 +366,6 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-//  static auto
   static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
