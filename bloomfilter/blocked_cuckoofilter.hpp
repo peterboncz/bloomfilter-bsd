@@ -572,27 +572,6 @@ struct blocked_cuckoofilter {
   }
   //===----------------------------------------------------------------------===//
 
-
-//  //===----------------------------------------------------------------------===//
-//  void
-//  print() const noexcept {
-//    constexpr u32 word_bitlength = sizeof(word_t) * 8;
-//    std::cout << "-- filter dump --" << std::endl;
-//    $u64 i = 0;
-//    for (const word_t word : filter_data) {
-//      std::cout << std::bitset<word_bitlength>(word);
-//      i++;
-//      if (i % (128 / word_bitlength) == 0) {
-//        std::cout << std::endl;
-//      }
-//      else {
-//        std::cout << " ";
-//      }
-//    }
-//    std::cout << std::endl;
-//  }
-//  //===----------------------------------------------------------------------===//
-
 };
 
 

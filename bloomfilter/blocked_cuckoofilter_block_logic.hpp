@@ -105,7 +105,6 @@ struct blocked_cuckoofilter_block_logic {
       old_tag = table_t::insert_tag_relocate(block_ptr, current_idx, current_tag);
       if (old_tag == table_t::null_tag) { return; } // successfully inserted
       if (old_tag == table_t::overflow_tag) { return; } // hit an overflowed bucket (always return true)
-//      std::cout << ".";
       current_tag = old_tag;
       current_idx = get_alternative_bucket_idx(current_idx, current_tag);
     }

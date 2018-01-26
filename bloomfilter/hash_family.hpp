@@ -199,8 +199,6 @@ struct mul32 {
 
 
 } // namespace dyn
-
-
 } // namespace hash
 
 

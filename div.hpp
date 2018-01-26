@@ -7,7 +7,7 @@
 
 //#include "immintrin.h"
 
-// TODO remove dependency
+// TODO remove dependency (libdivide is only used to find magic numbers)
 #include "thirdparty/libdivide/libdivide.h"
 
 

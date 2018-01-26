@@ -46,7 +46,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
-  const size_t block_cnt; // the number of blocks
+  const size_t block_cnt;      // the number of blocks
   const size_t block_cnt_log2; // the number of bits required to address the individual blocks
   const size_t block_cnt_mask;
   const dtl::fast_divisor_u32_t fast_divisor;
@@ -109,7 +109,6 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__
   dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_block_idxs(const Tv& hash_value) const noexcept {
-//    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
     const auto h = hash_value;
     const auto block_idx = dtl::fast_mod_u32(h, fast_divisor);
     return block_idx;
@@ -122,7 +121,6 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__ __device__
   uint32_t
   get_required_addressing_bits() const noexcept {
-//    return block_cnt_log2;
     return hash_value_bitlength;
   }
   //===----------------------------------------------------------------------===//
@@ -252,6 +250,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
   }
   //===----------------------------------------------------------------------===//
 
+
   //===----------------------------------------------------------------------===//
   // Members
   //===----------------------------------------------------------------------===//
@@ -263,7 +262,6 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
   //===----------------------------------------------------------------------===//
 
 
-  explicit
   block_addressing_logic(const std::size_t desired_block_cnt,
                          const block_addressing enforce_addr_mode = block_addressing::DYNAMIC) noexcept
       : addr_mode(enforce_addr_mode == block_addressing::DYNAMIC ? determine_addressing_mode(desired_block_cnt) : enforce_addr_mode),
@@ -275,6 +273,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
   block_addressing_logic(block_addressing_logic&&) noexcept = default;
 
   ~block_addressing_logic() noexcept = default;
+
 
   //===----------------------------------------------------------------------===//
   /// Returns the number of blocks.

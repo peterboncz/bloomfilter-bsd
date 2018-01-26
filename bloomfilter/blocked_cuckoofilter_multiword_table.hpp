@@ -193,7 +193,6 @@ struct blocked_cuckoofilter_multiword_table {
     }
     // Couldn't find an empty place.
     // Relocate existing tag.
-//    uint32_t rnd_tag_idx = static_cast<uint32_t>(std::rand()) % tags_per_bucket;
     uint32_t rnd_tag_idx = static_cast<uint32_t>(dtl::this_thread::rand32()) % tags_per_bucket;
     return write_tag(block_ptr, bucket_idx, rnd_tag_idx, tag);
   }
