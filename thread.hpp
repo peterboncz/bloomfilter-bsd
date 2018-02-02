@@ -77,6 +77,7 @@ random_seed() {
 static thread_local std::mt19937 rand32(random_seed());
 static thread_local std::mt19937_64 rand64(random_seed());
 
+
 /// pins the current thread to the specified CPU(s)
 static void
 set_cpu_affinity(const dtl::cpu_mask& cpu_mask) {
@@ -84,12 +85,12 @@ set_cpu_affinity(const dtl::cpu_mask& cpu_mask) {
   CPU_ZERO(&mask);
   // convert bitset to CPU mask
   for (auto it = dtl::on_bits_begin(cpu_mask);
-       it!=dtl::on_bits_end(cpu_mask);
+       it != dtl::on_bits_end(cpu_mask);
        it++) {
     CPU_SET(*it, &mask);
   }
   i32 result = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
-  if (result!=0) {
+  if (result != 0) {
     std::cout << "Failed to set CPU affinity." << std::endl;
   }
 }
@@ -99,9 +100,9 @@ static void
 set_cpu_affinity(u32 cpu_id) {
   cpu_set_t mask;
   CPU_ZERO(&mask);
-  CPU_SET(cpu_id%std::thread::hardware_concurrency(), &mask);
+  CPU_SET(cpu_id % std::thread::hardware_concurrency(), &mask);
   i32 result = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
-  if (result!=0) {
+  if (result != 0) {
     std::cout << "Failed to set CPU affinity." << std::endl;
   }
 }
@@ -122,7 +123,7 @@ get_cpu_affinity() {
   cpu_set_t mask;
   CPU_ZERO(&mask);
   i32 result = sched_getaffinity(0, sizeof(mask), &mask);
-  if (result!=0) {
+  if (result != 0) {
     std::cout << "Failed to determine CPU affinity." << std::endl;
   }
   // convert c-style mask to std::bitset
@@ -131,12 +132,15 @@ get_cpu_affinity() {
   return bm;
 }
 
+
 namespace detail {
+
 
 // used to assign unique ids
 static std::atomic<$u64> thread_cntr(0);
 static thread_local $u64 uid = ~0ull;
 static thread_local $u64 id = ~0ull;
+
 
 static void
 init(u32 thread_id, std::function<void()> fn) {
@@ -150,6 +154,7 @@ init(u32 thread_id, std::function<void()> fn) {
   fn();
 };
 
+
 } // namespace detail
 
 
@@ -159,11 +164,13 @@ get_id() {
   return detail::id;
 }
 
+
 /// returns the unique id of the current thread
 static u64
 get_uid() {
   return detail::uid;
 }
+
 
 } // namespace this_thread
 
@@ -177,7 +184,7 @@ thread(u32 thread_id, std::function<void()> fn) {
 /// spawn a new thread
 template<typename Fn, typename... Args>
 static std::thread
-thread(u32 thread_id, Fn&& fn, Args&& ... args) {
+thread(u32 thread_id, Fn&& fn, Args&&... args) {
   return std::thread(dtl::this_thread::detail::init, thread_id,
                      std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...));
 }
@@ -240,12 +247,12 @@ run_in_parallel(std::function<void(u32 thread_id)> fn,
   const auto affinity_saved = dtl::this_thread::get_cpu_affinity();
 
   std::vector<$u32> map;
-  for (auto it = cpu_mask.on_bits_begin(); it!=cpu_mask.on_bits_end(); it++) {
+  for (auto it = cpu_mask.on_bits_begin(); it != cpu_mask.on_bits_end(); it++) {
     map.push_back(*it);
   }
 
   auto cpu_map = [&](u32 thread_id) {
-    return map[thread_id%map.size()];
+    return map[thread_id % map.size()];
   };
 
   auto thread_fn = [&cpu_map](u32 thread_id, std::function<void(u32 thread_id)> fn) {
