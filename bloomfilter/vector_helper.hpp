@@ -19,6 +19,7 @@ template<typename Tsrc, typename Tdst, u64 n> // the vector length
 struct vector_convert {};
 
 
+/// "convert identity"
 template<u64 n> // the vector length
 struct vector_convert<uint32_t, uint32_t, n> {
   __forceinline__
@@ -29,6 +30,7 @@ struct vector_convert<uint32_t, uint32_t, n> {
 };
 
 
+/// convert vec<u32> to vec<u64>
 template<u64 n> // the vector length
 struct vector_convert<uint32_t, uint64_t, n> {
   __forceinline__
@@ -69,6 +71,7 @@ struct vector_convert<uint32_t, uint64_t, n> {
 
 //===----------------------------------------------------------------------===//
 // TODO should be part of dtl::vec
+/// Gather vec<Tp> from vec<Ti> indexes.
 template<
     typename Tp, // the primitive type to load
     typename Ti, // the index type
@@ -76,10 +79,12 @@ template<
 >
 struct vector_gather {};
 
+
+/// Gather vec<u32> from vec<u32> indexes.
 template<u64 n> // the vector length
 struct vector_gather<uint32_t, uint32_t, n> {
   __forceinline__ static
-      vec<uint32_t, n>
+  vec<uint32_t, n>
   gather(const u32* const base_addr,
          const vec<uint32_t, n>& idxs) noexcept {
     vec<uint32_t, n> result;
@@ -116,10 +121,11 @@ struct vector_gather<uint32_t, uint32_t, n> {
 
 };
 
+/// Gather vec<u64> from vec<u32> indexes.
 template<u64 n> // the vector length
 struct vector_gather<uint64_t, uint32_t, n> {
   __forceinline__ static
-      vec<uint64_t, n>
+  vec<uint64_t, n>
   gather(const u64* const base_addr,
          const vec<uint32_t, n>& idxs) noexcept {
     vec<uint64_t, n> result;
@@ -156,11 +162,11 @@ struct vector_gather<uint64_t, uint32_t, n> {
 
 };
 
-
+/// Gather vec<u32> from vec<u64> absolute addresses.
 template<u64 n> // the vector length
 struct vector_gather<uint32_t, uint64_t, n> {
   __forceinline__ static
-      vec<uint32_t, n>
+  vec<uint32_t, n>
   gather(const vec<uint64_t, n>& idxs) noexcept {
     vec<uint32_t, n> result;
 
@@ -195,10 +201,11 @@ struct vector_gather<uint32_t, uint64_t, n> {
 };
 
 
+/// Gather vec<u64> from vec<u64> absolute addresses.
 template<u64 n> // the vector length
 struct vector_gather<uint64_t, uint64_t, n> {
   __forceinline__ static
-      vec<uint64_t, n>
+  vec<uint64_t, n>
   gather(const vec<uint64_t, n>& addrs) noexcept {
     vec<uint64_t, n> result;
 
