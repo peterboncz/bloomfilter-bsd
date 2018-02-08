@@ -288,7 +288,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
       case block_addressing::DYNAMIC: // must not happen
         break;
     }
-    // unreachable
+    __builtin_unreachable();
   }
   //===----------------------------------------------------------------------===//
 
@@ -306,7 +306,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
       case block_addressing::DYNAMIC: // must not happen
         break;
     }
-    // unreachable
+    __builtin_unreachable();
   }
   //===----------------------------------------------------------------------===//
 
@@ -325,7 +325,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
       case block_addressing::DYNAMIC: // must not happen
         break;
     }
-    // unreachable
+    __builtin_unreachable();
   }
   //===----------------------------------------------------------------------===//
 
@@ -343,7 +343,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
       case block_addressing::DYNAMIC: // must not happen
         break;
     }
-    // unreachable
+    __builtin_unreachable();
   }
   //===----------------------------------------------------------------------===//
 
