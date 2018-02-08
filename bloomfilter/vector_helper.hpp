@@ -5,13 +5,11 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/math.hpp>
-#include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
 
 namespace dtl {
 namespace internal {
-// FIXME: works for AVX2 only
 
 //===----------------------------------------------------------------------===//
 // TODO should be part of dtl::vec

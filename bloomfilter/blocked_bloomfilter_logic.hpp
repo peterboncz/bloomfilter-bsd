@@ -9,6 +9,7 @@
 #include <dtl/dtl.hpp>
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
+#include <dtl/simd.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
@@ -46,7 +47,9 @@ struct dispatch {
 
     // Determine the number of keys that need to be probed sequentially, due to alignment
     u64 required_alignment_bytes = vec_t::byte_alignment;
-    u64 t = dtl::mem::is_aligned(reader)  // should always be true
+    u1 is_aligned = (reinterpret_cast<uintptr_t>(reader) % alignof(key_t)) == 0; // TODO use dtl instead
+//    u1 is_aligned = dtl::mem::is_aligned(reader)
+    u64 t = is_aligned  // should always be true
             ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
             : key_cnt;
     u64 unaligned_key_cnt = std::min(static_cast<$u64>(key_cnt), t);
