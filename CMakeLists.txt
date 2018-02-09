@@ -3,7 +3,7 @@ project(dtl)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
 
-include_directories(SYTEM ../)
+include_directories(SYSTEM ../)
 
 add_subdirectory(simd)
 #add_subdirectory(storage)
@@ -64,6 +64,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        bloomfilter_logic/old/blocked_bloomfilter_block_logic_u64_w8.cpp
         bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
         bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
+        bloomfilter/blocked_bloomfilter_tune.hpp
+        bloomfilter/blocked_bloomfilter_tune_impl.hpp
         bloomfilter/old/bloomfilter_hn.hpp
         bloomfilter/old/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp

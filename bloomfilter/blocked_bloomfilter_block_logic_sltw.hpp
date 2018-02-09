@@ -19,6 +19,7 @@
 
 namespace dtl {
 
+namespace {
 
 //===----------------------------------------------------------------------===//
 // Recursive template to work with multi-word sectors.
@@ -383,6 +384,8 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
 
 };
 
+
+} // anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // Recursive template to work with multiple multi-word sectors.

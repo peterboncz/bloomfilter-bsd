@@ -20,6 +20,7 @@
 
 namespace dtl {
 
+namespace {
 
 //===----------------------------------------------------------------------===//
 // Recursive template to compute a search mask with k bits set.
@@ -190,6 +191,7 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 };
 //===----------------------------------------------------------------------===//
 
+} // anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // Recursive template to work with multi-word blocks.

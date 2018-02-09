@@ -18,7 +18,7 @@
 
 
 namespace dtl {
-namespace internal {
+namespace internal { // TODO should be in bloom filter namespace
 
 //===----------------------------------------------------------------------===//
 // Batch-wise Contains (SIMD)
@@ -35,6 +35,8 @@ struct dispatch {
   using vec_t = vec<key_t, vector_len>;
   using mask_t = typename vec<key_t, vector_len>::mask;
 
+
+  __attribute__ ((__noinline__))
   static $u64
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
