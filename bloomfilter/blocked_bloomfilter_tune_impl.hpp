@@ -5,6 +5,7 @@
 #include <random>
 
 #include <dtl/dtl.hpp>
+#include <dtl/thread.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_tune.hpp>
@@ -173,7 +174,18 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
         blocked_bloomfilter<word_t> bbf(m , c.k, c.word_cnt_per_block, c.sector_cnt, tune_mock);
 
         // Allocate memory.
-        std::vector<word_t, dtl::mem::numa_allocator<word_t>> filter_data(bbf.size(), 0); // TODO how to pass different allocator (for KNL/HBM)
+        dtl::mem::allocator_config alloc_config = dtl::mem::allocator_config::local();
+        if (dtl::mem::hbm_available()) {
+          // Use HBM if available
+          const auto cpu_id = dtl::this_thread::get_cpu_affinity().find_first();
+          const auto node_id = dtl::mem::get_node_of_cpu(cpu_id);
+          const auto hbm_node_id = dtl::mem::get_nearest_hbm_node(node_id);
+          alloc_config = dtl::mem::allocator_config::on_node(hbm_node_id);
+        }
+
+        dtl::mem::numa_allocator<word_t> alloc(alloc_config);
+        std::vector<word_t, dtl::mem::numa_allocator<word_t>>
+            filter_data(bbf.size(), 0, alloc); // TODO how to pass different allocator (for KNL/HBM)
 
         // Note: No need to insert elements, as the BBF is branch-free.
 
