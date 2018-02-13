@@ -6,6 +6,7 @@
 #endif
 
 #include "adept.hpp"
+#include <x86intrin.h>
 
 namespace dtl {
 namespace simd {

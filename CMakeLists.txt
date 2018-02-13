@@ -111,6 +111,5 @@ set(SOURCE_FILES ${SOURCE_FILES}
         thirdparty/libdivide/libdivide.h
         )
 
-
 add_library(dtl ${SOURCE_FILES})
-target_include_directories(dtl PUBLIC . )
+target_include_directories(dtl PUBLIC ..)

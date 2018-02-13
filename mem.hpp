@@ -464,7 +464,7 @@ struct numa_allocator {
   template<typename T>
   static T* malloc_huge(u64 n) {
     u64 huge_page_size = 2ull * 1024 * 1024;
-    u64 byte_cnt = n * sizeof(T);
+    $u64 byte_cnt = n * sizeof(T);
     if (byte_cnt < huge_page_size) {
       void* p = malloc(byte_cnt);
       return reinterpret_cast<T*>(p);
