@@ -115,13 +115,15 @@ struct array_info<std::array<T, N>> {
 #endif
 
 #if defined(NDEBUG)
-#if !defined(__forceinline__)
-  #define __forceinline__ inline __attribute__((always_inline))
+// Release build.
+  #if !defined(__forceinline__) && !(defined(__CUDACC__) || defined(__CUDA_ARCH__) || defined(__CUDA_LIBDEVICE__))
+    #define __forceinline__ inline __attribute__((always_inline))
   #endif
 #else
-#if !defined(__forceinline__)
-#define __forceinline__
-#endif
+  // Debug build. __forceinline__ does nothing
+  #if !defined(__forceinline__)
+    #define __forceinline__
+  #endif
 #endif
 
 #if defined(NDEBUG)

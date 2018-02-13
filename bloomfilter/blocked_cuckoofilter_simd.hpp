@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
+#include <dtl/bits.hpp>
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
@@ -47,7 +48,6 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
   }
 
   // process the aligned keys vectorized
-//  constexpr std::size_t vector_len = 64;
   using key_vt = vec<key_t, vector_len>;
   using ptr_vt = vec<$u64, vector_len>;
 
@@ -108,18 +108,17 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
         const r256 tags = t[i];
         const r256 bucket_content0 = b[i];
         const r256 bucket_content1 = ba[i];
-        const r256 t0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i,tags.i) };
-        const r256 o0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i,overflow_tag.i) };
-        const r256 t1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i,tags.i) };
-        const r256 o1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i,overflow_tag.i) };
-        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i,o0.i), _mm256_or_si256(t1.i,o1.i)) };
+        const r256 t0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i, tags.i) };
+        const r256 o0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i, overflow_tag.i) };
+        const r256 t1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i, tags.i) };
+        const r256 o1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i, overflow_tag.i) };
+        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i, o0.i), _mm256_or_si256(t1.i, o1.i)) };
         const r256 t3 = {.i = _mm256_cmpeq_epi32(t2.i, _mm256_setzero_si256()) };
         const auto mt = _mm256_movemask_ps(t3.s) ^ 0b11111111u;
-//        std::cout << std::bitset<4>(mt) << " ";
         const r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[mt].i) } };
         const r256 pos_vec = {.i = _mm256_add_epi32(offset_vec.i, match_pos_vec.i) };
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(match_writer), pos_vec.i);
-        match_writer += _popcnt32(mt);
+        match_writer += bits::pop_count(mt);
         offset_vec.i = _mm256_add_epi32(offset_vec.i, _mm256_set1_epi32(8));
       }
 
@@ -174,18 +173,17 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
         const r256 tags = t[i];
         const r256 bucket_content0 = b[i];
         const r256 bucket_content1 = ba[i];
-        const r256 t0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i,tags.i) };
-        const r256 o0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i,overflow_tag.i) };
-        const r256 t1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i,tags.i) };
-        const r256 o1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i,overflow_tag.i) };
-        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i,o0.i), _mm256_or_si256(t1.i,o1.i)) };
+        const r256 t0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i, tags.i) };
+        const r256 o0 = {.i = _mm256_cmpeq_epi8(bucket_content0.i, overflow_tag.i) };
+        const r256 t1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i, tags.i) };
+        const r256 o1 = {.i = _mm256_cmpeq_epi8(bucket_content1.i, overflow_tag.i) };
+        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i, o0.i), _mm256_or_si256(t1.i, o1.i)) };
         const r256 t3 = {.i = _mm256_cmpeq_epi32(t2.i, _mm256_setzero_si256()) };
         const auto mt = _mm256_movemask_ps(t3.s) ^ 0b11111111u;
-//        std::cout << std::bitset<4>(mt) << " ";
         const r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[mt].i) } };
         const r256 pos_vec = {.i = _mm256_add_epi32(offset_vec.i, match_pos_vec.i) };
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(match_writer), pos_vec.i);
-        match_writer += _popcnt32(mt);
+        match_writer += bits::pop_count(mt);
         offset_vec.i = _mm256_add_epi32(offset_vec.i, _mm256_set1_epi32(8));
       }
 
@@ -193,7 +191,6 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
     }
 
   }
-
 
   // process remaining keys sequentially
   for (; read_pos < key_cnt; read_pos++) {
@@ -291,18 +288,18 @@ simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word
         const r256 tags = t[i];
         const r256 bucket_content0 = b[i];
         const r256 bucket_content1 = ba[i];
-        const r256 t0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,tags.i) };
-        const r256 o0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,overflow_tag.i) };
-        const r256 t1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,tags.i) };
-        const r256 o1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,overflow_tag.i) };
-        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i,o0.i), _mm256_or_si256(t1.i,o1.i)) };
+        const r256 t0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i, tags.i) };
+        const r256 o0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i, overflow_tag.i) };
+        const r256 t1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i, tags.i) };
+        const r256 o1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i, overflow_tag.i) };
+        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i, o0.i), _mm256_or_si256(t1.i, o1.i)) };
         const r256 t3 = {.i = _mm256_cmpeq_epi64(t2.i, _mm256_setzero_si256()) };
         const auto mt = _mm256_movemask_pd(t3.d) ^ 0b1111;
 //        std::cout << std::bitset<4>(mt) << " ";
         const r128 match_pos_vec = { .i = dtl::simd::lut_match_pos_4bit[mt].i };
         const r128 pos_vec = {.i = _mm_add_epi32(offset_vec.i, match_pos_vec.i) };
         _mm_storeu_si128(reinterpret_cast<__m128i*>(match_writer), pos_vec.i);
-        match_writer += _popcnt32(mt);
+        match_writer += bits::pop_count(mt);
         offset_vec.i = _mm_add_epi32(offset_vec.i, _mm_set1_epi32(4));
       }
 
@@ -352,25 +349,23 @@ simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word
         const r256 tags = t[i];
         const r256 bucket_content0 = b[i];
         const r256 bucket_content1 = ba[i];
-        const r256 t0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,tags.i) };
-        const r256 o0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i,overflow_tag.i) };
-        const r256 t1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,tags.i) };
-        const r256 o1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i,overflow_tag.i) };
-        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i,o0.i), _mm256_or_si256(t1.i,o1.i)) };
+        const r256 t0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i, tags.i) };
+        const r256 o0 = {.i = _mm256_cmpeq_epi16(bucket_content0.i, overflow_tag.i) };
+        const r256 t1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i, tags.i) };
+        const r256 o1 = {.i = _mm256_cmpeq_epi16(bucket_content1.i, overflow_tag.i) };
+        const r256 t2 = {.i = _mm256_or_si256(_mm256_or_si256(t0.i, o0.i), _mm256_or_si256(t1.i, o1.i)) };
         const r256 t3 = {.i = _mm256_cmpeq_epi64(t2.i, _mm256_setzero_si256()) };
         const auto mt = _mm256_movemask_pd(t3.d) ^ 0b1111;
-//        std::cout << std::bitset<4>(mt) << " ";
         const r128 match_pos_vec = { .i = dtl::simd::lut_match_pos_4bit[mt].i };
         const r128 pos_vec = {.i = _mm_add_epi32(offset_vec.i, match_pos_vec.i) };
         _mm_storeu_si128(reinterpret_cast<__m128i*>(match_writer), pos_vec.i);
-        match_writer += _popcnt32(mt);
+        match_writer += bits::pop_count(mt);
         offset_vec.i = _mm_add_epi32(offset_vec.i, _mm_set1_epi32(4));
       }
 
       reader += vector_len;
     }
   }
-
 
   // process remaining keys sequentially
   for (; read_pos < key_cnt; read_pos++) {

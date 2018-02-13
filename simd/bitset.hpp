@@ -20,8 +20,6 @@ struct bitset : public dtl::bitset<Nb> {
     const auto bit_idx = pos & 0b111111ull;
     const auto word_addr = bitset_addr + offsetof(bitset, _M_w) + (word_idx << 3);
     const auto word = dtl::gather<$u64>(word_addr);
-//    word.print(std::cout);
-//    std::cout << std::endl;
     const auto test_mask = v<$u64, N>::make(1) << bit_idx;
     return (word & test_mask) != 0;
   }
