@@ -179,9 +179,6 @@ struct blocked_bloomfilter_logic {
   // The number of hash functions to use.
   static constexpr u32 k = K;
 
-  // The maximum size of a filter instance.
-  static constexpr u64 max_m = 256ull * 1024 * 1024 * 8; // FIXME remove limitation
-
   // The first hash function to use inside the block. Note: 0 is used for block addressing
   static constexpr u32 block_hash_fn_idx = 1;
 
@@ -207,10 +204,7 @@ struct blocked_bloomfilter_logic {
   /// desired length. The function get_length() returns the actual length.
   explicit
   blocked_bloomfilter_logic(const size_t desired_length)
-      : addr((desired_length + (block_bitlength - 1)) / block_bitlength) {
-    if (addr.get_block_cnt() * block_bitlength > max_m)
-      throw std::invalid_argument("Length must not exceed 'max_m'.");
-  }
+      : addr((desired_length + (block_bitlength - 1)) / block_bitlength) { }
 
   /// Copy c'tor
   blocked_bloomfilter_logic(const blocked_bloomfilter_logic&) = default;

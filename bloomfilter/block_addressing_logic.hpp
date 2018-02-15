@@ -1,5 +1,8 @@
 #pragma once
 
+#include <limits>
+#include <stdexcept>
+
 #include <dtl/dtl.hpp>
 #include <dtl/div.hpp>
 #include <dtl/math.hpp>
@@ -41,7 +44,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-
+  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -54,8 +57,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
 
 
   //===----------------------------------------------------------------------===//
-  /// Determines the actual block count based on the given bitlength of the Bloom filter.
-  /// Note: The actual size of the Bloom filter might be larger than the given 'bitlength'.
+  /// Determines the actual block count.
   static size_t
   determine_block_cnt(const std::size_t desired_block_cnt) {
     auto actual_block_cnt = dtl::next_cheap_magic(desired_block_cnt).divisor;
@@ -71,7 +73,14 @@ struct block_addressing_logic<block_addressing::MAGIC>
       : block_cnt(determine_block_cnt(desired_block_cnt)),
         block_cnt_log2(dtl::log_2(dtl::next_power_of_two(block_cnt))),
         block_cnt_mask(dtl::next_power_of_two(block_cnt) - 1),
-        fast_divisor(dtl::next_cheap_magic(block_cnt)) { }
+        fast_divisor(dtl::next_cheap_magic(block_cnt)) {
+    // sanity check
+    if (desired_block_cnt > max_block_cnt
+        || block_cnt < desired_block_cnt // overflow
+        || dtl::next_power_of_two(block_cnt) > max_block_cnt) {
+      throw std::logic_error("The block count must not exceed 2^32.");
+    }
+  }
 
   block_addressing_logic(const block_addressing_logic&) noexcept = default;
 
@@ -95,7 +104,6 @@ struct block_addressing_logic<block_addressing::MAGIC>
   __forceinline__ __host__ __device__
   hash_value_t
   get_block_idx(const hash_value_t hash_value) const noexcept {
-//    const auto h = hash_value >> (hash_value_bitlength - get_required_addressing_bits());
     const auto h = hash_value;
     const auto block_idx = dtl::fast_mod_u32(h, fast_divisor);
     return block_idx;
@@ -139,6 +147,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
+  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -150,8 +159,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
 
 
   //===----------------------------------------------------------------------===//
-  /// Determines the actual block count based on the given bitlength of the Bloom filter.
-  /// Note: The actual size of the Bloom filter might be larger than the given 'bitlength'.
+  /// Determines the actual block count.
   static size_t
   determine_block_cnt(const std::size_t desired_block_cnt) {
     auto actual_block_cnt = dtl::next_power_of_two(desired_block_cnt);
@@ -166,7 +174,14 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
   block_addressing_logic(const std::size_t desired_block_cnt) noexcept
       : block_cnt(determine_block_cnt(desired_block_cnt)),
         block_cnt_log2(dtl::log_2(block_cnt)),
-        block_cnt_mask(block_cnt - 1) { }
+        block_cnt_mask(u64(block_cnt) - 1) {
+    // sanity check
+    if (desired_block_cnt > max_block_cnt
+        || block_cnt < desired_block_cnt // overflow
+        || dtl::next_power_of_two(block_cnt) > max_block_cnt) {
+      throw std::logic_error("The block count must not exceed 2^32.");
+    }
+  }
 
   block_addressing_logic(const block_addressing_logic&) noexcept = default;
 
@@ -220,6 +235,14 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
 };
 
 
+//===----------------------------------------------------------------------===//
+// Dynamic addressing.
+//
+// Automatically determines the addressing mode (POW2 or MAGIC) at run time
+// based on the desired block count.
+//
+// Alternatively, either POW2 or MAGIC can be enforced.
+//===----------------------------------------------------------------------===//
 template<>
 struct block_addressing_logic<block_addressing::DYNAMIC>
     : block_addressing_logic_base {
@@ -227,6 +250,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
+  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
 
 
   //===----------------------------------------------------------------------===//
@@ -266,7 +290,26 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
                          const block_addressing enforce_addr_mode = block_addressing::DYNAMIC) noexcept
       : addr_mode(enforce_addr_mode == block_addressing::DYNAMIC ? determine_addressing_mode(desired_block_cnt) : enforce_addr_mode),
         magic_addr(desired_block_cnt),
-        pow2_addr(desired_block_cnt) { }
+        pow2_addr(desired_block_cnt) {
+    // sanity check
+    if (desired_block_cnt > max_block_cnt) {
+      throw std::logic_error("The block count must not exceed 2^32.");
+    }
+    switch (addr_mode) {
+      case block_addressing::POWER_OF_TWO:
+        if (pow2_addr.block_cnt < desired_block_cnt
+            || dtl::next_power_of_two(pow2_addr.block_cnt) > max_block_cnt) {
+          throw std::logic_error("The block count must not exceed 2^32.");
+        }
+      case block_addressing::MAGIC:
+        if (magic_addr.block_cnt < desired_block_cnt
+            || dtl::next_power_of_two(magic_addr.block_cnt) > max_block_cnt) {
+          throw std::logic_error("The block count must not exceed 2^32.");
+        }
+      case block_addressing::DYNAMIC: // must not happen
+        break;
+    }
+  }
 
   block_addressing_logic(const block_addressing_logic&) noexcept = default;
 
