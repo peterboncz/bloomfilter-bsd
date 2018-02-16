@@ -100,7 +100,7 @@ fpr(u64 associativity,
     u64 tag_bitlength,
     f64 load_factor) {
 //  return (2.0 /*k=2*/ * associativity * load_factor) / (std::pow(2, tag_bitlength) - 1); // no duplicates
-  return 1 - std::pow(1 - 1 / (std::pow(2, tag_bitlength) - 1), 2.0 * associativity * load_factor); // counting - with duplicates
+  return 1 - std::pow(1.0 - 1 / (std::pow(2.0, tag_bitlength) - 1), 2.0 * associativity * load_factor); // counting - with duplicates
 }
 
 
