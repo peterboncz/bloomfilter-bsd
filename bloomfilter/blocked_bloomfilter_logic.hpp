@@ -203,7 +203,7 @@ struct blocked_bloomfilter_logic {
   /// Note, that the actual length might be (slightly) different to the
   /// desired length. The function get_length() returns the actual length.
   explicit
-  blocked_bloomfilter_logic(const size_t desired_length)
+  blocked_bloomfilter_logic(const std::size_t desired_length)
       : addr((desired_length + (block_bitlength - 1)) / block_bitlength) { }
 
   /// Copy c'tor
@@ -300,18 +300,18 @@ struct blocked_bloomfilter_logic {
 
   //===----------------------------------------------------------------------===//
   /// Returns (actual) length in bits.
-  size_t
+  std::size_t
   get_length() const noexcept {
-    return addr.get_block_cnt() * block_bitlength;
+    return u64(addr.get_block_cnt()) * block_bitlength;
   }
   //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
   /// Returns (actual) length in number of words.
-  size_t
+  std::size_t
   word_cnt() const noexcept {
-    return addr.get_block_cnt() * word_cnt_per_block;
+    return u64(addr.get_block_cnt()) * word_cnt_per_block;
   }
   //===----------------------------------------------------------------------===//
 

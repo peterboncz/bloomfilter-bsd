@@ -44,7 +44,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
+  static constexpr std::size_t max_block_cnt = 1u << 31;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -58,7 +58,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
 
   //===----------------------------------------------------------------------===//
   /// Determines the actual block count.
-  static size_t
+  static std::size_t
   determine_block_cnt(const std::size_t desired_block_cnt) {
     auto actual_block_cnt = dtl::next_cheap_magic(desired_block_cnt).divisor;
     return actual_block_cnt;
@@ -147,7 +147,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
+  static constexpr std::size_t max_block_cnt = 1u << 31;
 
   //===----------------------------------------------------------------------===//
   // Members
@@ -160,7 +160,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
 
   //===----------------------------------------------------------------------===//
   /// Determines the actual block count.
-  static size_t
+  static std::size_t
   determine_block_cnt(const std::size_t desired_block_cnt) {
     auto actual_block_cnt = dtl::next_power_of_two(desired_block_cnt);
     return actual_block_cnt;
@@ -250,7 +250,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
   using size_t = $u32;
   using hash_value_t = $u32;
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
-  static constexpr std::size_t max_block_cnt = std::numeric_limits<hash_value_t>::max();
+  static constexpr std::size_t max_block_cnt = 1u << 31;
 
 
   //===----------------------------------------------------------------------===//

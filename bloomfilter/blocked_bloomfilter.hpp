@@ -135,7 +135,7 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  blocked_bloomfilter(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt,
+  blocked_bloomfilter(const std::size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt,
                       const blocked_bloomfilter_tune& tune)
       : m(m), k(k), word_cnt_per_block(word_cnt_per_block), sector_cnt(sector_cnt), tune(tune) {
 
