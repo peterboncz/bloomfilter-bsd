@@ -3,6 +3,7 @@
 #include <atomic>
 #include <bitset>
 #include <chrono>
+#include <mutex>
 #include <condition_variable>
 #include <iostream>
 #include <random>

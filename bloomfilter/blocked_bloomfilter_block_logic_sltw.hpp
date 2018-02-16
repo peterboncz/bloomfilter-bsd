@@ -257,7 +257,6 @@ struct multiword_sector {
 
     // Typedef the vector types
     using key_vt = vec<key_t, n>;
-    using hash_value_vt = vec<hash_value_t, n>;
     using word_vt = vec<word_t, n>;
 
     hash_vals = rehash ? hasher<key_vt, hash_fn_idx>::hash(keys) : hash_vals;
@@ -560,11 +559,6 @@ struct multisector_block {
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& block_start_word_idxs,
            const typename vec<word_t,n>::mask is_contained_in_block_mask) noexcept {
-
-    // Typedef the vector types
-    using key_vt = vec<key_t, n>;
-    using hash_value_vt = vec<hash_value_t, n>;
-    using word_vt = vec<word_t, n>;
 
     // Sector pointers
     auto sector_start_word_idxs = block_start_word_idxs + (word_cnt_per_sector * current_sector_idx);

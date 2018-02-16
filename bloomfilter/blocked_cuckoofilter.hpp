@@ -81,10 +81,10 @@ struct blocked_cuckoofilter_api_adapter {
 
   //===----------------------------------------------------------------------===//
   __forceinline__ __host__
-  uint64_t
+  void
   batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) {
-    return filter->batch_insert(reinterpret_cast<word_dst_t*>(filter_data),
-                                keys, key_cnt);
+    filter->batch_insert(reinterpret_cast<word_dst_t*>(filter_data),
+                         keys, key_cnt);
   }
   //===----------------------------------------------------------------------===//
 
