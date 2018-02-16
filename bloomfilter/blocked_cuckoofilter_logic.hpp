@@ -88,7 +88,7 @@ struct blocked_cuckoofilter {
 
   //===----------------------------------------------------------------------===//
   __forceinline__
-  uint64_t
+  void
   batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) const {
     for (uint32_t i = 0; i < key_cnt; i++) {
       insert(filter_data, keys[i]);
@@ -220,9 +220,9 @@ struct blocked_cuckoofilter_logic_base {
 
   //===----------------------------------------------------------------------===//
   __forceinline__ __host__
-  uint64_t
+  void
   batch_insert(word_t* __restrict filter_data, const key_t* keys, const uint32_t key_cnt) {
-    return static_cast<_derived*>(this)->filter.batch_insert(filter_data, keys, key_cnt);
+    static_cast<_derived*>(this)->filter.batch_insert(filter_data, keys, key_cnt);
   }
   //===----------------------------------------------------------------------===//
 

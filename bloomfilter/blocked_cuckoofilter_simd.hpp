@@ -56,7 +56,6 @@ simd_batch_contains_8_4(const _filter_t& filter, const typename _filter_t::word_
 
   r256 offset_vec = {.i = _mm256_set1_epi32(match_offset + read_pos) };
   const r256 overflow_tag = {.i = _mm256_set1_epi64x(-1) };
-  using mask_t = typename vec<key_t, vector_len>::mask;
   u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
 
   if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_t::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {
@@ -243,7 +242,6 @@ simd_batch_contains_16_4(const _filter_t& filter, const typename _filter_t::word
 
   r128 offset_vec = {.i = _mm_set1_epi32(match_offset + read_pos) };
   const r256 overflow_tag = {.i = _mm256_set1_epi64x(-1) };
-  using mask_t = typename vec<key_t, vector_len>::mask;
   u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
 
   if ((filter.filter.addr.get_required_addressing_bits() + filter_t::block_t::required_hash_bits) <= (sizeof(hash_value_t) * 8)) {

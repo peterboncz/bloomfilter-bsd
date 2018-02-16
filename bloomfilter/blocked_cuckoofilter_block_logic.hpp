@@ -43,7 +43,8 @@ struct blocked_cuckoofilter_block_logic {
   __forceinline__
   static uint32_t
   get_bucket_idx(const hash_value_t hash_value) {
-    return (hash_value >> (32 - table_t::bucket_addressing_bits)); //% table_t::bucket_count;
+    return table_t::bucket_addressing_bits > 0 ? (hash_value >> (32 - table_t::bucket_addressing_bits))
+                                               : 0;
   }
   //===----------------------------------------------------------------------===//
 
@@ -54,7 +55,8 @@ struct blocked_cuckoofilter_block_logic {
   __forceinline__ __host__
   static dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_bucket_idxs(const Tv& hash_values) {
-    return (hash_values >> (32 - table_t::bucket_addressing_bits)); //% table_t::bucket_count;
+    return table_t::bucket_addressing_bits > 0 ? (hash_values >> (32 - table_t::bucket_addressing_bits))
+                                               : Tv::make(0);
   }
   //===----------------------------------------------------------------------===//
 
@@ -65,7 +67,8 @@ struct blocked_cuckoofilter_block_logic {
   __forceinline__
   static uint32_t
   get_alternative_bucket_idx(const uint32_t bucket_idx, const uint32_t tag) {
-    return (bucket_idx ^ ((tag * 0x5bd1e995u) >> (32 - table_t::bucket_addressing_bits)));
+    return table_t::bucket_addressing_bits > 0 ? (bucket_idx ^ ((tag * 0x5bd1e995u) >> (32 - table_t::bucket_addressing_bits)))
+                                               : bucket_idx;
   }
   //===----------------------------------------------------------------------===//
 
@@ -77,7 +80,8 @@ struct blocked_cuckoofilter_block_logic {
   __forceinline__ __host__
   static dtl::vec<hash_value_t, dtl::vector_length<Tv>::value>
   get_alternative_bucket_idxs(const Tv& bucket_idxs, const Tv& tags) {
-    return (bucket_idxs ^ ((tags * 0x5bd1e995u) >> (32 - table_t::bucket_addressing_bits)));
+    return table_t::bucket_addressing_bits > 0 ? (bucket_idxs ^ ((tags * 0x5bd1e995u) >> (32 - table_t::bucket_addressing_bits)))
+                                               : bucket_idxs;
   }
   //===----------------------------------------------------------------------===//
 
