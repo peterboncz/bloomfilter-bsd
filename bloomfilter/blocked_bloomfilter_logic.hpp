@@ -275,7 +275,6 @@ struct blocked_bloomfilter_logic {
     // Typedef the vector types.
     using key_vt = vec<key_t, n>;
     using hash_value_vt = vec<hash_value_t, n>;
-    using word_vt = vec<word_t, n>;
 
     const hash_value_vt block_addressing_hash_vals = Hasher<key_vt, 0>::hash(keys);
     const hash_value_vt block_idxs = addr.get_block_idxs(block_addressing_hash_vals);

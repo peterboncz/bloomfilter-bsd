@@ -56,6 +56,8 @@ struct word_block {
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
   static constexpr word_t sector_mask() { return static_cast<word_t>(sector_bitlength) - 1; }
 
+  static_assert(sector_bitlength >= 8, "A sector must be at least one byte in size.");
+
   static constexpr u32 hash_bit_cnt_per_k = sector_bitlength_log2;
   static constexpr u32 k_cnt_per_hash_value = ((sizeof(hash_value_t) * 8) / hash_bit_cnt_per_k) ; // consider -1 to respect hash fn weakness in the low order bits
   static constexpr u32 k_cnt_per_sector = k / s;
@@ -397,8 +399,6 @@ struct multiword_block {
            const typename vec<word_t,n>::mask& is_contained_in_block_mask) noexcept {
 
     // Typedef the vector types
-    using key_vt = vec<key_t, n>;
-    using hash_value_vt = vec<hash_value_t, n>;
     using word_vt = vec<word_t, n>;
 
     // Load the words of interest

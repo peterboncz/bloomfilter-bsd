@@ -15,7 +15,6 @@
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_tune.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter_tune_impl.hpp>
 #include <dtl/bloomfilter/hash_family.hpp>
 
 #include <boost/math/common_factor.hpp>
@@ -23,63 +22,56 @@
 
 namespace dtl {
 
-namespace internal {
-
-//===----------------------------------------------------------------------===//
-// Check whether the given blocked bloom filter configuration is valid.
-template<u32 w, u32 s, u32 k>
-struct is_valid_bbf_config {
-  static constexpr u1 value = (k % s) == 0;
-};
-//===----------------------------------------------------------------------===//
-
-
+//namespace internal {
+//
 ////===----------------------------------------------------------------------===//
-//// Signals an invalid BBF configuration.
-//struct null_bbf {};
+//// Check whether the given blocked bloom filter configuration is valid.
+//template<u32 w, u32 s, u32 k>
+//struct is_valid_bbf_config {
+//  static constexpr u1 value = (k % s) == 0;
+//};
 ////===----------------------------------------------------------------------===//
-
-
-//===----------------------------------------------------------------------===//
-// Checks whether the given BBF configuration is valid and resolves the
-// corresponding BBF type.
-// If the configuration is invalid this resolves to 'null_bbf'.
-template<
-    typename key_t, typename word_t,
-    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out,
-    typename enable = void
->
-struct bbf_switch;
-
-template<
-    typename key_t, typename word_t,
-    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
->
-struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
-                  typename std::enable_if<is_valid_bbf_config<w, s, k>::value>::type> {
-  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, w, s, k, a, early_out>;
-};
-
-template<
-    typename key_t, typename word_t,
-    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
->
-struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
-                  typename std::enable_if<!is_valid_bbf_config<w, s, k>::value>::type> {
-//  using type = null_bbf; // invalid configuration
-  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, 1, 1, 1, dtl::block_addressing::POWER_OF_TWO, false>;
-};
-//===----------------------------------------------------------------------===//
-
-
-} // namespace internal
-
-
-//===----------------------------------------------------------------------===//
-// The global tuning instance.
-static blocked_bloomfilter_tune* blocked_bloomfilter_default_tuning =
-    new blocked_bloomfilter_tune_impl;
-//===----------------------------------------------------------------------===//
+//
+//
+//////===----------------------------------------------------------------------===//
+////// Signals an invalid BBF configuration.
+////struct null_bbf {};
+//////===----------------------------------------------------------------------===//
+//
+//
+////===----------------------------------------------------------------------===//
+//// Checks whether the given BBF configuration is valid and resolves the
+//// corresponding BBF type.
+//// If the configuration is invalid this resolves to 'null_bbf'.
+//template<
+//    typename key_t, typename word_t,
+//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out,
+//    typename enable = void
+//>
+//struct bbf_switch;
+//
+//template<
+//    typename key_t, typename word_t,
+//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
+//>
+//struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
+//                  typename std::enable_if<is_valid_bbf_config<w, s, k>::value>::type> {
+//  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, w, s, k, a, early_out>;
+//};
+//
+//template<
+//    typename key_t, typename word_t,
+//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
+//>
+//struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
+//                  typename std::enable_if<!is_valid_bbf_config<w, s, k>::value>::type> {
+////  using type = null_bbf; // invalid configuration
+//  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, 1, 1, 1, dtl::block_addressing::POWER_OF_TWO, false>;
+//};
+////===----------------------------------------------------------------------===//
+//
+//
+//} // namespace internal
 
 
 //===----------------------------------------------------------------------===//
@@ -143,9 +135,6 @@ struct blocked_bloomfilter {
 
 
   //===----------------------------------------------------------------------===//
-  blocked_bloomfilter(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt) :
-    blocked_bloomfilter(m, k, word_cnt_per_block, sector_cnt, *blocked_bloomfilter_default_tuning) {}; // delegate using default tuning instance
-
   blocked_bloomfilter(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt,
                       const blocked_bloomfilter_tune& tune)
       : m(m), k(k), word_cnt_per_block(word_cnt_per_block), sector_cnt(sector_cnt), tune(tune) {
@@ -232,15 +221,17 @@ struct blocked_bloomfilter {
   };
 
 
+  static constexpr u32 max_sector_cnt_per_word = sizeof(word_t); // a sector is at least one byte in size
+
   template<u32 w>
   static void
   _s(blocked_bloomfilter& instance, op_t op) {
     switch (instance.sector_cnt) {
       case  1: _k<w,  1>(instance, op); break;
-      case  2: _k<w,  2>(instance, op); break;
-      case  4: _k<w,  4>(instance, op); break;
-      case  8: _k<w,  8>(instance, op); break;
-      case 16: _k<w, 16>(instance, op); break;
+      case  2: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  2>::value>(instance, op); break;
+      case  4: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  4>::value>(instance, op); break;
+      case  8: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  8>::value>(instance, op); break;
+      case 16: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word), 16>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'sector_cnt' is not supported.");
     }
@@ -251,22 +242,22 @@ struct blocked_bloomfilter {
   static void
   _k(blocked_bloomfilter& instance, op_t op) {
     switch (instance.k) {
-      case  1: _a<w, s,  1>(instance, op); break;
-      case  2: _a<w, s,  2>(instance, op); break;
-      case  3: _a<w, s,  3>(instance, op); break;
-      case  4: _a<w, s,  4>(instance, op); break;
-      case  5: _a<w, s,  5>(instance, op); break;
-      case  6: _a<w, s,  6>(instance, op); break;
-      case  7: _a<w, s,  7>(instance, op); break;
-      case  8: _a<w, s,  8>(instance, op); break;
-      case  9: _a<w, s,  9>(instance, op); break;
-      case 10: _a<w, s, 10>(instance, op); break;
-      case 11: _a<w, s, 11>(instance, op); break;
-      case 12: _a<w, s, 12>(instance, op); break;
-      case 13: _a<w, s, 13>(instance, op); break;
-      case 14: _a<w, s, 14>(instance, op); break;
-      case 15: _a<w, s, 15>(instance, op); break;
-      case 16: _a<w, s, 16>(instance, op); break;
+      case  1: _a<w, s, boost::static_unsigned_max<1, s>::value>(instance, op); break;
+      case  2: _a<w, s, boost::static_unsigned_max<( 2 % s == 0 ?  2 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  3: _a<w, s, boost::static_unsigned_max<( 3 % s == 0 ?  3 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  4: _a<w, s, boost::static_unsigned_max<( 4 % s == 0 ?  4 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  5: _a<w, s, boost::static_unsigned_max<( 5 % s == 0 ?  5 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  6: _a<w, s, boost::static_unsigned_max<( 6 % s == 0 ?  6 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  7: _a<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  8: _a<w, s, boost::static_unsigned_max<( 8 % s == 0 ?  8 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  9: _a<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 10: _a<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 11: _a<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 12: _a<w, s, boost::static_unsigned_max<(12 % s == 0 ? 12 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 13: _a<w, s, boost::static_unsigned_max<(13 % s == 0 ? 13 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'k' is not supported.");
     }
@@ -305,7 +296,8 @@ struct blocked_bloomfilter {
   template<u32 w, u32 s, u32 k, dtl::block_addressing a, u32 unroll_factor>
   static void
   _o(blocked_bloomfilter& instance, op_t op) {
-    using _t = typename internal::bbf_switch<key_t, word_t, w, s, k, a, early_out>::type;
+//    using _t = typename internal::bbf_switch<key_t, word_t, w, s, k, a, early_out>::type;
+    using _t = bbf<w, s, k, a, early_out>;
     switch (op) {
       case op_t::CONSTRUCT: instance._construct_logic<_t>();           break;
       case op_t::BIND:      instance._bind_logic<_t, unroll_factor>(); break;

@@ -15,10 +15,6 @@
 namespace dtl {
 
 
-template<typename Tw>
-struct blocked_bloomfilter; // forward declaration
-
-
 namespace internal {
 
   struct blocked_bloomfilter_tune_mock : blocked_bloomfilter_tune {
@@ -40,6 +36,7 @@ namespace internal {
 } // namespace dtl
 
 //===----------------------------------------------------------------------===//
+template<typename word_t>
 struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
   // TODO memoization in a global file / tool to calibrate
@@ -52,13 +49,14 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   m;
 
 
-  $u32
+  void
   set_unroll_factor(u32 k,
                     u32 word_size,
                     u32 word_cnt_per_block,
                     u32 sector_cnt,
                     dtl::block_addressing addr_mode,
                     u32 unroll_factor) override {
+
     u1 is_sectorized = sector_cnt >= word_cnt_per_block;
     u32 sector_cnt_actual = is_sectorized ? word_cnt_per_block : 1;
     config c {k, word_size, word_cnt_per_block, sector_cnt_actual, addr_mode};
@@ -90,17 +88,14 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
                      u32 word_cnt_per_block,
                      u32 sector_cnt,
                      dtl::block_addressing addr_mode) override {
+    assert(sizeof(word_t) == word_size);
+
     u1 is_sectorized = sector_cnt >= word_cnt_per_block;
     u32 sector_cnt_actual = is_sectorized ? word_cnt_per_block : 1;
     config c {k, word_size, word_cnt_per_block, sector_cnt_actual, addr_mode};
 
-    tuning_params tp;
-    switch (c.word_size) {
-      case 4: tp = calibrate<$u32>(c); break;
-      case 8: tp = calibrate<$u64>(c); break;
-      default:
-        std::cerr << "Illegal word size: " << c.word_size << std::endl;
-    }
+    tuning_params tp = calibrate(c);
+
     m.insert(std::pair<config, tuning_params>(c, tp));
     return tp.unroll_factor;
   }
@@ -108,16 +103,12 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
   void
   tune_unroll_factor() {
-    for ($u32 word_size : { 4u, 8u } ) {
-      for ($u32 word_cnt_per_block = 1; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
-        for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
-          for ($u32 k = 1; k <= 16; k++) {
-            tune_unroll_factor(k, word_size, word_cnt_per_block, 1, block_addressing::POWER_OF_TWO);
-            tune_unroll_factor(k, word_size, word_cnt_per_block, 1, block_addressing::MAGIC);
-            if (word_cnt_per_block > 1) {
-              tune_unroll_factor(k, word_size, word_cnt_per_block, word_cnt_per_block, block_addressing::POWER_OF_TWO);
-              tune_unroll_factor(k, word_size, word_cnt_per_block, word_cnt_per_block, block_addressing::MAGIC);
-            }
+    for ($u32 word_cnt_per_block = 1; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
+      for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+        for ($u32 k = 1; k <= 16; k++) {
+          tune_unroll_factor(k, sizeof(word_t), word_cnt_per_block, 1, addr_mode);
+          if (word_cnt_per_block > 1) {
+            tune_unroll_factor(k, sizeof(word_t), word_cnt_per_block, word_cnt_per_block, addr_mode);
           }
         }
       }
@@ -127,7 +118,6 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
 
   //===----------------------------------------------------------------------===//
-  template<typename word_t>
   tuning_params
   calibrate(const config& c) {
     using key_t = $u32;
@@ -225,6 +215,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     } catch (...) {
       std::cerr<< " -> Failed to calibrate for k = " << c.k << "." << std::endl;
     }
+    return tuning_params { 0 }; // defaults to scalar code
   }
   //===----------------------------------------------------------------------===//
 

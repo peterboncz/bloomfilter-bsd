@@ -6,7 +6,6 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter.hpp>
 
 #include "immintrin.h"
 
@@ -53,7 +52,7 @@ struct blocked_bloomfilter_tune {
 
   /// Sets the SIMD unrolling factor for the given blocked Bloom filter config.
   /// Note: unrolling by 0 means -> scalar code (no SIMD)
-  virtual $u32
+  virtual void
   set_unroll_factor(u32 k,
                     u32 word_size,
                     u32 word_cnt_per_block,
