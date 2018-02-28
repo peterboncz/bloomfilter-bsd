@@ -36,16 +36,21 @@ fpr_k_partitioned(u64 m,
 f64
 fpr_blocked(u64 m,
             u64 n,
-            f64 k,
+            u64 k,
             u64 B, /* block size in bits */
-            f64 epsilon = 0.001) {
+            f64 epsilon = 0.000001) {
   $f64 f = 0;
   $f64 c = (m * 1.0) / n;
   $f64 lambda = B / c;
   boost::math::poisson_distribution<> poisson(lambda);
 
-  for ($i32 i = 0; i < 10000; i++) {
-    f += boost::math::pdf(poisson, i) * fpr(B, i, k);
+  $f64 d_sum = 0.0;
+  $u64 i = 0;
+  while ((d_sum + epsilon) < 1.0) {
+    auto d = boost::math::pdf(poisson, i);
+    d_sum += d;
+    f += d * fpr(B, i, k);
+    i++;
   }
   return f;
 }
@@ -55,7 +60,7 @@ fpr_blocked_k_partitioned(u64 m,
                           u64 n,
                           u64 k,
                           u64 B, /* block size in bits */
-                          f64 epsilon = 0.001) {
+                          f64 epsilon = 0.000001) {
   $f64 f = 0;
   $f64 c = (m * 1.0) / n;
   $f64 lambda = (B * 1.0) / c;
@@ -63,8 +68,14 @@ fpr_blocked_k_partitioned(u64 m,
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  for ($i32 i = 0; i < 1000; i++) {
-    f += boost::math::pdf(poisson, i) * fpr_k_partitioned(B, i, k);
+
+  $f64 d_sum = 0.0;
+  $u64 i = 0;
+  while ((d_sum + epsilon) < 1.0) {
+    auto d = boost::math::pdf(poisson, i);
+    d_sum += d;
+    f += d * fpr_k_partitioned(B, i, k);
+    i++;
   }
   return f;
 }
@@ -75,7 +86,7 @@ fpr_blocked_sectorized(u64 m,
                        u64 k,
                        u64 B, /* block size in bits */
                        u64 S, /* sector size in bits */
-                       f64 epsilon = 0.001) {
+                       f64 epsilon = 0.000001) {
   $f64 f = 0;
   $f64 c = (m * 1.0) / n;
   $f64 lambda = (B * 1.0) / c;
@@ -84,8 +95,14 @@ fpr_blocked_sectorized(u64 m,
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  for ($i32 i = 0; i < 1000; i++) {
-    f += boost::math::pdf(poisson, i) * std::pow(fpr(S, i, (k * 1.0)/s), s);
+
+  $f64 d_sum = 0.0;
+  $u64 i = 0;
+  while ((d_sum + epsilon) < 1.0) {
+    auto d = boost::math::pdf(poisson, i);
+    d_sum += d;
+    f += d * std::pow(fpr(S, i, (k * 1.0)/s), s);
+    i++;
   }
   return f;
 }
@@ -101,6 +118,7 @@ fpr(u64 associativity,
     f64 load_factor) {
 //  return (2.0 /*k=2*/ * associativity * load_factor) / (std::pow(2, tag_bitlength) - 1); // no duplicates
   return 1 - std::pow(1.0 - 1 / (std::pow(2.0, tag_bitlength) - 1), 2.0 * associativity * load_factor); // counting - with duplicates
+//  return 1 - std::pow(1.0 - 1 / (std::pow(2.0, tag_bitlength)), 2.0 * associativity * load_factor); // counting - with duplicates
 }
 
 
