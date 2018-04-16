@@ -202,11 +202,11 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 // iterate over the words of a block (sequential block access pattern).
 //===----------------------------------------------------------------------===//
 template<
-    typename key_t,               // the key type
-    typename word_t,              // the word type
-    u32 word_cnt,                 // the number of words per block
-    u32 s,                        // the numbers of sectors (must be a power of two and greater or equal to word_cnt))
-    u32 k,                        // the number of bits to set/test
+    typename _key_t,              // the key type
+    typename _word_t,             // the word type
+    u32 _word_cnt,                // the number of words per block
+    u32 _s,                       // the numbers of sectors (must be a power of two and greater or equal to word_cnt))
+    u32 _k,                       // the number of bits to set/test
     template<typename Ty, u32 i> class hasher,      // the hash function family to use
     typename hash_value_t,        // the hash value type to use
 
@@ -221,15 +221,20 @@ struct multiword_block {
   //===----------------------------------------------------------------------===//
   // Static part
   //===----------------------------------------------------------------------===//
+  using key_t = _key_t;
+  using word_t = _word_t;
+
+  static constexpr u32 k = _k;
+  static constexpr u32 word_cnt = _word_cnt;
   static constexpr u32 word_cnt_log2 = dtl::ct::log_2<word_cnt>::value;
   static_assert(dtl::is_power_of_two(word_cnt), "Parameter 'word_cnt' must be a power of two.");
   static_assert(k >= word_cnt, "Parameter 'k' must be greater or equal to 'word_cnt'.");
   static_assert(k % word_cnt == 0, "Parameter 'k' must be dividable by 'word_cnt'.");
 
-  static constexpr u32 sector_cnt = s;
+  static constexpr u32 sector_cnt = _s;
   static_assert(dtl::is_power_of_two(sector_cnt), "Parameter 'sector_cnt' must be a power of two.");
 
-  static constexpr u32 sector_cnt_per_word = s / word_cnt;
+  static constexpr u32 sector_cnt_per_word = sector_cnt / word_cnt;
   static_assert(sector_cnt_per_word > 0, "The number of sectors must be at least 'word_cnt'.");
 
   static constexpr u32 k_cnt_per_word = k / word_cnt;

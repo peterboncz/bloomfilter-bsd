@@ -92,8 +92,17 @@ struct blocked_bloomfilter {
     DESTRUCT,   // destructs the Bloom filter logic
   };
 
+
+  // The first hash function to use inside the block. Note: 0 is used for block addressing
+  static constexpr u32 block_hash_fn_idx = 1;
+
+  // The block type.
+  template<u32 word_cnt, u32 sector_cnt, u32 k, u1 early_out = false>
+  using bbf_block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt, sector_cnt, k,
+                                                               hasher, hash_value_t, early_out, block_hash_fn_idx>::type;
+
   template<u32 word_cnt, u32 sector_cnt, u32 k, dtl::block_addressing addr = dtl::block_addressing::POWER_OF_TWO, u1 early_out = false>
-  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, word_t, word_cnt, sector_cnt, k, addr, early_out>;
+  using bbf = dtl::blocked_bloomfilter_logic<key_t, hasher, bbf_block_t<word_cnt, sector_cnt, k, early_out>, addr, early_out>;
 
   //===----------------------------------------------------------------------===//
   // Members
