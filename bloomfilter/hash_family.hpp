@@ -270,7 +270,7 @@ namespace dyn { // runtime dynamic
 //===----------------------------------------------------------------------===//
 struct mul32 {
 
-  __forceinline__ __host__ __device__
+  __forceinline__ __host__
   static u32
   hash(u32& key, u32 hash_no) {
     static constexpr u32 primes[17] {
@@ -329,7 +329,7 @@ struct mul32 {
       throw std::invalid_argument("hash_no out of bounds: " + std::to_string(hash_no));
     }
     return keys * primes[hash_no];
-  };
+  }
 
 };
 //===----------------------------------------------------------------------===//
@@ -368,7 +368,7 @@ namespace internal {
 
 struct murmur32 {
 
-  __forceinline__ __host__ __device__
+  __forceinline__ __host__
   static u32
   hash(u32& key, u32 hash_no) {
     static constexpr u32 primes[17] {
@@ -427,7 +427,7 @@ struct murmur32 {
       throw std::invalid_argument("hash_no out of bounds: " + std::to_string(hash_no));
     }
     return internal::murmur1_32::hash(keys, primes[hash_no]);
-  };
+  }
 
 };
 //===----------------------------------------------------------------------===//

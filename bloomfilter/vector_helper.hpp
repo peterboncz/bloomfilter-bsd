@@ -213,7 +213,7 @@ struct vector_gather<uint64_t, uint64_t, n> {
     for (std::size_t i = 0; i < result.nested_vector_cnt; i++) {
       r[i] = _mm512_i64gather_epi64(a[i], 0, 1);
     }
-#endif defined(__AVX512F__)
+#endif // defined(__AVX512F__)
 
 #if defined(__AVX2__) && !defined(__AVX512F__)
     const auto a = reinterpret_cast<const __m256i*>(&addrs.data);

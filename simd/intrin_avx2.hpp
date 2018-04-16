@@ -145,7 +145,9 @@ struct mask8 {
 
     const __m256i offset_vec = _mm256_set1_epi32(offset);
     i32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
-    const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
+//    const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
+    dtl::r256 match_pos_vec;
+    match_pos_vec.i = _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i);
     const __m256i pos_vec = _mm256_add_epi32(offset_vec, match_pos_vec.i);
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(positions), pos_vec);
     return dtl::simd::lut_match_cnt[bitmask];
