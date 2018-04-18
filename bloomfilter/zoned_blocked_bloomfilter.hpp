@@ -350,6 +350,7 @@ struct zoned_blocked_bloomfilter {
          + ",\"word_size\":" + std::to_string(sizeof(word_t))
          + ",\"k\":" + std::to_string(k)
          + ",\"w\":" + std::to_string(word_cnt_per_block)
+         + ",\"s\":" + std::to_string(word_cnt_per_block)
          + ",\"z\":" + std::to_string(zone_cnt)
          + ",\"u\":" + std::to_string(tune.get_unroll_factor(k, sizeof(word_t), word_cnt_per_block, zone_cnt, get_addressing_mode()))
          + ",\"e\":" + std::to_string(early_out ? 1 : 0)
