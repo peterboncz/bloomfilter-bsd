@@ -27,12 +27,9 @@ namespace dtl {
 template<
     typename Tk,                  // the key type
     template<typename Ty, u32 i> class Hasher,      // the hash function family to use
-    typename Tw,                  // the word type to use for the bitset
-    u32 Wc = 2,                   // the number of words per block
-    u32 s = Wc,                   // the number of sectors
-    u32 K = 8,                    // the number of hash functions to use
+    typename Tb,                  // the block type
     dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
-    u1 early_out = false
+    u1 early_out = false          // branch out early, if possible
 >
 struct blocked_bloomfilter_logic {
 
@@ -40,39 +37,29 @@ struct blocked_bloomfilter_logic {
   // The static part.
   //===----------------------------------------------------------------------===//
   using key_t = typename std::remove_cv<Tk>::type;
-  using word_t = typename std::remove_cv<Tw>::type;
+  using word_t = typename std::remove_cv<typename Tb::word_t>::type;
+  using block_t = typename std::remove_cv<Tb>::type;
   static_assert(std::is_integral<key_t>::value, "The key type must be an integral type.");
   static_assert(std::is_integral<word_t>::value, "The word type must be an integral type.");
 
   using size_t = $u64;
 
-  static constexpr u32 word_cnt_per_block = Wc;
+  static constexpr u32 word_cnt_per_block = block_t::word_cnt;
   static constexpr u32 word_cnt_per_block_log2 = dtl::ct::log_2<word_cnt_per_block>::value;
-  static_assert(dtl::is_power_of_two(Wc), "Parameter 'Wc' must be a power of two.");
-
-  static constexpr u32 sector_cnt = s;
+  static_assert(dtl::is_power_of_two(word_cnt_per_block), "The number of words per block must be a power of two.");
 
   static constexpr u32 word_bitlength = sizeof(word_t) * 8;
   static constexpr u32 word_bitlength_log2 = dtl::ct::log_2_u32<word_bitlength>::value;
-  static constexpr u32 word_bitlength_mask = word_bitlength - 1;
 
-  static constexpr u32 block_bitlength = sizeof(word_t) * 8 * word_cnt_per_block;
+  static constexpr u32 block_bitlength = word_bitlength * word_cnt_per_block;
 
   // Inspect the given hash function.
   using hash_value_t = decltype(Hasher<key_t, 0>::hash(42)); // TODO find out why NVCC complains
   static_assert(std::is_integral<hash_value_t>::value, "Hash function must return an integral type.");
   static constexpr u32 hash_value_bitlength = sizeof(hash_value_t) * 8;
 
-
-  // The number of hash functions to use.
-  static constexpr u32 k = K;
-
-  // The first hash function to use inside the block. Note: 0 is used for block addressing
-  static constexpr u32 block_hash_fn_idx = 1;
-
-  // The block type. Determined based on word and sector counts.
-  using block_t = typename blocked_bloomfilter_block_logic<key_t, word_t, word_cnt_per_block, sector_cnt, k,
-                                                           Hasher, hash_value_t, early_out, block_hash_fn_idx>::type;
+  static constexpr u32 k = block_t::k;
+  static constexpr u32 sector_cnt = block_t::sector_cnt;
 
   // The block addressing logic (either MAGIC or POWER_OF_TWO).
   using addr_t = block_addressing_logic<block_addressing>;
@@ -150,7 +137,7 @@ struct blocked_bloomfilter_logic {
 
 
   //===----------------------------------------------------------------------===//
-  // Contains (SIMD)
+  // Contains (SIMD) - called by batch dispatch
   //===----------------------------------------------------------------------===//
   template<u64 n> // the vector length
   __forceinline__ __host__
@@ -184,10 +171,11 @@ struct blocked_bloomfilter_logic {
                               keys, key_cnt,
                               match_positions, match_offset);
   }
+  //===----------------------------------------------------------------------===//
 
 
   //===----------------------------------------------------------------------===//
-  /// Returns (actual) length in bits.
+  /// Returns the (actual) length in bits.
   std::size_t
   get_length() const noexcept {
     return u64(addr.get_block_cnt()) * block_bitlength;
@@ -196,7 +184,7 @@ struct blocked_bloomfilter_logic {
 
 
   //===----------------------------------------------------------------------===//
-  /// Returns (actual) length in number of words.
+  /// Returns the (actual) length in number of words.
   std::size_t
   word_cnt() const noexcept {
     return u64(addr.get_block_cnt()) * word_cnt_per_block;

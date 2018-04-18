@@ -33,7 +33,7 @@ namespace internal {
     }
   };
 
-} // namespace dtl
+} // namespace internal
 
 //===----------------------------------------------------------------------===//
 template<typename word_t>

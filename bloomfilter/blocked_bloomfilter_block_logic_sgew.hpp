@@ -418,7 +418,7 @@ struct multiword_block {
         k_cnt_per_word>;
     word_block_t::which_bits(keys, hash_vals, bit_masks);
 
-    // Update the bit vector
+    // Bit testing
     auto found_in_word = (words & bit_masks) == bit_masks;
 
     // Early out
