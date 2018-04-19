@@ -7,8 +7,8 @@
 #include <dtl/dtl.hpp>
 #include <dtl/thread.hpp>
 #include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter.hpp>
 #include <dtl/bloomfilter/blocked_bloomfilter_tune.hpp>
+#include <dtl/bloomfilter/zoned_blocked_bloomfilter.hpp>
 
 #include "immintrin.h"
 
@@ -33,7 +33,7 @@ namespace internal {
 
 //===----------------------------------------------------------------------===//
 template<typename word_t>
-struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
+struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
   // TODO memoization in a global file / tool to calibrate
 
@@ -49,9 +49,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   set_unroll_factor(const blocked_bloomfilter_config& config,
                     u32 unroll_factor) override {
     blocked_bloomfilter_config c = config;
-    u1 is_sectorized = config.sector_cnt >= config.word_cnt_per_block;
-    u32 sector_cnt_actual = is_sectorized ? config.word_cnt_per_block : 1;
-    c.sector_cnt = sector_cnt_actual;
+    c.sector_cnt = c.word_cnt_per_block;
     tuning_params tp { unroll_factor };
     m.insert(std::pair<blocked_bloomfilter_config, tuning_params>(c, tp));
   }
@@ -60,9 +58,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   $u32
   get_unroll_factor(const blocked_bloomfilter_config& config) const override {
     blocked_bloomfilter_config c = config;
-    u1 is_sectorized = config.sector_cnt >= config.word_cnt_per_block;
-    u32 sector_cnt_actual = is_sectorized ? config.word_cnt_per_block : 1;
-    c.sector_cnt = sector_cnt_actual;
+    c.sector_cnt = c.word_cnt_per_block;
     if (m.count(c)) {
       auto p = m.find(c)->second;
       return p.unroll_factor;
@@ -76,9 +72,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     assert(sizeof(word_t) == config.word_size);
 
     blocked_bloomfilter_config c = config;
-    u1 is_sectorized = config.sector_cnt >= config.word_cnt_per_block;
-    u32 sector_cnt_actual = is_sectorized ? config.word_cnt_per_block : 1;
-    c.sector_cnt = sector_cnt_actual;
+    c.sector_cnt = c.word_cnt_per_block;
 
     tuning_params tp = calibrate(c);
 
@@ -89,24 +83,26 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
   void
   tune_unroll_factor() override {
-    for ($u32 word_cnt_per_block = 1; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
-      for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
-        for ($u32 k = 1; k <= 16; k++) {
-          blocked_bloomfilter_config c;
-          c.k = k;
-          c.word_size = sizeof(word_t);
-          c.word_cnt_per_block = word_cnt_per_block;
-          c.sector_cnt = 1;
-          c.zone_cnt = 1;
-          c.addr_mode = addr_mode;
-          tune_unroll_factor(c);
-          if (word_cnt_per_block > 1) {
-            c.sector_cnt = c.word_cnt_per_block;
+
+    for ($u32 word_cnt_per_block = 4; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
+      for ($u32 zone_cnt = 2; zone_cnt <= 8; zone_cnt *= 2) {
+        if (zone_cnt >= word_cnt_per_block) continue;
+        for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+          for ($u32 k = 2; k <= 16; k += 2) {
+            if ((k % zone_cnt) != 0) continue;
+            blocked_bloomfilter_config c;
+            c.k = k;
+            c.word_size = sizeof(word_t);
+            c.word_cnt_per_block = word_cnt_per_block;
+            c.sector_cnt = word_cnt_per_block;
+            c.zone_cnt = zone_cnt;
+            c.addr_mode = addr_mode;
             tune_unroll_factor(c);
           }
         }
       }
     }
+
   }
   //===----------------------------------------------------------------------===//
 
@@ -133,6 +129,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     try {
       std::cerr << "w = " << std::setw(2) << c.word_cnt_per_block << ", "
                 << "s = " << std::setw(2) << c.sector_cnt << ", "
+                << "z = " << std::setw(2) << c.zone_cnt << ", "
                 << "addr = " << std::setw(5) << (c.addr_mode == block_addressing::POWER_OF_TWO ? "pow2" : "magic") << ", "
                 << "k = " <<  std::setw(2) << c.k << ": " << std::flush;
 
@@ -155,7 +152,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
         // Instantiate bloom filter logic.
         internal::blocked_bloomfilter_tune_mock tune_mock { u };
-        blocked_bloomfilter<word_t> bbf(m , c.k, c.word_cnt_per_block, c.sector_cnt, tune_mock);
+        zoned_blocked_bloomfilter<word_t> bbf(m , c.k, c.word_cnt_per_block, c.zone_cnt, tune_mock);
 
         // Allocate memory.
         dtl::mem::allocator_config alloc_config = dtl::mem::allocator_config::local();

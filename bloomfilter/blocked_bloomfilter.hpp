@@ -290,7 +290,13 @@ struct blocked_bloomfilter {
   template<u32 w, u32 s, u32 k, dtl::block_addressing a>
   static void
   _u(blocked_bloomfilter& instance, op_t op) {
-    switch (instance.tune.get_unroll_factor(k, sizeof(word_t), w, s, a)) {
+    blocked_bloomfilter_config c;
+    c.k = k;
+    c.word_size = sizeof(word_t);
+    c.word_cnt_per_block = w;
+    c.sector_cnt = s;
+    c.addr_mode = a;
+    switch (instance.tune.get_unroll_factor(c)) {
       case  0: _o<w, s, k, a,  0>(instance, op); break;
       case  1: _o<w, s, k, a,  1>(instance, op); break;
       case  2: _o<w, s, k, a,  2>(instance, op); break;
@@ -406,12 +412,20 @@ struct blocked_bloomfilter {
   /// important parameters (in JSON).
   std::string
   name() {
+    blocked_bloomfilter_config c;
+    c.k = k;
+    c.word_size = sizeof(word_t);
+    c.word_cnt_per_block = word_cnt_per_block;
+    c.sector_cnt = sector_cnt;
+    c.zone_cnt = 1;
+    c.addr_mode = get_addressing_mode();
+
     return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
          + ",\"word_size\":" + std::to_string(sizeof(word_t))
          + ",\"k\":" + std::to_string(k)
          + ",\"w\":" + std::to_string(word_cnt_per_block)
          + ",\"s\":" + std::to_string(sector_cnt)
-         + ",\"u\":" + std::to_string(tune.get_unroll_factor(k, sizeof(word_t), word_cnt_per_block, sector_cnt, get_addressing_mode()))
+         + ",\"u\":" + std::to_string(tune.get_unroll_factor(c))
          + ",\"e\":" + std::to_string(early_out ? 1 : 0)
          + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
          + "}";

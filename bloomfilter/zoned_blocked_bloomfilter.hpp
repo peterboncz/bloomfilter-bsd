@@ -190,6 +190,7 @@ struct zoned_blocked_bloomfilter {
     switch (instance.zone_cnt) {
       case  2: _k<w, boost::static_unsigned_min<w/2, 2>::value>(instance, op); break;
       case  4: _k<w, boost::static_unsigned_min<w/2, 4>::value>(instance, op); break;
+      case  8: _k<w, boost::static_unsigned_min<w/2, 4>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'zone_cnt' is not supported.");
     }
@@ -214,29 +215,37 @@ struct zoned_blocked_bloomfilter {
   }
 
 
-  template<u32 w, u32 s, u32 k>
+  template<u32 w, u32 z, u32 k>
   static void
   _a(zoned_blocked_bloomfilter& instance, op_t op) {
     dtl::block_addressing addr = dtl::is_power_of_two(instance.m)
                                  ? dtl::block_addressing::POWER_OF_TWO
                                  : dtl::block_addressing::MAGIC;
     switch (addr) {
-      case dtl::block_addressing::POWER_OF_TWO: _u<w, s, k, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
-      case dtl::block_addressing::MAGIC:        _u<w, s, k, dtl::block_addressing::MAGIC>(instance, op);        break;
+      case dtl::block_addressing::POWER_OF_TWO: _u<w, z, k, dtl::block_addressing::POWER_OF_TWO>(instance, op); break;
+      case dtl::block_addressing::MAGIC:        _u<w, z, k, dtl::block_addressing::MAGIC>(instance, op);        break;
       case dtl::block_addressing::DYNAMIC:      /* must not happen */                                           break;
     }
   }
 
 
-  template<u32 w, u32 s, u32 k, dtl::block_addressing a>
+  template<u32 w, u32 z, u32 k, dtl::block_addressing a>
   static void
   _u(zoned_blocked_bloomfilter& instance, op_t op) {
-    switch (instance.tune.get_unroll_factor(k, sizeof(word_t), w, s, a)) {
-      case  0: _o<w, s, k, a,  0>(instance, op); break;
-      case  1: _o<w, s, k, a,  1>(instance, op); break;
-      case  2: _o<w, s, k, a,  2>(instance, op); break;
-      case  4: _o<w, s, k, a,  4>(instance, op); break;
-      case  8: _o<w, s, k, a,  8>(instance, op); break;
+    blocked_bloomfilter_config c;
+    c.k = k;
+    c.word_size = sizeof(word_t);
+    c.word_cnt_per_block = w;
+    c.sector_cnt = w;
+    c.zone_cnt = z;
+    c.addr_mode = a;
+
+    switch (instance.tune.get_unroll_factor(c)) {
+      case  0: _o<w, z, k, a, 0>(instance, op); break;
+      case  1: _o<w, z, k, a, 1>(instance, op); break;
+      case  2: _o<w, z, k, a, 2>(instance, op); break;
+      case  4: _o<w, z, k, a, 4>(instance, op); break;
+      case  8: _o<w, z, k, a, 8>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'unroll_factor' is not supported.");
     }
@@ -346,13 +355,21 @@ struct zoned_blocked_bloomfilter {
   /// important parameters (in JSON).
   std::string
   name() {
+    blocked_bloomfilter_config c;
+    c.k = k;
+    c.word_size = sizeof(word_t);
+    c.word_cnt_per_block = word_cnt_per_block;
+    c.sector_cnt = word_cnt_per_block;
+    c.zone_cnt = zone_cnt;
+    c.addr_mode = get_addressing_mode();
+
     return "{\"name\":\"blocked_bloom_multiword\",\"size\":" + std::to_string(size_in_bytes())
          + ",\"word_size\":" + std::to_string(sizeof(word_t))
          + ",\"k\":" + std::to_string(k)
          + ",\"w\":" + std::to_string(word_cnt_per_block)
          + ",\"s\":" + std::to_string(word_cnt_per_block)
          + ",\"z\":" + std::to_string(zone_cnt)
-         + ",\"u\":" + std::to_string(tune.get_unroll_factor(k, sizeof(word_t), word_cnt_per_block, zone_cnt, get_addressing_mode()))
+         + ",\"u\":" + std::to_string(tune.get_unroll_factor(c))
          + ",\"e\":" + std::to_string(early_out ? 1 : 0)
          + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
          + "}";

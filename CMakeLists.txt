@@ -44,7 +44,6 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/old/bloomfilter_h3_mod_vec.hpp
         bloomfilter/old/bloomfilter_h3_vec.hpp
         bloomfilter/blocked_bloomfilter.hpp
-        bloomfilter/zoned_blocked_bloomfilter.hpp
         bloomfilter/blocked_bloomfilter_batch_dispatch.hpp
         bloomfilter/blocked_bloomfilter_logic.hpp
         bloomfilter/blocked_bloomfilter_block_logic.hpp
@@ -69,6 +68,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter_block_logic_zoned.hpp
         bloomfilter/blocked_bloomfilter_tune.hpp
         bloomfilter/blocked_bloomfilter_tune_impl.hpp
+        bloomfilter/zoned_blocked_bloomfilter.hpp
+        bloomfilter/zoned_blocked_bloomfilter_tune_impl.hpp
         bloomfilter/old/bloomfilter_hn.hpp
         bloomfilter/old/bloomfilter_hn_vec.hpp
         bloomfilter/hash_family.hpp
