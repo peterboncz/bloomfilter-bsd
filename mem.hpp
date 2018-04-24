@@ -352,6 +352,16 @@ public:
     return allocator_config(numa_node);
   }
 
+  static allocator_config
+  on_node(const std::vector<$u32>& numa_nodes) {
+    i32 node_cnt = numa_num_configured_nodes();
+    bitmask* mask = numa_bitmask_alloc(node_cnt);
+    for (auto node_id : numa_nodes) {
+      numa_bitmask_setbit(mask, node_id);
+    }
+    return allocator_config(detail::bitmask_wrap(mask));
+  }
+
   /// allocate memory on the thread local node (default behavior)
   static allocator_config
   local() {
