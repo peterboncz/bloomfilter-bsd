@@ -139,7 +139,7 @@ struct mask8 {
 
   __forceinline__ $u64
   to_positions($u32* positions, $u32 offset) const {
-    // only makes sence for unselective queries
+    // only makes sense for unselective queries
     //   const __m256i zero = _mm256_setzero_si256();
     //   if (_mm256_testc_si256(zero, data)) return 0;
 
