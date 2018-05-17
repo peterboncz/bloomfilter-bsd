@@ -2,6 +2,7 @@
 
 #include "blocked_bloomfilter_block_logic_sgew.hpp" // sector_cnt >= word_cnt
 #include "blocked_bloomfilter_block_logic_sltw.hpp" // sector_cnt < word_cnt
+#include "blocked_bloomfilter_block_logic_zoned.hpp" // sector_cnt == word_cnt + zoning
 #include "hash_family.hpp"
 
 namespace dtl {
