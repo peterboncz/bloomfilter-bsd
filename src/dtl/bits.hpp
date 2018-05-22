@@ -103,6 +103,11 @@ constexpr u1
 bit_test(u64 a, u32 i) {
   return a & (u64(1) << i);
 }
+__forceinline__ __host__ __device__
+constexpr u1
+bit_test64(u64 a, u32 i) {
+  return a & (u64(1) << i);
+}
 
 
 } // namespace bits

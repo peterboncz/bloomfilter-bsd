@@ -30,6 +30,11 @@ namespace dtl {
     }
 
     static inline u64
+    root() {
+      return 0;
+    }
+
+    static inline u64
     parent_of(u64 node_idx) {
       return (node_idx - 1) / 2;
     }
