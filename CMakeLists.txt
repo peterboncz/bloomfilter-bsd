@@ -66,6 +66,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
         bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
         bloomfilter/blocked_bloomfilter_block_logic_zoned.hpp
+        bloomfilter/blocked_bloomfilter_config.hpp
         bloomfilter/blocked_bloomfilter_tune.hpp
         bloomfilter/blocked_bloomfilter_tune_impl.hpp
         bloomfilter/zoned_blocked_bloomfilter.hpp
