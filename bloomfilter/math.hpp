@@ -5,6 +5,8 @@
 #include <boost/math/distributions/poisson.hpp>
 #include <dtl/dtl.hpp>
 
+#include "blocked_bloomfilter_config.hpp"
+
 namespace dtl {
 namespace bloomfilter {
 
@@ -184,6 +186,28 @@ fpr_blocked_sectorized_zoned(u64 m,
     i++;
   }
   return f;
+}
+
+f64
+fpr(u64 m,
+    u64 n,
+    const blocked_bloomfilter_config& c) {
+
+  auto block_size_bits = c.word_size * 8 * c.word_cnt_per_block;
+  if (c.sector_cnt == 1) {
+    // non-sectorized
+    return fpr_blocked(m, n, c.k, block_size_bits);
+  }
+  else {
+    // sectorized
+    auto sector_size_bits = block_size_bits / c.sector_cnt;
+    if (c.zone_cnt == 1) {
+      return fpr_blocked_sectorized(m, n, c.k, block_size_bits, sector_size_bits, true);
+    }
+    else {
+      return fpr_zoned(m, n, c.k, block_size_bits, sector_size_bits, c.zone_cnt, true);
+    }
+  }
 }
 
 } // namespace bloomfilter
