@@ -1,5 +1,8 @@
 #pragma once
 
+#include <dtl/dtl.hpp>
+
+#include "blocked_bloomfilter_config.hpp"
 #include "math.hpp"
 
 namespace dtl {
@@ -42,6 +45,18 @@ fpr(u64 m,
                               + ", S=" + std::to_string(S)
                               + ", z=" + std::to_string(z));
 }
+
+
+f64
+fpr(u64 m,
+    u64 n,
+    const blocked_bloomfilter_config& c) {
+
+  auto block_size_bits = c.word_size * 8 * c.word_cnt_per_block;
+  auto sector_size_bits = block_size_bits / c.sector_cnt;
+  return fpr(m, n, c.k, block_size_bits, sector_size_bits, c.zone_cnt);
+}
+
 
 } // namespace bloomfilter
 } // namespace dtl
