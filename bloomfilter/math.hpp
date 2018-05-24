@@ -10,7 +10,7 @@ namespace bloomfilter {
 
 /// Computes an approximation of the false positive probability for standard Bloom filter.
 /// Assuming independence for the probabilities of each bit being set.
-f64
+static f64
 fpr(u64 m,
     u64 n,
     f64 k) {
@@ -23,7 +23,7 @@ fpr(u64 m,
 /// Note: The formula of Putze does not take self collisions into account and thus leads
 ///       to a significant error for small block sizes (i.e., register blocks).
 ///       Therefore, for small block sizes, the 'self collision' flag should be set to true.
-f64
+static f64
 fpr_blocked(u64 m,
             u64 n,
             f64 k,
@@ -54,7 +54,7 @@ fpr_blocked(u64 m,
 
 /// Computes an approximation of the false positive probability for
 /// Sectorized Blocked Bloom filter.
-f64
+static f64
 fpr_blocked_sectorized(u64 m,
                        u64 n,
                        f64 k,
@@ -84,7 +84,7 @@ fpr_blocked_sectorized(u64 m,
 }
 
 
-f64
+static f64
 p_load(f64 v, u64 i) {
   f64 lambda = v;
   boost::math::poisson_distribution<> poisson(lambda);
@@ -92,7 +92,7 @@ p_load(f64 v, u64 i) {
 }
 
 
-f64
+static f64
 p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
 //  boost::math::binomial_distribution binomial();
 
@@ -110,7 +110,7 @@ p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
 
 /// Computes an approximation of the false positive probability for
 /// Sectorized Blocked Bloom filter.
-f64
+static f64
 fpr_zoned(u64 m,
           u64 n,
           f64 k,
@@ -141,7 +141,7 @@ fpr_zoned(u64 m,
 }
 
 
-f64
+static f64
 _p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
   f64 k_per_s = (k * 1.0)/s;
   $f64 sum = 0.0;
@@ -156,7 +156,7 @@ _p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
 }
 
 
-f64
+static f64
 fpr_blocked_sectorized_zoned(u64 m,
                              u64 n,
                              u64 k,
@@ -191,7 +191,7 @@ fpr_blocked_sectorized_zoned(u64 m,
 namespace cuckoofilter {
 
 //// TODO
-f64
+static f64
 fpr(u64 associativity,
     u64 tag_bitlength,
     f64 load_factor) {
