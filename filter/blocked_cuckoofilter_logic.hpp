@@ -7,13 +7,13 @@
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_block_logic.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_multiword_table.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_word_table.hpp>
+#include "block_addressing_logic.hpp"
+#include "blocked_cuckoofilter_block_logic.hpp"
+#include "blocked_cuckoofilter_multiword_table.hpp"
+#include "blocked_cuckoofilter_util.hpp"
+#include "blocked_cuckoofilter_word_table.hpp"
 #ifdef __AVX2__
-#include <dtl/bloomfilter/blocked_cuckoofilter_simd.hpp>
+#include "blocked_cuckoofilter_simd.hpp"
 #endif
 
 

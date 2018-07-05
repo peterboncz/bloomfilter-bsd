@@ -6,7 +6,7 @@
 #include <dtl/hash.hpp>
 #include <dtl/math.hpp>
 
-#include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
+#include "blocked_cuckoofilter_util.hpp"
 
 namespace dtl {
 namespace cuckoofilter {

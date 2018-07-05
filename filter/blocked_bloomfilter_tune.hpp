@@ -5,8 +5,9 @@
 #include <random>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter_config.hpp>
+
+#include "block_addressing_logic.hpp"
+#include "blocked_bloomfilter_config.hpp"
 
 #include "immintrin.h"
 

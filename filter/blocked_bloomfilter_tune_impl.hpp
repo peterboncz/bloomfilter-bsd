@@ -6,9 +6,9 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/thread.hpp>
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter.hpp>
-#include <dtl/bloomfilter/blocked_bloomfilter_tune.hpp>
+#include "block_addressing_logic.hpp"
+#include "blocked_bloomfilter.hpp"
+#include "blocked_bloomfilter_tune.hpp"
 
 #include "immintrin.h"
 

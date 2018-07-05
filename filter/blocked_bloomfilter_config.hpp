@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
+#include "block_addressing_logic.hpp"
 
 namespace dtl {
 

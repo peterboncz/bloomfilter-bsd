@@ -7,10 +7,10 @@
 #include <dtl/dtl.hpp>
 #include <dtl/hash.hpp>
 #include <dtl/math.hpp>
-
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
 #include <dtl/thread.hpp>
+
+#include "block_addressing_logic.hpp"
+#include "blocked_cuckoofilter_util.hpp"
 
 namespace dtl {
 namespace cuckoofilter {

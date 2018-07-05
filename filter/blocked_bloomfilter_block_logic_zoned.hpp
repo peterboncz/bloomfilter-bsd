@@ -10,13 +10,13 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/bloomfilter/vector_helper.hpp>
 
 #include "immintrin.h"
 
 #include <boost/integer/static_min_max.hpp>
 
 #include "blocked_bloomfilter_block_logic_sgew.hpp"
+#include "vector_helper.hpp"
 
 namespace dtl {
 

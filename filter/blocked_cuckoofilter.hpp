@@ -11,11 +11,11 @@
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
-#include <dtl/bloomfilter/block_addressing_logic.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_logic.hpp>
-#include <dtl/bloomfilter/hash_family.hpp>
-
 #include <boost/math/common_factor.hpp>
+
+#include "block_addressing_logic.hpp"
+#include "blocked_cuckoofilter_logic.hpp"
+#include "hash_family.hpp"
 
 
 namespace dtl {

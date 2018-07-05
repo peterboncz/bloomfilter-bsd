@@ -59,5 +59,5 @@ fpr(u64 m,
   return fpr(m, n, c.k, block_size_bits, sector_size_bits, c.zone_cnt);
 }
 
-} // namespace bloomfilter
+} // namespace filter
 } // namespace dtl

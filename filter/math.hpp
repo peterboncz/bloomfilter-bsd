@@ -2,8 +2,10 @@
 
 #include <random>
 #include <math.h>
-#include <boost/math/distributions/poisson.hpp>
+
 #include <dtl/dtl.hpp>
+
+#include <boost/math/distributions/poisson.hpp>
 
 namespace dtl {
 namespace bloomfilter {
@@ -186,7 +188,7 @@ fpr_blocked_sectorized_zoned(u64 m,
   return f;
 }
 
-} // namespace bloomfilter
+} // namespace filter
 
 namespace cuckoofilter {
 
