@@ -17,6 +17,8 @@ fpr(u64 m,
     u64 z = 1,    /* the number of zones */
     u1 self_collisions = true) {
 
+  f64 epsilon = 0.00001;
+
   if (B == 0) {
     // Standard Bloom filter
     return fpr(m, n, k);
@@ -28,17 +30,17 @@ fpr(u64 m,
 
   if (S == B && z == 1) {
     // Blocked Bloom filter
-    return fpr_blocked(m, n, k, B, self_collisions);
+    return fpr_blocked(m, n, k, B, self_collisions, epsilon);
   }
 
   if (S < B && z == 1) {
     // Sectorized Blocked Bloom filter
-    return fpr_blocked_sectorized(m, n, k, B, S, self_collisions);
+    return fpr_blocked_sectorized(m, n, k, B, S, self_collisions, epsilon);
   }
 
   if (S < B && z > 1) {
     // Zoned Sectorized Blocked Bloom filter
-    return fpr_zoned(m, n, k, B, S, z, self_collisions);
+    return fpr_zoned(m, n, k, B, S, z, self_collisions, epsilon);
   }
 
   throw std::invalid_argument("Invalid blocked Bloom filter configuration: B=" + std::to_string(B)

@@ -84,7 +84,7 @@ fpr_blocked_sectorized(u64 m,
 }
 
 
-static f64
+static __forceinline__ f64
 p_load(f64 v, u64 i) {
   f64 lambda = v;
   boost::math::poisson_distribution<> poisson(lambda);
@@ -92,7 +92,7 @@ p_load(f64 v, u64 i) {
 }
 
 
-static f64
+static __forceinline__ f64
 p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
 //  boost::math::binomial_distribution binomial();
 
@@ -141,7 +141,7 @@ fpr_zoned(u64 m,
 }
 
 
-static f64
+static __forceinline__ f64
 _p_cache(u64 s, u64 S, u64 B, f64 k, u64 i) {
   f64 k_per_s = (k * 1.0)/s;
   $f64 sum = 0.0;
@@ -166,8 +166,8 @@ fpr_blocked_sectorized_zoned(u64 m,
                              u1 self_collisions = false,
                              f64 epsilon = 0.000001) {
   $f64 f = 0;
-  f64 c = (m * 1.0) / n;
-  f64 v = (B * 1.0) / c; // aka 'Poisson lambda'
+//  f64 c = (m * 1.0) / n;
+//  f64 v = (B * 1.0) / c; // aka 'Poisson lambda'
   f64 s = z;
 
   $f64 d_sum = 0.0;
