@@ -3,11 +3,13 @@
 #include <limits>
 
 #include <dtl/dtl.hpp>
-//#include <dtl/simd.hpp>
 
-//#include "immintrin.h"
-
-// TODO remove dependency (libdivide is only used to find magic numbers)
+//===----------------------------------------------------------------------===//
+// Third party dependency: 'libdivide' by ridiculous_fish
+// Usable under the terms in either zlib or Boost license.
+// See 'thirdparty/libdivide/LICENSE.txt' for details.
+//===----------------------------------------------------------------------===//
+// Note: libdivide is used to find magic numbers
 #include "thirdparty/libdivide/libdivide.h"
 
 
@@ -54,10 +56,14 @@ next_cheap_magic(uint32_t n) {
   throw "Failed to find a cheap magic number.";
 }
 
+
+//===----------------------------------------------------------------------===//
+// The actual implementation(s) for division.
+//===----------------------------------------------------------------------===//
+
 //===----------------------------------------------------------------------===//
 // Scalar
 //===----------------------------------------------------------------------===//
-
 __forceinline__ __host__ __device__
 static uint32_t
 mulhi_u32(const uint32_t a, const uint32_t b) {
@@ -89,7 +95,6 @@ fast_mod_u32(const uint32_t dividend, const fast_divisor_u32_t& divisor) {
 //===----------------------------------------------------------------------===//
 // AVX-512
 //===----------------------------------------------------------------------===//
-
 #if defined(__AVX512F__)
 
 __forceinline__
@@ -158,7 +163,6 @@ fast_mod_u32(const __m512i dividend, const fast_divisor_u32_t& divisor) {
 //===----------------------------------------------------------------------===//
 // AVX2
 //===----------------------------------------------------------------------===//
-
 #if defined(__AVX2__)
 
 __forceinline__
