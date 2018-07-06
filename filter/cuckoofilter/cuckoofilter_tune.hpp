@@ -17,8 +17,6 @@ struct tuning_params {
   u32 unroll_factor;
 };
 
-} // anonymous namespace
-
 
 //===----------------------------------------------------------------------===//
 /// Provides tuning parameters to the filter instance.
