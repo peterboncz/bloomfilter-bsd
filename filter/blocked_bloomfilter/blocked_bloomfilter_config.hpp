@@ -17,13 +17,23 @@ struct blocked_bloomfilter_config {
   $u32 zone_cnt = 1;
 
   bool
-  operator<(const blocked_bloomfilter_config &o) const {
+  operator<(const blocked_bloomfilter_config& o) const {
     return k < o.k
         || (k == o.k && word_size  < o.word_size)
         || (k == o.k && word_size == o.word_size && word_cnt_per_block  < o.word_cnt_per_block)
         || (k == o.k && word_size == o.word_size && word_cnt_per_block == o.word_cnt_per_block && sector_cnt < o.sector_cnt)
         || (k == o.k && word_size == o.word_size && word_cnt_per_block == o.word_cnt_per_block && sector_cnt == o.sector_cnt && addr_mode < o.addr_mode)
         || (k == o.k && word_size == o.word_size && word_cnt_per_block == o.word_cnt_per_block && sector_cnt == o.sector_cnt && addr_mode == o.addr_mode && zone_cnt < o.zone_cnt);
+  }
+
+  bool
+  operator==(const blocked_bloomfilter_config& o) const {
+    return k == o.k && word_size == o.word_size && word_cnt_per_block == o.word_cnt_per_block && sector_cnt == o.sector_cnt && addr_mode == o.addr_mode && zone_cnt == o.zone_cnt;
+  }
+
+  bool
+  operator!=(const blocked_bloomfilter_config& o) const {
+    return !(*this == o);
   }
 
   void print(std::ostream& os) const {
