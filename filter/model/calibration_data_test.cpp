@@ -84,7 +84,7 @@ TEST(model_calibration_data, basic_persistence) {
 
     ASSERT_FALSE(cd.changed());
   }
-
+  std::remove(filename.c_str());
 }
 //===----------------------------------------------------------------------===//
 
@@ -142,7 +142,7 @@ TEST(model_calibration_data, add_config) {
     auto received_timings_2 = cd.get(bbf_config_2);
     ASSERT_EQ(delta_timings_2, received_timings_2);
   }
-
+  std::remove(filename.c_str());
 }
 //===----------------------------------------------------------------------===//
 
@@ -202,6 +202,6 @@ TEST(model_calibration_data, update_config) {
     auto received_timings_2 = cd.get(cf_config_1);
     ASSERT_EQ(delta_timings_2, received_timings_2);
   }
-
+  std::remove(filename.c_str());
 }
 //===----------------------------------------------------------------------===//
