@@ -20,6 +20,16 @@ struct config {
         || (bits_per_tag == o.bits_per_tag && tags_per_bucket == o.tags_per_bucket && addr_mode  < o.addr_mode);
   }
 
+  bool
+  operator==(const config& o) const {
+    return bits_per_tag == o.bits_per_tag && tags_per_bucket == o.tags_per_bucket && addr_mode == o.addr_mode;
+  }
+
+  bool
+  operator!=(const config& o) const {
+    return !(*this == o);
+  }
+
   void print(std::ostream& os) const {
     std::stringstream str;
     str << "cf"
