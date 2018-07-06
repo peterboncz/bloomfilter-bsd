@@ -69,6 +69,11 @@ set(BLOOM_FILTER_SOURCE_FILES
         filter/blocked_bloomfilter/vector_helper.hpp
         filter/blocked_bloomfilter/hash_family.hpp
         filter/blocked_bloomfilter/math.hpp
+
+        # model
+        filter/model/calibration_data.hpp
+        filter/model/calibration_data.cpp
+        filter/model/timing.hpp
         )
 
 
@@ -78,10 +83,9 @@ set(THIRDPARTY_SOURCE_FILES
         )
 
 
-set(SOURCE_FILES
+set(SOURCE_FILES ${SOURCE_FILES}
         ${BLOOM_FILTER_SOURCE_FILES}
         ${CUCKOO_FILTER_SOURCE_FILES}
-        main.cpp
         adept.hpp #TODO remove
         barrier.hpp
         batchwise.hpp
@@ -106,7 +110,6 @@ set(SOURCE_FILES
         simd.hpp
         sma.hpp
         storage.hpp
-        #old/vec.hpp
         thread.hpp
         tree.hpp
         tree_mask.hpp

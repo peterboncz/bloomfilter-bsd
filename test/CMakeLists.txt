@@ -23,6 +23,7 @@ set(LIBS
         gtest_main
         pthread
         numa
+        dtl
         )
 
 # check for NUMA support
@@ -61,6 +62,8 @@ set(TEST_FILES
         bitmask_test.cpp
         div_test.cpp
         cuckoofilter_test.cpp
+        ../filter/model/calibration_data_test.cpp
+
 #        bitset_test.cpp
 #        bitpack_test.cpp
 
@@ -141,5 +144,8 @@ add_multiarch_executable(mem_tester "${MEM_TEST_FILES}")
 #        )
 #add_executable(bf_tool "${BF_TOOL_FILES}")
 
-configure_file(probe_performance.csv probe_performance.csv COPYONLY)
-configure_file(false_positive_rate.csv false_positive_rate.csv COPYONLY)
+
+
+
+#configure_file(probe_performance.csv probe_performance.csv COPYONLY)
+#configure_file(false_positive_rate.csv false_positive_rate.csv COPYONLY)
