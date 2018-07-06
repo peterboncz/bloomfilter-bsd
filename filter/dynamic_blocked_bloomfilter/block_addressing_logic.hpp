@@ -12,7 +12,7 @@
 
 
 namespace dtl {
-namespace bloomfilter_dynamic {
+namespace bloomfilter_dynamic { // TODO change namespace
 
 
 //===----------------------------------------------------------------------===//

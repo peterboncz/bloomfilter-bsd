@@ -1,10 +1,10 @@
 #include "gtest/gtest.h"
 
 #include <dtl/dtl.hpp>
-#include <dtl/bloomfilter/blocked_cuckoofilter_util.hpp>
+#include <dtl/filter/blocked_cuckoofilter/blocked_cuckoofilter_util.hpp>
 
 using namespace dtl;
-using namespace dtl::cuckoo_filter;
+using namespace dtl::cuckoofilter;
 
 
 template<typename data_t, uint32_t bits_per_value>
