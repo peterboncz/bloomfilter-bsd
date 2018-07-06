@@ -10,7 +10,7 @@
 // See 'thirdparty/libdivide/LICENSE.txt' for details.
 //===----------------------------------------------------------------------===//
 // Note: libdivide is used to find magic numbers
-#include "thirdparty/libdivide/libdivide.h"
+#include "libdivide/libdivide.h"
 
 
 namespace dtl {

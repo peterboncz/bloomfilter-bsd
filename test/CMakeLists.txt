@@ -55,6 +55,7 @@ add_subdirectory(lib/googletest)
 include_directories(lib/googletest/include lib/googletest)
 
 add_subdirectory(../ dtl)
+include_directories(SYTEM ../thirdparty/)
 include_directories(SYTEM ../../)
 
 
@@ -62,7 +63,7 @@ set(TEST_FILES
         bitmask_test.cpp
         div_test.cpp
         cuckoofilter_test.cpp
-        ../filter/model/calibration_data_test.cpp
+        ../src/dtl/filter/model/calibration_data_test.cpp
 
 #        bitset_test.cpp
 #        bitpack_test.cpp
