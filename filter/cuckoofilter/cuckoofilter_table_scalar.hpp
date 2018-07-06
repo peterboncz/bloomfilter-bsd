@@ -32,6 +32,7 @@
 
 #include <dtl/dtl.hpp>
 
+#include "bitsutil.hpp"
 
 namespace dtl {
 namespace cuckoofilter {

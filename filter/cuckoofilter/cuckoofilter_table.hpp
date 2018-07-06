@@ -25,17 +25,15 @@
 
 // Change log:
 // 2017-2018 | H. Lang (TUM), P. Boncz (CWI):
-//  - SIMDized implementation for the find_tag_in_bucket function (supports 8,16, and 32 bit tags)
+//  - SIMDized implementation for the 'find_tag_in_bucket' function (supports 8,16, and 32 bit tags)
 
 #include <sstream>
 #include <xmmintrin.h>
 
-#include "bitsutil.h"
-
 #include <dtl/dtl.hpp>
 #include <dtl/thread.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/filter/vector_helper.hpp>
+#include <dtl/filter/blocked_bloomfilter/vector_helper.hpp>
 
 // include the scalar "find tag in buckets" implementations
 #include "cuckoofilter_table_scalar.hpp"
@@ -48,6 +46,9 @@
 #if defined(__AVX512F__)
 #include "cuckoofilter_table_simd_avx512f.hpp"
 #endif
+
+#include "bitsutil.hpp"
+
 
 namespace dtl {
 namespace cuckoofilter {

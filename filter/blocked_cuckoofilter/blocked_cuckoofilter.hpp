@@ -13,9 +13,9 @@
 
 #include <boost/math/common_factor.hpp>
 
-#include "block_addressing_logic.hpp"
+#include "dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp"
 #include "blocked_cuckoofilter_logic.hpp"
-#include "hash_family.hpp"
+#include "dtl/filter/blocked_bloomfilter/hash_family.hpp"
 
 
 namespace dtl {

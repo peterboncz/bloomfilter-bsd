@@ -13,18 +13,17 @@
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
-#include "block_addressing_logic.hpp"
-#include "hash_family.hpp"
+#include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/hash_family.hpp>
 
 namespace dtl {
 
 //===----------------------------------------------------------------------===//
-// A (standard) Bloom filter template.
+// A (classic) Bloom filter template.
 //===----------------------------------------------------------------------===//
 template<
     typename Tk,           // the key type
-//    typename HashFn,       // the hash function (family) to use
-    block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the _addressing scheme
+    block_addressing AddrMode = block_addressing::POWER_OF_TWO  // the addressing scheme (either POWER_OF_TWO or MAGIC)
 >
 struct bloomfilter_logic {
 

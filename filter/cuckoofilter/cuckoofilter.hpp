@@ -12,8 +12,8 @@
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
-#include <dtl/filter/block_addressing_logic.hpp>
-#include <dtl/filter/hash_family.hpp>
+#include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/hash_family.hpp>
 
 #include "cuckoofilter_logic.hpp"
 #include "cuckoofilter_table.hpp"

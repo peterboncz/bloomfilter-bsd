@@ -5,7 +5,7 @@
 #include <dtl/mem.hpp>
 #include <dtl/simd.hpp>
 
-#include "vector_helper.hpp"
+#include "dtl/filter/blocked_bloomfilter/vector_helper.hpp"
 
 namespace dtl {
 namespace cuckoofilter {

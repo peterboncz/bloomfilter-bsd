@@ -10,6 +10,7 @@ add_subdirectory(simd)
 
 set(CUCKOO_FILTER_SOURCE_FILES
         # cuckoo
+        filter/cuckoofilter/bitsutil.hpp
         filter/cuckoofilter/cuckoofilter.hpp
         filter/cuckoofilter/cuckoofilter_config.hpp
         filter/cuckoofilter/cuckoofilter_logic.hpp
@@ -23,37 +24,37 @@ set(CUCKOO_FILTER_SOURCE_FILES
         filter/cuckoofilter/cuckoofilter_tune_impl.hpp
 
         # blocked cuckoo (EXPERIMENTAL)
-        filter/blocked_cuckoofilter.hpp
-        filter/blocked_cuckoofilter_logic.hpp
-        filter/blocked_cuckoofilter_block_logic.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_logic.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_block_logic.hpp
 #       filter/blocked_cuckoofilter_concurrent_multiword_table.hpp
-        filter/blocked_cuckoofilter_multiword_table.hpp
-        filter/blocked_cuckoofilter_simd.hpp
-        filter/blocked_cuckoofilter_util.hpp
-        filter/blocked_cuckoofilter_word_table.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_multiword_table.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_simd.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_util.hpp
+        filter/blocked_cuckoofilter/blocked_cuckoofilter_word_table.hpp
         )
 
 
 set(BLOOM_FILTER_SOURCE_FILES
         # classic bloom
-        filter/bloomfilter_logic.hpp
+        filter/bloomfilter/bloomfilter_logic.hpp
 
         # blocked bloom
-        filter/blocked_bloomfilter.hpp
-        filter/blocked_bloomfilter.hpp
-        filter/blocked_bloomfilter_batch_dispatch.hpp
-        filter/blocked_bloomfilter_logic.hpp
-        filter/blocked_bloomfilter_block_logic.hpp
-        filter/blocked_bloomfilter_block_logic_sgew.hpp
-        filter/blocked_bloomfilter_block_logic_sltw.hpp
-        filter/blocked_bloomfilter_block_logic_zoned.hpp
-        filter/blocked_bloomfilter_config.hpp
-        filter/blocked_bloomfilter_tune.hpp
-        filter/blocked_bloomfilter_tune_impl.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_batch_dispatch.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_block_logic.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_zoned.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_tune.hpp
+        filter/blocked_bloomfilter/blocked_bloomfilter_tune_impl.hpp
 
         # zoned bloom (aka cache-sectorized) # TODO merge into blocked_bloom
-        filter/zoned_blocked_bloomfilter.hpp
-        filter/zoned_blocked_bloomfilter_tune_impl.hpp
+        filter/blocked_bloomfilter/zoned_blocked_bloomfilter.hpp
+        filter/blocked_bloomfilter/zoned_blocked_bloomfilter_tune_impl.hpp
 
         # runtime version of blocked bloom filter (EXPERIMENTAL)
         filter/dynamic/block_addressing_logic.hpp
@@ -63,11 +64,11 @@ set(BLOOM_FILTER_SOURCE_FILES
         filter/dynamic/hash.hpp
 
         # utils
-        filter/fpr.hpp
-        filter/block_addressing_logic.hpp
-        filter/vector_helper.hpp
-        filter/hash_family.hpp
-        filter/math.hpp
+        filter/blocked_bloomfilter/fpr.hpp
+        filter/blocked_bloomfilter/block_addressing_logic.hpp
+        filter/blocked_bloomfilter/vector_helper.hpp
+        filter/blocked_bloomfilter/hash_family.hpp
+        filter/blocked_bloomfilter/math.hpp
         )
 
 

@@ -5,7 +5,7 @@
 #include <random>
 
 #include <dtl/dtl.hpp>
-#include <dtl/filter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
 
 #include "immintrin.h"
 

@@ -7,7 +7,7 @@
 #include <dtl/math.hpp>
 #include <dtl/mem.hpp>
 
-#include "block_addressing_logic.hpp"
+#include "dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp"
 #include "blocked_cuckoofilter_multiword_table.hpp"
 #include "blocked_cuckoofilter_util.hpp"
 #include "blocked_cuckoofilter_word_table.hpp"

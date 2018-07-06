@@ -1,7 +1,7 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
-#include <dtl/filter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
 
 namespace dtl {
 namespace cuckoofilter {

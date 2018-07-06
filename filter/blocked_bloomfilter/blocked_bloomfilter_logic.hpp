@@ -10,9 +10,9 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/filter/block_addressing_logic.hpp>
-#include <dtl/filter/blocked_bloomfilter_batch_dispatch.hpp>
-#include <dtl/filter/blocked_bloomfilter_block_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_batch_dispatch.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic.hpp>
 
 #include <boost/integer/static_min_max.hpp>
 

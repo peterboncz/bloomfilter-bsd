@@ -11,7 +11,7 @@
 #include <dtl/bits.hpp>
 #include <dtl/math.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/filter/vector_helper.hpp>
+#include <dtl/filter/blocked_bloomfilter/vector_helper.hpp>
 
 #include "immintrin.h"
 

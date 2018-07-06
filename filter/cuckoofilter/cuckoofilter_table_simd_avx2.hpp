@@ -3,7 +3,7 @@
 #include <dtl/dtl.hpp>
 #include <dtl/thread.hpp>
 #include <dtl/simd.hpp>
-#include <dtl/filter/vector_helper.hpp>
+#include <dtl/filter/blocked_bloomfilter/vector_helper.hpp>
 
 #include <xmmintrin.h>
 
