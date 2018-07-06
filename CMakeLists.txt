@@ -57,11 +57,11 @@ set(BLOOM_FILTER_SOURCE_FILES
         filter/blocked_bloomfilter/zoned_blocked_bloomfilter_tune_impl.hpp
 
         # runtime version of blocked bloom filter (EXPERIMENTAL)
-        filter/dynamic/block_addressing_logic.hpp
-        filter/dynamic/blocked_bloomfilter.hpp
-        filter/dynamic/blocked_bloomfilter_logic.hpp
-        filter/dynamic/blocked_bloomfilter_block_logic.hpp
-        filter/dynamic/hash.hpp
+        filter/dynamic_blocked_bloomfilter/block_addressing_logic.hpp
+        filter/dynamic_blocked_bloomfilter/blocked_bloomfilter.hpp
+        filter/dynamic_blocked_bloomfilter/blocked_bloomfilter_logic.hpp
+        filter/dynamic_blocked_bloomfilter/blocked_bloomfilter_block_logic.hpp
+        filter/dynamic_blocked_bloomfilter/hash.hpp
 
         # utils
         filter/blocked_bloomfilter/fpr.hpp

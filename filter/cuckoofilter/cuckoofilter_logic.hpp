@@ -3,6 +3,7 @@
 //===----------------------------------------------------------------------===//
 // This file is based on the original Cuckoo filter implementation,
 // that can be found on GitHub: https://github.com/efficient/cuckoofilter
+// Usable under the terms in the Apache License, Version 2.0.
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
