@@ -7,6 +7,7 @@
 namespace dtl {
 
 /// converts a byte sequence of length LEN/8 into a bitset of length LEN
+/// Adopted and modified from "Exploiting SIMD for Complex Numerical Predicates" (http://idke.ruc.edu.cn/HardBD2016/HardBD16_3.pdf)
 template<u64 LEN, typename T>
 dtl::bitset<LEN>
 to_bitset(const T* ptr) {
