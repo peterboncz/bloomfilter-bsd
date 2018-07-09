@@ -7,16 +7,18 @@
 #include <map>
 #include <type_traits>
 
+#include <fcntl.h>
+#include <pwd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/cuckoofilter/cuckoofilter_config.hpp>
 
 #include "timing.hpp"
+#include "tuning_params.hpp"
 
 namespace dtl {
 namespace filter {
@@ -39,13 +41,19 @@ class calibration_data {
 
   /// The file name where to store the calibration data.
   const std::string filename_;
+
+  /// The calibrated tuning parameters for blocked Bloom filters.
+  std::map<bbf_config_t, tuning_params> bbf_tuning_params_;
+  /// The calibrated tuning parameters for Cuckoo filters.
+  std::map<cf_config_t, tuning_params> cf_tuning_params_;
+
   /// The calibrated cache sizes.
   std::vector<$u64> cache_sizes_;
   /// The benchmarked filter sizes. one for each memory level.
   std::vector<$u64> filter_sizes_;
-  /// The delta t_lookup values for Bloom filters.
+  /// The delta t_lookup values for Bloom filters. (one timing per memory level)
   std::map<bbf_config_t, timings_t> bbf_delta_tls_;
-  /// The delta t_lookup values for Bloom filters.
+  /// The delta t_lookup values for Cuckoo filters. (one timing per memory level)
   std::map<cf_config_t, timings_t> cf_delta_tls_;
   /// Keeps track of updates. (if true, the in-memory state has changed over the persistent state)
   $u1 changed_;
@@ -53,29 +61,74 @@ class calibration_data {
   $i32 file_descriptor_;
   /// The file size in bytes.
   $u64 file_size_;
+
   /// Pointer to the mapped file data (read only).
   $u8* mapped_data_;
-  bbf_config_t* bbf_config_begin = nullptr;
-  bbf_config_t* bbf_config_end = nullptr;
-  timing* bbf_timing_begin = nullptr;
-  timing* bbf_timing_end = nullptr;
-  cf_config_t* cf_config_begin = nullptr;
-  cf_config_t* cf_config_end = nullptr;
-  timing* cf_timing_begin = nullptr;
-  timing* cf_timing_end = nullptr;
+  bbf_config_t* bbf_config_begin_ = nullptr;
+  bbf_config_t* bbf_config_end_ = nullptr;
+  timing* bbf_timing_begin_ = nullptr;
+  timing* bbf_timing_end_ = nullptr;
+  tuning_params* bbf_tuning_params_begin_ = nullptr;
+  tuning_params* bbf_tuning_params_end_ = nullptr;
+  cf_config_t* cf_config_begin_ = nullptr;
+  cf_config_t* cf_config_end_ = nullptr;
+  timing* cf_timing_begin_ = nullptr;
+  timing* cf_timing_end_ = nullptr;
+  tuning_params* cf_tuning_params_begin_ = nullptr;
+  tuning_params* cf_tuning_params_end_ = nullptr;
 
-public:
+  const timing null_timing_ { 0.0, 0.0 };
+  const tuning_params null_tuning_params_ { 1 };
+
+  static std::string
+  get_default_filename() {
+    const char* home_dir;
+    if ((home_dir = getenv("HOME")) == NULL) {
+      home_dir = getpwuid(getuid())->pw_dir;
+    }
+    const std::string filename = std::string(home_dir) + "/" + ".dtl-filter.dat";
+    return filename;
+  }
+
+ public:
+
+  timings_t
+  get_null_timings() const {
+    timings_t timings;
+    u64 mem_levels = get_mem_levels();
+    for (std::size_t i = 0; i < mem_levels; i++) {
+      timings.push_back(null_timing_);
+    }
+    return timings;
+  }
+
+  tuning_params
+  get_null_tuning_params() const {
+    return null_tuning_params_;
+  }
+
+  static calibration_data&
+  get_default_instance() {
+    static calibration_data instance;
+    return instance;
+  }
+
 
   /// C'tor
   explicit
   calibration_data(const std::string& filename)
     : filename_(filename),
+      bbf_tuning_params_(), cf_tuning_params_(),
       cache_sizes_(), filter_sizes_(),
       bbf_delta_tls_(), cf_delta_tls_(),
       changed_(false),
       file_descriptor_(-1), file_size_(0), mapped_data_(nullptr) {
     open_file();
   }
+
+  /// C'tor (using the default filename)
+  calibration_data() : calibration_data(get_default_filename()) {};
+
 
   /// D'tor
   ~calibration_data() {
@@ -145,18 +198,33 @@ public:
   std::vector<$u8>
   serialize();
 
+
   /// Add the delta-t_l values for the given filter configuration.
   /// Note: All changes are transient, until the persist function is called.
   void
-  put(const bbf_config_t& config, const timings_t& delta_timings);
+  put_timings(const bbf_config_t& config, const timings_t& delta_timings);
   void
-  put(const cf_config_t& config, const timings_t& delta_timings);
+  put_timings(const cf_config_t& config, const timings_t& delta_timings);
 
   /// Get the delta-t_l values for the given filter configuration.
   timings_t
-  get(const bbf_config_t& config);
+  get_timings(const bbf_config_t& config);
   timings_t
-  get(const cf_config_t& config);
+  get_timings(const cf_config_t& config);
+
+
+  /// Add the tuning parameters for the given filter configuration.
+  /// Note: All changes are transient, until the persist function is called.
+  void
+  put_tuning_params(const bbf_config_t& config, const tuning_params& params);
+  void
+  put_tuning_params(const cf_config_t& config, const tuning_params& params);
+
+  /// Get the delta-t_l values for the given filter configuration.
+  tuning_params
+  get_tuning_params(const bbf_config_t& config);
+  tuning_params
+  get_tuning_params(const cf_config_t& config);
 
   // TODO add skyline matrix
 };

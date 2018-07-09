@@ -11,26 +11,9 @@
 
 #include "immintrin.h"
 
+#include "../model/tuning_params.hpp"
+
 namespace dtl {
-
-
-namespace {
-
-//===----------------------------------------------------------------------===//
-struct tuning_params {
-  $u32 unroll_factor = 1;
-
-  tuning_params() = default;
-  ~tuning_params() = default;
-  tuning_params(const tuning_params& other) = default;
-  tuning_params(tuning_params&& other) = default;
-
-  tuning_params& operator=(const tuning_params& rhs) = default;
-  tuning_params& operator=(tuning_params&& rhs) = default;
-};
-//===----------------------------------------------------------------------===//
-
-} // anonymous namespace
 
 
 //===----------------------------------------------------------------------===//

@@ -12,6 +12,9 @@
 #include "cuckoofilter.hpp"
 #include "cuckoofilter_tune.hpp"
 
+#include "../model/calibration_data.hpp"
+#include "../model/tuning_params.hpp"
+
 
 namespace dtl {
 namespace cuckoofilter {
@@ -38,13 +41,11 @@ namespace internal {
 //===----------------------------------------------------------------------===//
 struct cuckoofilter_tune_impl : cuckoofilter_tune {
 
+  using tuning_params = dtl::filter::model::tuning_params;
+  using calibration_data = filter::model::calibration_data;
 
   static constexpr u32 max_k = 16;
   static constexpr u32 max_unroll_factor = 8;
-
-
-  std::map<config, tuning_params>
-  m;
 
 
   void
@@ -54,7 +55,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
                     u32 unroll_factor) override {
     config c { bits_per_tag, tags_per_bucket, addr_mode};
     tuning_params tp { unroll_factor };
-    m.insert(std::pair<config, tuning_params>(c, tp));
+    calibration_data::get_default_instance().put_tuning_params(c, tp);
   }
 
 
@@ -63,11 +64,8 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
                     u32 tags_per_bucket,
                     dtl::block_addressing addr_mode) const override {
     config c { bits_per_tag, tags_per_bucket, addr_mode};
-    if (m.count(c)) {
-      auto p = m.find(c)->second;
-      return p.unroll_factor;
-    }
-    return 1; // defaults to SIMD implementation
+    auto tp = calibration_data::get_default_instance().get_tuning_params(c);
+    return tp.unroll_factor;
   }
 
 
@@ -78,7 +76,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
 
     config c { bits_per_tag, tags_per_bucket, addr_mode};
     tuning_params tp = calibrate(c);
-    m.insert(std::pair<config, tuning_params>(c, tp));
+    calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
 

@@ -76,6 +76,7 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/model/calibration_data.hpp
         src/dtl/filter/model/calibration_data.cpp
         src/dtl/filter/model/timing.hpp
+        src/dtl/filter/model/tuning_params.hpp
         )
 
 
@@ -117,5 +118,5 @@ set(SOURCE_FILES ${SOURCE_FILES}
         src/dtl/tree_mask.hpp
         src/dtl/zone_mask.hpp
         )
-add_library(dtl ${SOURCE_FILES})
-target_include_directories(dtl PUBLIC src)
+add_library(dtl STATIC ${SOURCE_FILES})
+target_include_directories(dtl PUBLIC src thirdparty)

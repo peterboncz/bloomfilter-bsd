@@ -17,6 +17,8 @@ calibration_data::open_file() {
   // drop in-memory state
   cache_sizes_.clear();
   filter_sizes_.clear();
+  bbf_tuning_params_.clear();
+  cf_tuning_params_.clear();
   bbf_delta_tls_.clear();
   cf_delta_tls_.clear();
   changed_ = false;
@@ -84,15 +86,19 @@ calibration_data::open_file() {
         + sizeof(u64) // number of cuckoo filter configurations
     ;
 
-    // init begin and end pointer
-    bbf_config_begin = reinterpret_cast<bbf_config_t*>(&mapped_data_[header_size]);
-    bbf_config_end = bbf_config_begin + bbf_config_count;
-    bbf_timing_begin = reinterpret_cast<timing*>(bbf_config_end);
-    bbf_timing_end = bbf_timing_begin + mem_levels * bbf_config_count;
-    cf_config_begin = reinterpret_cast<cf_config_t*>(bbf_timing_end);
-    cf_config_end = cf_config_begin + cf_config_count;
-    cf_timing_begin = reinterpret_cast<timing*>(cf_config_end);
-    cf_timing_end = cf_timing_begin + mem_levels * cf_config_count;
+    // init begin and end pointers
+    bbf_config_begin_ = reinterpret_cast<bbf_config_t*>(&mapped_data_[header_size]);
+    bbf_config_end_ = bbf_config_begin_ + bbf_config_count;
+    bbf_timing_begin_ = reinterpret_cast<timing*>(bbf_config_end_);
+    bbf_timing_end_ = bbf_timing_begin_ + mem_levels * bbf_config_count;
+    bbf_tuning_params_begin_ = reinterpret_cast<tuning_params*>(bbf_timing_end_);
+    bbf_tuning_params_end_ = bbf_tuning_params_begin_ + bbf_config_count;
+    cf_config_begin_ = reinterpret_cast<cf_config_t*>(bbf_tuning_params_end_);
+    cf_config_end_ = cf_config_begin_ + cf_config_count;
+    cf_timing_begin_ = reinterpret_cast<timing*>(cf_config_end_);
+    cf_timing_end_ = cf_timing_begin_ + mem_levels * cf_config_count;
+    cf_tuning_params_begin_ = reinterpret_cast<tuning_params*>(cf_timing_end_);
+    cf_tuning_params_end_ = cf_tuning_params_begin_ + mem_levels * bbf_config_count;
 
     changed_ = false;
   }
@@ -145,9 +151,10 @@ calibration_data::serialize() {
   // read data from file to memory
   {
     // bloom
-    u64 cnt = std::distance(bbf_config_begin, bbf_config_end);
-    bbf_config_t* config_reader = bbf_config_begin;
-    timing* timing_reader = bbf_timing_begin;
+    u64 cnt = std::distance(bbf_config_begin_, bbf_config_end_);
+    bbf_config_t* config_reader = bbf_config_begin_;
+    timing* timing_reader = bbf_timing_begin_;
+    tuning_params* tuning_reader = bbf_tuning_params_begin_;
     for (std::size_t i = 0; i < cnt; i++) {
       // check if already in memory
       auto search = bbf_delta_tls_.find(*config_reader);
@@ -161,14 +168,17 @@ calibration_data::serialize() {
         timing_reader++;
       }
       bbf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
+      bbf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
       config_reader++;
+      tuning_reader++;
     }
   }
   {
     // cuckoo
-    u64 cnt = std::distance(cf_config_begin, cf_config_end);
-    cf_config_t* config_reader = cf_config_begin;
-    timing* timing_reader = cf_timing_begin;
+    u64 cnt = std::distance(cf_config_begin_, cf_config_end_);
+    cf_config_t* config_reader = cf_config_begin_;
+    timing* timing_reader = cf_timing_begin_;
+    tuning_params* tuning_reader = bbf_tuning_params_begin_;
     for (std::size_t i = 0; i < cnt; i++) {
       // check if already in memory
       auto search = cf_delta_tls_.find(*config_reader);
@@ -182,9 +192,13 @@ calibration_data::serialize() {
         timing_reader++;
       }
       cf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
+      cf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
       config_reader++;
+      tuning_reader++;
     }
   }
+
+  // TODO read params from file
 
   u64 bbf_config_count = bbf_delta_tls_.size();
   u64 cf_config_count = cf_delta_tls_.size();
@@ -202,8 +216,8 @@ calibration_data::serialize() {
   ;
 
   const std::size_t buffer_size = header_size
-      + bbf_config_count * (sizeof(bbf_config_t) + get_mem_levels() * sizeof(timing)) // bbf config + timings
-      + cf_config_count * (sizeof(cf_config_t) + get_mem_levels() * sizeof(timing)) // cf config + timings
+      + bbf_config_count * (sizeof(bbf_config_t) + get_mem_levels() * sizeof(timing) + sizeof(tuning_params)) // bbf config + timings + tuning parameters
+      + cf_config_count * (sizeof(cf_config_t) + get_mem_levels() * sizeof(timing) + sizeof(tuning_params)) // cf config + timings + tuning parameters
   ;
 
   // allocate a buffer
@@ -243,11 +257,13 @@ calibration_data::serialize() {
     *reinterpret_cast<$u64*>(&buffer[0] + header_size - 2 * sizeof(u64)) = bbf_config_count;
     *reinterpret_cast<$u64*>(&buffer[0] + header_size - 1 * sizeof(u64)) = cf_config_count;
 
-    // configurations and timings
+    // configurations, timings, and tuning params
     u64 bbf_config_offset = header_size;
     u64 bbf_timing_offset = bbf_config_offset + bbf_config_count * sizeof(bbf_config_t);
+    u64 bbf_tuning_offset = bbf_timing_offset + bbf_config_count * get_mem_levels() * sizeof(timing);
     bbf_config_t* bf_configs = reinterpret_cast<bbf_config_t*>(&buffer[0] + bbf_config_offset);
     timing* bf_timings = reinterpret_cast<timing*>(&buffer[0] + bbf_timing_offset);
+    tuning_params* bf_tuning = reinterpret_cast<tuning_params*>(&buffer[0] + bbf_tuning_offset);
     for (auto& ct : bbf_delta_tls_) {
       *bf_configs = ct.first;
       bf_configs++;
@@ -255,11 +271,16 @@ calibration_data::serialize() {
         *bf_timings = t;
         bf_timings++;
       }
+      auto search = bbf_tuning_params_.find(ct.first);
+      *bf_tuning = search->second;
+      bf_tuning++;
     }
-    u64 cf_config_offset = bbf_timing_offset + bbf_config_count * get_mem_levels() * sizeof(timing);
+    u64 cf_config_offset = bbf_tuning_offset + bbf_config_count * sizeof(tuning_params);
     u64 cf_timing_offset = cf_config_offset + cf_config_count * sizeof(cf_config_t);
+    u64 cf_tuning_offset = cf_timing_offset + cf_config_count * get_mem_levels() * sizeof(timing);
     cf_config_t* cf_configs = reinterpret_cast<cf_config_t*>(&buffer[0] + cf_config_offset);
     timing* cf_timings = reinterpret_cast<timing*>(&buffer[0] + cf_timing_offset);
+    tuning_params* cf_tuning = reinterpret_cast<tuning_params*>(&buffer[0] + cf_tuning_offset);
     for (auto& ct : cf_delta_tls_) {
       *cf_configs = ct.first;
       cf_configs++;
@@ -267,6 +288,9 @@ calibration_data::serialize() {
         *cf_timings = t;
         cf_timings++;
       }
+      auto search = cf_tuning_params_.find(ct.first);
+      *cf_tuning = search->second;
+      cf_tuning++;
     }
   }
 
@@ -279,14 +303,44 @@ calibration_data::serialize() {
 /// Add the delta-t_l values for the given filter configuration.
 /// Note: All changes are transient, until the persist function is called.
 void
-calibration_data::put(const bbf_config_t& config, const timings_t& delta_timings) {
+calibration_data::put_timings(const bbf_config_t& config, const timings_t& delta_timings) {
+  // ensure, that we have tuning parameters for the given config
+  tuning_params params;
+  $u1 add_tuning_params = false;
+  try {
+    params = get_tuning_params(config);
+  } catch (...) {
+    // no timings found for the given configuration
+    params = get_null_tuning_params();
+    add_tuning_params = true;
+  }
+
   bbf_delta_tls_.insert(std::make_pair(config, delta_timings));
+
+  if (add_tuning_params) {
+    put_tuning_params(config, params);
+  }
   changed_ = true;
 }
 
 void
-calibration_data::put(const cf_config_t& config, const timings_t& delta_timings) {
+calibration_data::put_timings(const cf_config_t& config, const timings_t& delta_timings) {
+  // ensure, that we have tuning parameters for the given config
+  tuning_params params;
+  $u1 add_tuning_params = false;
+  try {
+    params = get_tuning_params(config);
+  } catch (...) {
+    // no timings found for the given configuration
+    params = get_null_tuning_params();
+    add_tuning_params = true;
+  }
+
   cf_delta_tls_.insert(std::make_pair(config, delta_timings));
+
+  if (add_tuning_params) {
+    put_tuning_params(config, params);
+  }
   changed_ = true;
 }
 //===----------------------------------------------------------------------===//
@@ -295,47 +349,134 @@ calibration_data::put(const cf_config_t& config, const timings_t& delta_timings)
 //===----------------------------------------------------------------------===//
 /// Get the delta-t_l values for the given filter configuration.
 timings_t
-calibration_data::get(const bbf_config_t& config) {
+calibration_data::get_timings(const bbf_config_t& config) {
   auto search = bbf_delta_tls_.find(config);
   if (search != bbf_delta_tls_.end()) {
     return search->second;
   }
   // search in the file
-  const auto found = std::lower_bound(bbf_config_begin, bbf_config_end, config);
-  if (config != *found) {
+  const auto found = std::lower_bound(bbf_config_begin_, bbf_config_end_, config);
+  if (!found || config != *found) {
     throw std::runtime_error("Failed to find configuration.");
   }
-  const auto config_idx = std::distance(bbf_config_begin, found);
+  const auto config_idx = std::distance(bbf_config_begin_, found);
 
   // read the timings
   timings_t timings;
   for (std::size_t i = 0; i < get_mem_levels(); i++) {
-    timings.push_back(bbf_timing_begin[get_mem_levels() * config_idx + i]);
+    timings.push_back(bbf_timing_begin_[get_mem_levels() * config_idx + i]);
   }
   return timings;
 }
 
 timings_t
-calibration_data::get(const cf_config_t& config) {
+calibration_data::get_timings(const cf_config_t& config) {
   auto search = cf_delta_tls_.find(config);
   if (search != cf_delta_tls_.end()) {
     return search->second;
   }
   // search in the file
-  const auto found = std::lower_bound(cf_config_begin, cf_config_end, config);
-  if (config != *found) {
+  const auto found = std::lower_bound(cf_config_begin_, cf_config_end_, config);
+  if (!found || config != *found) {
     throw std::runtime_error("Failed to find configuration.");
   }
-  const auto config_idx = std::distance(cf_config_begin, found);
+  const auto config_idx = std::distance(cf_config_begin_, found);
 
   // read the timings
   timings_t timings;
   for (std::size_t i = 0; i < get_mem_levels(); i++) {
-    timings.push_back(cf_timing_begin[get_mem_levels() * config_idx + i]);
+    timings.push_back(cf_timing_begin_[get_mem_levels() * config_idx + i]);
   }
   return timings;
 }
 //===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+/// Add the tuning parameters for the given filter configuration.
+/// Note: All changes are transient, until the persist function is called.
+void
+calibration_data::put_tuning_params(const bbf_config_t& config, const tuning_params& params) {
+  // ensure, that we have timings for the given config
+  timings_t timings;
+  $u1 add_timings = false;
+  try {
+    timings = get_timings(config);
+  } catch (...) {
+    // no timings found for the given configuration
+    timings = get_null_timings();
+    add_timings = true;
+  }
+
+  bbf_tuning_params_.insert(std::make_pair(config, params));
+
+  if (add_timings) {
+    put_timings(config, timings);
+  }
+  changed_ = true;
+}
+
+void
+calibration_data::put_tuning_params(const cf_config_t& config, const tuning_params& params) {
+  // ensure, that we have timings for the given config
+  timings_t timings;
+  $u1 add_timings = false;
+  try {
+    timings = get_timings(config);
+  } catch (...) {
+    // no timings found for the given configuration
+    timings = get_null_timings();
+    add_timings = true;
+  }
+
+  cf_tuning_params_.insert(std::make_pair(config, params));
+
+  if (add_timings) {
+    put_timings(config, timings);
+  }
+  changed_ = true;
+}
+//===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+/// Get the tuning parameters for the given filter configuration.
+tuning_params
+calibration_data::get_tuning_params(const bbf_config_t& config) {
+  auto search = bbf_tuning_params_.find(config);
+  if (search != bbf_tuning_params_.end()) {
+    return search->second;
+  }
+  // search in the file
+  const auto found = std::lower_bound(bbf_config_begin_, bbf_config_end_, config);
+  if (!found || config != *found) {
+    throw std::runtime_error("Failed to find configuration.");
+  }
+  const auto config_idx = std::distance(bbf_config_begin_, found);
+
+  // read the timings
+  tuning_params params = bbf_tuning_params_begin_[config_idx];
+  return params;
+}
+tuning_params
+calibration_data::get_tuning_params(const cf_config_t& config) {
+  auto search = cf_tuning_params_.find(config);
+  if (search != cf_tuning_params_.end()) {
+    return search->second;
+  }
+  // search in the file
+  const auto found = std::lower_bound(cf_config_begin_, cf_config_end_, config);
+  if (!found || config != *found) {
+    throw std::runtime_error("Failed to find configuration.");
+  }
+  const auto config_idx = std::distance(cf_config_begin_, found);
+
+  // read the timings
+  tuning_params params = cf_tuning_params_begin_[config_idx];
+  return params;
+}
+//===----------------------------------------------------------------------===//
+
 
 
 } // namespace model

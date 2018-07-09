@@ -8,7 +8,7 @@ namespace model {
 
 
 //===----------------------------------------------------------------------===//
-/// Timings (benchmark results)
+/// Timings
 struct timing {
   $f64 cycles_per_lookup = 0.0;
   $f64 nanos_per_lookup = 0.0;

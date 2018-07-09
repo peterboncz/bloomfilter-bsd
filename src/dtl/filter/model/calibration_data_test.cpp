@@ -44,19 +44,30 @@ TEST(model_calibration_data, basic_persistence) {
 
     ASSERT_EQ(4, cd.get_mem_levels());
 
-    cd.put(bbf_config_1, delta_timings_1);
-    cd.put(bbf_config_2, delta_timings_2);
-    cd.put(cf_config_1, delta_timings_1);
-    cd.put(cf_config_2, delta_timings_2);
+    cd.put_timings(bbf_config_1, delta_timings_1);
+    cd.put_timings(bbf_config_2, delta_timings_2);
+    cd.put_timings(cf_config_1, delta_timings_1);
+    cd.put_timings(cf_config_2, delta_timings_2);
 
-    auto actual_bbf_timings_1 = cd.get(bbf_config_1);
+    auto actual_bbf_timings_1 = cd.get_timings(bbf_config_1);
     ASSERT_EQ(delta_timings_1, actual_bbf_timings_1);
-    auto actual_bbf_timings_2 = cd.get(bbf_config_2);
+    auto actual_bbf_timings_2 = cd.get_timings(bbf_config_2);
     ASSERT_EQ(delta_timings_2, actual_bbf_timings_2);
-    auto actual_cf_timings_1 = cd.get(cf_config_1);
+    auto actual_cf_timings_1 = cd.get_timings(cf_config_1);
     ASSERT_EQ(delta_timings_1, actual_cf_timings_1);
-    auto actual_cf_timings_2 = cd.get(cf_config_2);
+    auto actual_cf_timings_2 = cd.get_timings(cf_config_2);
     ASSERT_EQ(delta_timings_1, actual_cf_timings_1);
+
+    // check, if tuning parameters exist
+    auto actual_bbf_tuning_1 = cd.get_tuning_params(bbf_config_1);
+    ASSERT_EQ(cd.get_null_tuning_params(), actual_bbf_tuning_1);
+    auto actual_bbf_tuning_2 = cd.get_tuning_params(bbf_config_2);
+    ASSERT_EQ(cd.get_null_tuning_params(), actual_bbf_tuning_2);
+    auto actual_cf_tuning_1 = cd.get_tuning_params(cf_config_1);
+    ASSERT_EQ(cd.get_null_tuning_params(), actual_cf_tuning_1);
+    auto actual_cf_tuning_2 = cd.get_tuning_params(cf_config_2);
+    ASSERT_EQ(cd.get_null_tuning_params(), actual_cf_tuning_2);
+
 
     ASSERT_TRUE(cd.changed());
 
@@ -77,9 +88,9 @@ TEST(model_calibration_data, basic_persistence) {
     ASSERT_EQ(25, cd.get_filter_size(3));
     ASSERT_EQ(35, cd.get_filter_size(4));
 
-    auto received_timings_1 = cd.get(bbf_config_1);
+    auto received_timings_1 = cd.get_timings(bbf_config_1);
     ASSERT_EQ(delta_timings_1, received_timings_1);
-    auto received_timings_2 = cd.get(bbf_config_2);
+    auto received_timings_2 = cd.get_timings(bbf_config_2);
     ASSERT_EQ(delta_timings_2, received_timings_2);
 
     ASSERT_FALSE(cd.changed());
@@ -113,7 +124,7 @@ TEST(model_calibration_data, add_config) {
     cd.set_filter_sizes({5,15,25,35});
 
     // put first config
-    cd.put(bbf_config_1, delta_timings_1);
+    cd.put_timings(bbf_config_1, delta_timings_1);
 
     // write to file
     cd.persist();
@@ -124,7 +135,7 @@ TEST(model_calibration_data, add_config) {
     calibration_data cd(filename);
 
     // put second config
-    cd.put(bbf_config_2, delta_timings_2);
+    cd.put_timings(bbf_config_2, delta_timings_2);
 
     // write to file
     cd.persist();
@@ -135,11 +146,11 @@ TEST(model_calibration_data, add_config) {
     calibration_data cd(filename);
 
     // check if first config exists
-    auto received_timings_1 = cd.get(bbf_config_1);
+    auto received_timings_1 = cd.get_timings(bbf_config_1);
     ASSERT_EQ(delta_timings_1, received_timings_1);
 
     // check if second config exists
-    auto received_timings_2 = cd.get(bbf_config_2);
+    auto received_timings_2 = cd.get_timings(bbf_config_2);
     ASSERT_EQ(delta_timings_2, received_timings_2);
   }
   std::remove(filename.c_str());
@@ -171,8 +182,10 @@ TEST(model_calibration_data, update_config) {
     cd.set_filter_sizes({5,15,25,35});
 
     // put first config
-    cd.put(bbf_config_1, delta_timings_1);
-    cd.put(cf_config_1, delta_timings_1);
+    cd.put_timings(bbf_config_1, delta_timings_1);
+    cd.put_timings(cf_config_1, delta_timings_1);
+    cd.put_tuning_params(bbf_config_1, tuning_params {2});
+    cd.put_tuning_params(cf_config_1, tuning_params {4});
 
     // write to file
     cd.persist();
@@ -183,8 +196,10 @@ TEST(model_calibration_data, update_config) {
     calibration_data cd(filename);
 
     // update first config
-    cd.put(bbf_config_1, delta_timings_2);
-    cd.put(cf_config_1, delta_timings_2);
+    cd.put_timings(bbf_config_1, delta_timings_2);
+    cd.put_timings(cf_config_1, delta_timings_2);
+    cd.put_tuning_params(bbf_config_1, tuning_params {4});
+    cd.put_tuning_params(cf_config_1, tuning_params {8});
 
     // write to file
     cd.persist();
@@ -195,12 +210,18 @@ TEST(model_calibration_data, update_config) {
     calibration_data cd(filename);
 
     // check first config
-    auto received_timings_1 = cd.get(bbf_config_1);
+    auto received_timings_1 = cd.get_timings(bbf_config_1);
     ASSERT_EQ(delta_timings_2, received_timings_1);
 
     // check if second config exists
-    auto received_timings_2 = cd.get(cf_config_1);
+    auto received_timings_2 = cd.get_timings(cf_config_1);
     ASSERT_EQ(delta_timings_2, received_timings_2);
+
+    auto actual_tuning_params_1 = cd.get_tuning_params(bbf_config_1);
+    ASSERT_EQ(actual_tuning_params_1, tuning_params {4});
+
+    auto actual_tuning_params_2 = cd.get_tuning_params(cf_config_1);
+    ASSERT_EQ(actual_tuning_params_2, tuning_params {8});
   }
   std::remove(filename.c_str());
 }

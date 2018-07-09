@@ -13,10 +13,6 @@
 namespace dtl {
 namespace cuckoofilter {
 
-struct tuning_params {
-  u32 unroll_factor;
-};
-
 
 //===----------------------------------------------------------------------===//
 /// Provides tuning parameters to the filter instance.

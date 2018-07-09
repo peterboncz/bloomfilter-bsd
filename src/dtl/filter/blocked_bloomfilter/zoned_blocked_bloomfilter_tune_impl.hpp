@@ -12,6 +12,9 @@
 
 #include "immintrin.h"
 
+#include "../model/tuning_params.hpp"
+#include "../model/calibration_data.hpp"
+
 namespace dtl {
 
 
@@ -35,14 +38,13 @@ namespace internal {
 template<typename word_t>
 struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
+  using tuning_params = filter::model::tuning_params;
+  using calibration_data = filter::model::calibration_data;
+
   // TODO memoization in a global file / tool to calibrate
 
   static constexpr u32 max_k = 16;
   static constexpr u32 max_unroll_factor = 4;
-
-
-  std::map<blocked_bloomfilter_config, tuning_params>
-  m;
 
 
   void
@@ -51,7 +53,7 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     blocked_bloomfilter_config c = config;
     c.sector_cnt = c.word_cnt_per_block;
     tuning_params tp { unroll_factor };
-    m.insert(std::pair<blocked_bloomfilter_config, tuning_params>(c, tp));
+    calibration_data::get_default_instance().put_tuning_params(c, tp);
   }
 
 
@@ -59,11 +61,8 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   get_unroll_factor(const blocked_bloomfilter_config& config) const override {
     blocked_bloomfilter_config c = config;
     c.sector_cnt = c.word_cnt_per_block;
-    if (m.count(c)) {
-      auto p = m.find(c)->second;
-      return p.unroll_factor;
-    }
-    return 1; // default
+    auto tp = calibration_data::get_default_instance().get_tuning_params(c);
+    return tp.unroll_factor;
   }
 
 
@@ -76,7 +75,7 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
     tuning_params tp = calibrate(c);
 
-    m.insert(std::pair<blocked_bloomfilter_config, tuning_params>(c, tp));
+    calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
 
