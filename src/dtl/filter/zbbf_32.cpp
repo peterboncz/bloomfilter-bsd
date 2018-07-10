@@ -1,6 +1,6 @@
 #include "zbbf_32.hpp"
 
-#include "instances/zoned_blocked_bloomfilter_logic_u32_instance.hpp" // extern templates to parallelize builds
+#include "blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u32_instance.hpp" // extern templates to parallelize builds
 #include "blocked_bloomfilter/zoned_blocked_bloomfilter.hpp"
 #include "blocked_bloomfilter/zoned_blocked_bloomfilter_tune_impl.hpp"
 
