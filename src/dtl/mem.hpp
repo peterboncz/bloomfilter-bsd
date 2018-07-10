@@ -78,6 +78,9 @@ struct bitmask_wrap {
     other.ptr = nullptr;
     return *this;
   }
+  $u1 operator==(const bitmask_wrap& other) const {
+    return numa_bitmask_equal(ptr, other.ptr) == 1;
+  }
   /// d'tor
   ~bitmask_wrap() { if (ptr) numa_bitmask_free(ptr); };
 };
@@ -320,6 +323,9 @@ public:
 
   allocator_config& operator=(allocator_config&& other) = default;
 
+  $u1 operator==(const allocator_config& other) const {
+    return policy == other.policy && node_mask == other.node_mask && numa_node == other.numa_node;
+  }
 
   /// interleaved memory allocation (also includes HBM nodes)
   static allocator_config
@@ -418,6 +424,10 @@ struct numa_allocator {
       : config(other.config) { }
 
   ~numa_allocator() { }
+
+  $u1 operator==(const numa_allocator& other) {
+    return config == other.config;
+  }
 
   pointer
   allocate(size_type n, const void* /* hint */ = nullptr) throw() {
