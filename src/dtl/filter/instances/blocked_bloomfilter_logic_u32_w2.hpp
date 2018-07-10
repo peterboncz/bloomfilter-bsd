@@ -3,8 +3,8 @@
 #include <dtl/dtl.hpp>
 #include <dtl/simd.hpp>
 
-#include "dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp"
-#include "dtl/filter/blocked_bloomfilter/hash_family.hpp"
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/hash_family.hpp>
 
 namespace dtl {
 
