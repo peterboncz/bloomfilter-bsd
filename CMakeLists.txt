@@ -34,6 +34,13 @@ set(CUCKOO_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_cuckoofilter/blocked_cuckoofilter_simd.hpp
         src/dtl/filter/blocked_cuckoofilter/blocked_cuckoofilter_util.hpp
         src/dtl/filter/blocked_cuckoofilter/blocked_cuckoofilter_word_table.hpp
+
+        # blocked cuckoo filter (pimpl wrapper, EXPERIMENTAL)
+        src/dtl/filter/bcf.hpp
+        src/dtl/filter/bcf.cpp
+        # cuckoo filter (pimpl wrapper)
+        src/dtl/filter/cf.hpp
+        src/dtl/filter/cf.cpp
         )
 
 
@@ -77,6 +84,58 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/model/calibration_data.cpp
         src/dtl/filter/model/timing.hpp
         src/dtl/filter/model/tuning_params.hpp
+
+        # blocked bloom (pimpl wrapper)
+        src/dtl/filter/bbf_32.hpp
+        src/dtl/filter/bbf_32.cpp
+        src/dtl/filter/bbf_64.hpp
+        src/dtl/filter/bbf_64.cpp
+        # blocked bloom (extern templates to parallelize build)
+        src/dtl/filter/instances/blocked_bloomfilter_logic_instance.inc
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_instance.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w1.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w2.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w4.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w8.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w16.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w1.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w2.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w4.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w8.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u32_w16.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_instance.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w1.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w2.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w4.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w8.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w16.hpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w1.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w2.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w4.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w8.cpp
+        src/dtl/filter/instances/blocked_bloomfilter_logic_u64_w16.cpp
+
+        # cache-sectorized (pimpl wrapper)
+        src/dtl/filter/zbbf_32.hpp
+        src/dtl/filter/zbbf_32.cpp
+        src/dtl/filter/zbbf_64.hpp
+        src/dtl/filter/zbbf_64.cpp
+        # cache-sectorized (extern templates to parallelize build)
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_instance.inc
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_instance.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w4.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w8.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w16.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w4.cpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w8.cpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u32_w16.cpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_instance.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w4.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w8.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w16.hpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w4.cpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w8.cpp
+        src/dtl/filter/instances/zoned_blocked_bloomfilter_logic_u64_w16.cpp
         )
 
 
