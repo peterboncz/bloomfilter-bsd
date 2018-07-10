@@ -227,6 +227,7 @@ class calibration_data {
   get_tuning_params(const cf_config_t& config);
 
   // TODO add skyline matrix
+  // TODO write the number of threads used during calibration
 };
 //===----------------------------------------------------------------------===//
 

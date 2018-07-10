@@ -183,29 +183,32 @@ struct bbf_32::impl {
 
 bbf_32::bbf_32(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, sector_cnt) } {}
-bbf_32::bbf_32(bbf_32&&) = default;
+//bbf_32::bbf_32(bbf_32&&) noexcept = default;
 bbf_32::~bbf_32() = default;
 bbf_32& bbf_32::operator=(bbf_32&&) = default;
 
-void
+$u1
 bbf_32::insert(bbf_32::word_t* __restrict filter_data, u32 key) {
-  pimpl->instance.insert(filter_data, key);
+  pimpl->instance.insert(reinterpret_cast<impl::bbf_t::word_t*>(filter_data), key);
+  return true; // inserts never fail
 }
 
-void
-bbf_32::batch_insert(bbf_32::word_t* __restrict filter_data, u32* keys, u32 key_cnt) {
-  pimpl->instance.batch_insert(filter_data, keys, key_cnt);
+$u1
+bbf_32::batch_insert(bbf_32::word_t* __restrict filter_data, u32* __restrict keys, u32 key_cnt) {
+  pimpl->instance.batch_insert(reinterpret_cast<impl::bbf_t::word_t*>(filter_data), keys, key_cnt);
+  return true; // inserts never fail
 }
 
 $u1
 bbf_32::contains(const bbf_32::word_t* __restrict filter_data, u32 key) const {
-  return pimpl->instance.contains(filter_data, key);
+  return pimpl->instance.contains(reinterpret_cast<const impl::bbf_t::word_t*>(filter_data), key);
 }
 
 $u64
 bbf_32::batch_contains(const bbf_32::word_t* __restrict filter_data,
-                       u32* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
-  return pimpl->instance.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
+                       u32* __restrict keys, u32 key_cnt,
+                       $u32* __restrict match_positions, u32 match_offset) const {
+  return pimpl->instance.batch_contains(reinterpret_cast<const impl::bbf_t::word_t*>(filter_data), keys, key_cnt, match_positions, match_offset);
 }
 
 void
@@ -230,7 +233,7 @@ bbf_32::size_in_bytes() const {
 
 std::size_t
 bbf_32::size() const {
-  return pimpl->instance.size();
+  return (pimpl->instance.size() + 1) / 2; // convert from the number of 32-bit words to the number of 64-bit words.
 }
 
 } // namespace dtl

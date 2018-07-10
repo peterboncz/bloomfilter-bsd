@@ -19,18 +19,20 @@ struct bcf::impl {
 
 bcf::bcf(const size_t m, u32 block_size_bytes, u32 tag_size_bits, u32 associativity)
     : pimpl{ std::make_unique<impl>(m, block_size_bytes, tag_size_bits, associativity) } {}
-bcf::bcf(bcf&&) = default;
+bcf::bcf(bcf&&) noexcept = default;
 bcf::~bcf() = default;
 bcf& bcf::operator=(bcf&&) = default;
 
-void
+$u1
 bcf::insert(bcf::word_t* __restrict filter_data, u32 key) {
   pimpl->instance.insert(filter_data, key);
+  return true; // inserts never fail
 }
 
-void
-bcf::batch_insert(bcf::word_t* __restrict filter_data, u32* keys, u32 key_cnt) {
+$u1
+bcf::batch_insert(bcf::word_t* __restrict filter_data, u32* __restrict keys, u32 key_cnt) {
   pimpl->instance.batch_insert(filter_data, keys, key_cnt);
+  return true; // inserts never fail
 }
 
 $u1
@@ -40,7 +42,8 @@ bcf::contains(const bcf::word_t* __restrict filter_data, u32 key) const {
 
 $u64
 bcf::batch_contains(const bcf::word_t* __restrict filter_data,
-                       u32* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+                    u32* __restrict keys, u32 key_cnt,
+                    $u32* __restrict match_positions, u32 match_offset) const {
   return pimpl->instance.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
 }
 

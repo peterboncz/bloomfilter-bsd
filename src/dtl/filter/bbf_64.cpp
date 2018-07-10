@@ -186,18 +186,20 @@ struct bbf_64::impl {
 
 bbf_64::bbf_64(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, sector_cnt) } {}
-bbf_64::bbf_64(bbf_64&&) = default;
+//bbf_64::bbf_64(bbf_64&&) noexcept = default;
 bbf_64::~bbf_64() = default;
 bbf_64& bbf_64::operator=(bbf_64&&) = default;
 
-void
+$u1
 bbf_64::insert(bbf_64::word_t* __restrict filter_data, u32 key) {
   pimpl->instance.insert(filter_data, key);
+  return true; // inserts never fail
 }
 
-void
-bbf_64::batch_insert(bbf_64::word_t* __restrict filter_data, u32* keys, u32 key_cnt) {
+$u1
+bbf_64::batch_insert(bbf_64::word_t* __restrict filter_data, u32* __restrict keys, u32 key_cnt) {
   pimpl->instance.batch_insert(filter_data, keys, key_cnt);
+  return true; // inserts never fail
 }
 
 $u1
@@ -207,7 +209,8 @@ bbf_64::contains(const bbf_64::word_t* __restrict filter_data, u32 key) const {
 
 $u64
 bbf_64::batch_contains(const bbf_64::word_t* __restrict filter_data,
-                       u32* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+                       u32* __restrict keys, u32 key_cnt,
+                       $u32* __restrict match_positions, u32 match_offset) const {
   return pimpl->instance.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
 }
 

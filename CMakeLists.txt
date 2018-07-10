@@ -80,10 +80,14 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/math.hpp
 
         # model
+        src/dtl/filter/model/benchmark.hpp
+        src/dtl/filter/model/benchmark.cpp
         src/dtl/filter/model/calibration_data.hpp
         src/dtl/filter/model/calibration_data.cpp
         src/dtl/filter/model/timing.hpp
         src/dtl/filter/model/tuning_params.hpp
+        src/dtl/filter/threading.hpp
+        src/dtl/filter/threading.cpp
 
         # blocked bloom (pimpl wrapper)
         src/dtl/filter/bbf_32.hpp
@@ -138,6 +142,12 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w16.cpp
         )
 
+set(FILTER_SOURCE_FILES
+        ${BLOOM_FILTER_SOURCE_FILES}
+        ${CUCKOO_FILTER_SOURCE_FILES}
+        src/dtl/filter/filter.hpp
+        src/dtl/filter/filter_base.hpp
+        )
 
 set(THIRDPARTY_SOURCE_FILES
         # third party
@@ -146,8 +156,7 @@ set(THIRDPARTY_SOURCE_FILES
 
 
 set(SOURCE_FILES ${SOURCE_FILES}
-        ${BLOOM_FILTER_SOURCE_FILES}
-        ${CUCKOO_FILTER_SOURCE_FILES}
+        ${FILTER_SOURCE_FILES}
         src/dtl/adept.hpp #TODO remove
         src/dtl/barrier.hpp
         src/dtl/batchwise.hpp

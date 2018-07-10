@@ -25,31 +25,30 @@ struct cf::impl {
 cf::cf(const std::size_t m, u32 bits_per_tag, u32 tags_per_bucket)
     : pimpl{ std::make_unique<impl>(m, bits_per_tag, tags_per_bucket) },
       bits_per_tag(bits_per_tag), tags_per_bucket(tags_per_bucket) {}
-cf::cf(cf&&) = default;
+//cf::cf(cf&&) noexcept = default;
 cf::~cf() = default;
 cf& cf::operator=(cf&&) = default;
 
-void
+$u1
 cf::insert(cf::word_t* __restrict filter_data, u32 key) {
-  if (!pimpl->instance.insert(filter_data, key)) {
-    throw std::logic_error("Failed to insert element. Filter has not enough space.");
-  }
+  return pimpl->instance.insert(reinterpret_cast<impl::cf_t::word_t*>(filter_data), key);
 }
 
-void
-cf::batch_insert(cf::word_t* __restrict filter_data, u32* keys, u32 key_cnt) {
-  pimpl->instance.batch_insert(filter_data, keys, key_cnt);
+$u1
+cf::batch_insert(cf::word_t* __restrict filter_data, u32* __restrict keys, u32 key_cnt) {
+  return pimpl->instance.batch_insert(reinterpret_cast<impl::cf_t::word_t*>(filter_data), keys, key_cnt);
 }
 
 $u1
 cf::contains(const cf::word_t* __restrict filter_data, u32 key) const {
-  return pimpl->instance.contains(filter_data, key);
+  return pimpl->instance.contains(reinterpret_cast<const impl::cf_t::word_t*>(filter_data), key);
 }
 
 $u64
 cf::batch_contains(const cf::word_t* __restrict filter_data,
-                   u32* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
-  return pimpl->instance.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
+                   u32* __restrict keys, u32 key_cnt,
+                   $u32* __restrict match_positions, u32 match_offset) const {
+  return pimpl->instance.batch_contains(reinterpret_cast<const impl::cf_t::word_t*>(filter_data), keys, key_cnt, match_positions, match_offset);
 }
 
 void
@@ -74,12 +73,12 @@ cf::size_in_bytes() const {
 
 std::size_t
 cf::size() const {
-  return pimpl->instance.size();
+  return (pimpl->instance.size() + 1) / 2; // convert from the number of 32-bit words to the number of 64-bit words.
 }
 
 std::size_t
 cf::count_occupied_slots(const cf::word_t* __restrict filter_data) const {
-  return pimpl->instance.count_occupied_slots(filter_data);
+  return pimpl->instance.count_occupied_slots(reinterpret_cast<const impl::cf_t::word_t*>(filter_data));
 }
 
 std::size_t

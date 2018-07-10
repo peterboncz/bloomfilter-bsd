@@ -207,7 +207,7 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
       return tuning_params { u_min };
 
     } catch (...) {
-      std::cerr<< " -> Failed to calibrate for k = " << c.k << "." << std::endl;
+      std::cerr<< " -> Failed to calibrate for k = " << c.k << "." << std::endl; // TODO remove
     }
     return tuning_params { 0 }; // defaults to scalar code
   }

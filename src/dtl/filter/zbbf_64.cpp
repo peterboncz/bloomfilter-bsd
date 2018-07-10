@@ -27,18 +27,20 @@ struct zbbf_64::impl {
 
 zbbf_64::zbbf_64(const size_t m, u32 k, u32 word_cnt_per_block, u32 zone_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, zone_cnt) } {}
-zbbf_64::zbbf_64(zbbf_64&&) = default;
+//zbbf_64::zbbf_64(zbbf_64&&) noexcept = default;
 zbbf_64::~zbbf_64() = default;
 zbbf_64& zbbf_64::operator=(zbbf_64&&) = default;
 
-void
+$u1
 zbbf_64::insert(zbbf_64::word_t* __restrict filter_data, u32 key) {
   pimpl->instance.insert(filter_data, key);
+  return true; // inserts never fail
 }
 
-void
+$u1
 zbbf_64::batch_insert(zbbf_64::word_t* __restrict filter_data, u32* keys, u32 key_cnt) {
   pimpl->instance.batch_insert(filter_data, keys, key_cnt);
+  return true; // inserts never fail
 }
 
 $u1
@@ -48,7 +50,8 @@ zbbf_64::contains(const zbbf_64::word_t* __restrict filter_data, u32 key) const 
 
 $u64
 zbbf_64::batch_contains(const zbbf_64::word_t* __restrict filter_data,
-                       u32* keys, u32 key_cnt, $u32* match_positions, u32 match_offset) const {
+                        u32* __restrict keys, u32 key_cnt,
+                        $u32* __restrict match_positions, u32 match_offset) const {
   return pimpl->instance.batch_contains(filter_data, keys, key_cnt, match_positions, match_offset);
 }
 

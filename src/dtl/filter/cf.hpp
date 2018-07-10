@@ -1,13 +1,14 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
+#include "filter_base.hpp"
 
 namespace dtl {
 
 //===----------------------------------------------------------------------===//
-// Pimpl wrapper to reduce compilation time.
+// PImpl wrapper to reduce compilation time.
 //===----------------------------------------------------------------------===//
-class cf {
+class cf : public dtl::filter::filter_base {
   class impl;
   std::unique_ptr<impl> pimpl;
   std::size_t bits_per_tag;
@@ -16,25 +17,25 @@ class cf {
 public:
 
   using key_t = $u32;
-  using word_t = $u32;
+  using word_t = $u64; // internally, 32-bit words are used
 
 
   //===----------------------------------------------------------------------===//
   // The API functions.
   //===----------------------------------------------------------------------===//
-  void
+  $u1
   insert(word_t* __restrict filter_data, key_t key);
 
-  void
-  batch_insert(word_t* __restrict filter_data, const key_t* keys, u32 key_cnt);
+  $u1
+  batch_insert(word_t* __restrict filter_data, const key_t* __restrict keys, u32 key_cnt);
 
   $u1
   contains(const word_t* __restrict filter_data, key_t key) const;
 
   $u64
   batch_contains(const word_t* __restrict filter_data,
-                 const key_t* keys, u32 key_cnt,
-                 $u32* match_positions, u32 match_offset) const;
+                 const key_t* __restrict keys, u32 key_cnt,
+                 $u32* __restrict match_positions, u32 match_offset) const;
 
   std::string
   name() const;
@@ -70,9 +71,10 @@ public:
 
   //===----------------------------------------------------------------------===//
 
+  explicit
   cf(std::size_t m, u32 bits_per_tag = 16, u32 tags_per_bucket = 4);
-  ~cf();
-  cf(cf&&);
+  ~cf() override;
+//  cf(cf&&) noexcept;
   cf(const cf&) = delete;
   cf& operator=(cf&&);
   cf& operator=(const cf&) = delete;
