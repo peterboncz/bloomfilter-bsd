@@ -173,8 +173,6 @@ struct zoned_blocked_bloomfilter {
   static void
   dispatch(zoned_blocked_bloomfilter& instance, op_t op) {
       switch (instance.word_cnt_per_block) {
-//        case  1: _z< 1>(instance, op); break;
-//        case  2: _z< 2>(instance, op); break;
         case  4: _z< 4>(instance, op); break;
         case  8: _z< 8>(instance, op); break;
         case 16: _z<16>(instance, op); break;
@@ -201,9 +199,11 @@ struct zoned_blocked_bloomfilter {
   static void
   _k(zoned_blocked_bloomfilter& instance, op_t op) {
     switch (instance.k) {
+#ifndef FAST_BUILD
       case  2: _a<w, z, boost::static_unsigned_max<( 2 % z == 0 ?  2 : 2 /*invalid*/), z>::value>(instance, op); break;
       case  4: _a<w, z, boost::static_unsigned_max<( 4 % z == 0 ?  4 : 2 /*invalid*/), z>::value>(instance, op); break;
       case  6: _a<w, z, boost::static_unsigned_max<( 6 % z == 0 ?  6 : 2 /*invalid*/), z>::value>(instance, op); break;
+#endif
       case  8: _a<w, z, boost::static_unsigned_max<( 8 % z == 0 ?  8 : 2 /*invalid*/), z>::value>(instance, op); break;
       case 10: _a<w, z, boost::static_unsigned_max<(10 % z == 0 ? 10 : 2 /*invalid*/), z>::value>(instance, op); break;
       case 12: _a<w, z, boost::static_unsigned_max<(12 % z == 0 ? 12 : 2 /*invalid*/), z>::value>(instance, op); break;
@@ -244,8 +244,10 @@ struct zoned_blocked_bloomfilter {
       case  0: _o<w, z, k, a, 0>(instance, op); break;
       case  1: _o<w, z, k, a, 1>(instance, op); break;
       case  2: _o<w, z, k, a, 2>(instance, op); break;
+#ifndef FAST_BUILD
       case  4: _o<w, z, k, a, 4>(instance, op); break;
       case  8: _o<w, z, k, a, 8>(instance, op); break;
+#endif
       default:
         throw std::invalid_argument("The given 'unroll_factor' is not supported.");
     }

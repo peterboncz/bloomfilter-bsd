@@ -73,7 +73,6 @@ namespace dtl {
 //
 //} // namespace internal
 
-
 //===----------------------------------------------------------------------===//
 template<typename Tw = $u32>
 struct blocked_bloomfilter {
@@ -221,9 +220,11 @@ struct blocked_bloomfilter {
       switch (instance.word_cnt_per_block) {
         case  1: _s< 1>(instance, op); break;
         case  2: _s< 2>(instance, op); break;
+#ifndef FAST_BUILD
         case  4: _s< 4>(instance, op); break;
         case  8: _s< 8>(instance, op); break;
         case 16: _s<16>(instance, op); break;
+#endif
         default:
           throw std::invalid_argument("The given 'word_cnt_per_block' is not supported.");
       }
@@ -237,10 +238,12 @@ struct blocked_bloomfilter {
   _s(blocked_bloomfilter& instance, op_t op) {
     switch (instance.sector_cnt) {
       case  1: _k<w,  1>(instance, op); break;
+#ifndef FAST_BUILD
       case  2: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  2>::value>(instance, op); break;
       case  4: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  4>::value>(instance, op); break;
       case  8: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word),  8>::value>(instance, op); break;
       case 16: _k<w, boost::static_unsigned_min<(w * max_sector_cnt_per_word), 16>::value>(instance, op); break;
+#endif
       default:
         throw std::invalid_argument("The given 'sector_cnt' is not supported.");
     }
@@ -253,12 +256,14 @@ struct blocked_bloomfilter {
     switch (instance.k) {
       case  1: _a<w, s, boost::static_unsigned_max<1, s>::value>(instance, op); break;
       case  2: _a<w, s, boost::static_unsigned_max<( 2 % s == 0 ?  2 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  3: _a<w, s, boost::static_unsigned_max<( 3 % s == 0 ?  3 : 1 /*invalid*/), s>::value>(instance, op); break;
       case  4: _a<w, s, boost::static_unsigned_max<( 4 % s == 0 ?  4 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  5: _a<w, s, boost::static_unsigned_max<( 5 % s == 0 ?  5 : 1 /*invalid*/), s>::value>(instance, op); break;
       case  6: _a<w, s, boost::static_unsigned_max<( 6 % s == 0 ?  6 : 1 /*invalid*/), s>::value>(instance, op); break;
-      case  7: _a<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(instance, op); break;
       case  8: _a<w, s, boost::static_unsigned_max<( 8 % s == 0 ?  8 : 1 /*invalid*/), s>::value>(instance, op); break;
+#ifndef FAST_BUILD
+      case  3: _a<w, s, boost::static_unsigned_max<( 3 % s == 0 ?  3 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  5: _a<w, s, boost::static_unsigned_max<( 5 % s == 0 ?  5 : 1 /*invalid*/), s>::value>(instance, op); break;
+      case  7: _a<w, s, boost::static_unsigned_max<( 7 % s == 0 ?  7 : 1 /*invalid*/), s>::value>(instance, op); break;
+
       case  9: _a<w, s, boost::static_unsigned_max<( 9 % s == 0 ?  9 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 10: _a<w, s, boost::static_unsigned_max<(10 % s == 0 ? 10 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 11: _a<w, s, boost::static_unsigned_max<(11 % s == 0 ? 11 : 1 /*invalid*/), s>::value>(instance, op); break;
@@ -267,6 +272,7 @@ struct blocked_bloomfilter {
       case 14: _a<w, s, boost::static_unsigned_max<(14 % s == 0 ? 14 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 15: _a<w, s, boost::static_unsigned_max<(15 % s == 0 ? 15 : 1 /*invalid*/), s>::value>(instance, op); break;
       case 16: _a<w, s, boost::static_unsigned_max<16 , s>::value>(instance, op); break;
+#endif
       default:
         throw std::invalid_argument("The given 'k' is not supported.");
     }
@@ -300,8 +306,10 @@ struct blocked_bloomfilter {
       case  0: _o<w, s, k, a,  0>(instance, op); break;
       case  1: _o<w, s, k, a,  1>(instance, op); break;
       case  2: _o<w, s, k, a,  2>(instance, op); break;
+#ifndef FAST_BUILD
       case  4: _o<w, s, k, a,  4>(instance, op); break;
       case  8: _o<w, s, k, a,  8>(instance, op); break;
+#endif
       default:
         throw std::invalid_argument("The given 'unroll_factor' is not supported.");
     }
