@@ -86,8 +86,8 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/model/calibration_data.cpp
         src/dtl/filter/model/timing.hpp
         src/dtl/filter/model/tuning_params.hpp
-        src/dtl/filter/threading.hpp
-        src/dtl/filter/threading.cpp
+        src/dtl/filter/platform.hpp
+        src/dtl/filter/platform.cpp
 
         # blocked bloom (pimpl wrapper)
         src/dtl/filter/bbf_32.hpp

@@ -63,6 +63,7 @@ set(TEST_FILES
         bitmask_test.cpp
         div_test.cpp
         cuckoofilter_test.cpp
+        ../src/dtl/filter/filter_test.cpp
         ../src/dtl/filter/model/calibration_data_test.cpp
 
 #        bitset_test.cpp
