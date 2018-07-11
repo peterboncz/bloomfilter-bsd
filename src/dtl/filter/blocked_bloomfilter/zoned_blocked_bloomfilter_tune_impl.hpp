@@ -61,8 +61,13 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   get_unroll_factor(const blocked_bloomfilter_config& config) const override {
     blocked_bloomfilter_config c = config;
     c.sector_cnt = c.word_cnt_per_block;
-    auto tp = calibration_data::get_default_instance().get_tuning_params(c);
-    return tp.unroll_factor;
+    try {
+      auto tp = calibration_data::get_default_instance().get_tuning_params(c);
+      return tp.unroll_factor;
+    } catch (...) {
+      std::cerr << "Missing calibrated tuning parameters." << std::endl;
+      return 1; // default: SIMD, without unrolling
+    }
   }
 
 

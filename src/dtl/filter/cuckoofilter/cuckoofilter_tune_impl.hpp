@@ -64,8 +64,13 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
                     u32 tags_per_bucket,
                     dtl::block_addressing addr_mode) const override {
     config c { bits_per_tag, tags_per_bucket, addr_mode};
-    auto tp = calibration_data::get_default_instance().get_tuning_params(c);
-    return tp.unroll_factor;
+    try {
+      auto tp = calibration_data::get_default_instance().get_tuning_params(c);
+      return tp.unroll_factor;
+    } catch (...) {
+      std::cerr << "Missing calibrated tuning parameters." << std::endl;
+      return 1; // default: SIMD, without unrolling
+    }
   }
 
 

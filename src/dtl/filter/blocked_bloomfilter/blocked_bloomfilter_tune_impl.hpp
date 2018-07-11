@@ -66,8 +66,13 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     u1 is_sectorized = config.sector_cnt >= config.word_cnt_per_block;
     u32 sector_cnt_actual = is_sectorized ? config.word_cnt_per_block : 1;
     c.sector_cnt = sector_cnt_actual;
-    auto tp = calibration_data::get_default_instance().get_tuning_params(c);
-    return tp.unroll_factor;
+    try {
+      auto tp = calibration_data::get_default_instance().get_tuning_params(c);
+      return tp.unroll_factor;
+    } catch (...) {
+      std::cerr << "Missing calibrated tuning parameters." << std::endl;
+      return 1; // default: SIMD, without unrolling
+    }
   }
 
 
