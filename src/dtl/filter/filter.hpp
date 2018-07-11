@@ -6,6 +6,7 @@
 #include <dtl/mem.hpp>
 #include <dtl/filter/cuckoofilter/cuckoofilter_config.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
+#include <dtl/type_traits.hpp>
 
 #include "filter_base.hpp"
 #include "bbf_32.hpp"
@@ -17,20 +18,6 @@
 
 namespace dtl {
 namespace filter {
-
-
-//===----------------------------------------------------------------------===//
-// source: https://stackoverflow.com/questions/12032771/how-to-check-if-an-arbitrary-type-is-an-iterator
-template<typename T, typename = void>
-struct is_iterator {
-  static constexpr bool value = false;
-};
-
-template<typename T>
-struct is_iterator<T, typename std::enable_if<!std::is_same<typename std::iterator_traits<T>::value_type, void>::value>::type> {
-  static constexpr bool value = true;
-};
-//===----------------------------------------------------------------------===//
 
 
 //===----------------------------------------------------------------------===//
@@ -93,7 +80,7 @@ private:
 
     using data_t = std::vector<$u64, dtl::mem::numa_allocator<$u64>>;
 
-    // The filter data. (allocated on the preferred memory node of the current thread)
+    // The filter data. (allocated on the preferred memory node of the creating thread)
     data_t filter_data;
     // The NUMA node ID where the filter data got allocated.
     i32 filter_data_node;
@@ -105,8 +92,8 @@ private:
 
     static auto
     get_default_allocator() {
-      const auto& threading = dtl::filter::platform::get_instance();
-      u32 mem_node_id = threading.get_memory_node_of_this_thread();
+      const auto& platform = dtl::filter::platform::get_instance();
+      u32 mem_node_id = platform.get_memory_node_of_this_thread();
       auto alloc_config = dtl::mem::allocator_config::on_node(mem_node_id);
       dtl::mem::numa_allocator<$u64> allocator(alloc_config);
       return allocator;
@@ -129,12 +116,12 @@ private:
     /// If required, the filter data is replicated.
     u64*
     get_filter_data_ptr() {
-      const auto& threading = dtl::filter::platform::get_instance();
-      if (threading.get_numa_node_count() == 1) {
+      const auto& platform = dtl::filter::platform::get_instance();
+      if (platform.get_numa_node_count() == 1) {
         return &filter_data[0];
       }
 
-      u32 mem_node_id = threading.get_memory_node_of_this_thread();
+      u32 mem_node_id = platform.get_memory_node_of_this_thread();
       if (mem_node_id == filter_data_node) {
         return &filter_data[0];
       }
@@ -144,9 +131,6 @@ private:
         // critical section
         if (filter_data_replicas[mem_node_id].size() == 0) { // double check
           // replicate the filter data
-          std::stringstream str;
-          str << "replicating to " << mem_node_id << std::endl;
-          std::cout << str.str();
           auto alloc_config = dtl::mem::allocator_config::on_node(mem_node_id);
           dtl::mem::numa_allocator<$u64> allocator(alloc_config);
           data_t replica(filter_data.begin(), filter_data.end(), allocator);
@@ -205,7 +189,9 @@ public:
   // Probing the filter is encapsulated in a different class.
   class probe_t {
 
+    /// Pointer to the shared filter instance.
     const std::shared_ptr<filter_shared> shared_filter_instance;
+    /// Pointer to the (thread-local) filter data.
     u64* filter_data;
 
   public:

@@ -184,6 +184,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         src/dtl/thread.hpp
         src/dtl/tree.hpp
         src/dtl/tree_mask.hpp
+        src/dtl/type_traits.hpp
         src/dtl/zone_mask.hpp
         )
 add_library(dtl STATIC ${SOURCE_FILES})
