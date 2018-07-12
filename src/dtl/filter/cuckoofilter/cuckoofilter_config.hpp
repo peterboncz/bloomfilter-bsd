@@ -9,8 +9,8 @@ namespace cuckoofilter {
 
 //===----------------------------------------------------------------------===//
 struct config {
-  $u32 bits_per_tag;
-  $u32 tags_per_bucket;
+  $u32 bits_per_tag = 8;
+  $u32 tags_per_bucket = 2;
   dtl::block_addressing addr_mode = dtl::block_addressing::POWER_OF_TWO;
 
   bool
