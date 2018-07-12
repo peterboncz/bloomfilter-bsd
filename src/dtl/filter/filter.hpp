@@ -105,9 +105,7 @@ private:
           filter_data(filter_instance->size(), 0, get_default_allocator()),
           filter_data_node(dtl::mem::get_node_of_address(&filter_data[0])),
           filter_data_replicas(platform::get_instance().get_numa_node_count()),
-          replica_mutexes(platform::get_instance().get_numa_node_count()) {
-      std::cout << filter_instance->name() << std::endl;
-    }
+          replica_mutexes(platform::get_instance().get_numa_node_count()) { }
 
     filter_shared(const filter_shared&) = delete;
     filter_shared(filter_shared&&) = delete;
