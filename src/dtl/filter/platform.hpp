@@ -42,6 +42,9 @@ public:
   u32 get_memory_node_of_this_thread() const;
   u32 get_thread_id() const;
 
+  // Returns the (data) caches sizes in bytes.
+  std::vector<$u64> get_cache_sizes() const;
+
   platform(platform const&) = delete;
   void operator=(platform const&) = delete;
 
