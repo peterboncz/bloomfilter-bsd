@@ -105,7 +105,9 @@ private:
           filter_data(filter_instance->size(), 0, get_default_allocator()),
           filter_data_node(dtl::mem::get_node_of_address(&filter_data[0])),
           filter_data_replicas(platform::get_instance().get_numa_node_count()),
-          replica_mutexes(platform::get_instance().get_numa_node_count()) { }
+          replica_mutexes(platform::get_instance().get_numa_node_count()) {
+      std::cout << filter_instance->name() << std::endl;
+    }
 
     filter_shared(const filter_shared&) = delete;
     filter_shared(filter_shared&&) = delete;
@@ -154,8 +156,10 @@ public:
   /// C'tor
   filter(const blocked_bloomfilter_config& config, u64 m)
       : shared_filter_instance(std::make_shared<filter_shared>(construct(config, m))) { }
+  filter(const cuckoofilter::config& config, u64 m)
+      : shared_filter_instance(std::make_shared<filter_shared>(construct(config, m))) { }
 
-  /// TODO C'tor for Cuckoo and (n,tw) once skyline matrix is implemented
+  /// TODO C'tor for (n,tw) once skyline matrix is implemented
 
   filter(const filter&) = default;
   filter(filter&&) = default;
@@ -217,7 +221,7 @@ public:
     // C-style API
     $u64
     operator()(u32* __restrict begin, u32* __restrict end,
-               $u32* __restrict match_pos, $u32 match_offset = 0) {
+               $u32* __restrict match_pos, $u32 match_offset = 0) const {
       auto key_cnt = static_cast<u32>(std::distance(begin, end));
       return shared_filter_instance->filter_instance->batch_contains(
           &shared_filter_instance->filter_data[0], begin, key_cnt, match_pos, match_offset);
@@ -226,8 +230,8 @@ public:
     // C++ style API
     template<typename input_it>
     __forceinline__ $u32
-    operator()(input_it begin, input_it end,
-               $u32* __restrict match_pos, $u32 match_offset = 0) {
+    operator()(const input_it begin, const input_it end,
+               $u32* __restrict match_pos, $u32 match_offset = 0) const {
       using T = typename std::iterator_traits<input_it>::value_type;
       static_assert(std::is_same<$u32, typename std::remove_cv<T>::type>::value, "Unsupported key type.");
       const T* begin_ptr = &(*begin);
