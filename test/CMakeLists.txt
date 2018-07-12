@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
 set(ARCHS
         core-avx2
         knl
+        skx
         corei7
         )
 
@@ -23,7 +24,7 @@ set(LIBS
         gtest_main
         pthread
         numa
-        dtl
+#        dtl
         )
 
 # check for NUMA support
@@ -45,8 +46,13 @@ endif (CUDA_FOUND)
 function(add_multiarch_executable executable_name files)
     foreach(arch ${ARCHS})
         add_executable(${executable_name}_${arch} ${files})
-        set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
-        target_link_libraries(${executable_name}_${arch} ${LIBS})
+        # workaround for older compilers which don't know the 'skx' architecture.
+        if (arch STREQUAL "skx")
+            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
+        else()
+            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
+        endif()
+        target_link_libraries(${executable_name}_${arch} ${LIBS} dtl_${arch})
     endforeach(arch ${ARCHS})
 endfunction(add_multiarch_executable)
 
@@ -56,7 +62,7 @@ include_directories(lib/googletest/include lib/googletest)
 
 add_subdirectory(../ dtl)
 include_directories(SYTEM ../thirdparty/)
-include_directories(SYTEM ../../)
+include_directories(SYTEM ../../) # TODO remove
 
 
 set(TEST_FILES
@@ -64,6 +70,7 @@ set(TEST_FILES
         div_test.cpp
         cuckoofilter_test.cpp
         ../src/dtl/filter/filter_test.cpp
+        ../src/dtl/filter/model/benchmark_test.cpp
         ../src/dtl/filter/model/calibration_data_test.cpp
 
 #        bitset_test.cpp

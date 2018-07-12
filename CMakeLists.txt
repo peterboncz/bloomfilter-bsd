@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(dtl)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 #include_directories(SYSTEM ../)
 include_directories(src/)
@@ -9,6 +10,32 @@ include_directories(thirdparty/)
 
 add_subdirectory(src/dtl/simd)
 #add_subdirectory(storage) #TODO remove
+
+
+### build optimized executables for the following architectures
+set(ARCHS
+        corei7
+        core-avx2
+        knl
+        skx
+        )
+
+# replacement for 'add_executable'
+function(add_multiarch_library library_name files)
+    foreach(arch ${ARCHS})
+        add_library(${library_name}_${arch} ${files})
+        # workaround for older compilers which don't know the 'skx' architecture.
+        if (arch STREQUAL "skx")
+            set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
+        else()
+            set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
+        endif()
+        target_include_directories(${library_name}_${arch} PUBLIC src thirdparty)
+    endforeach(arch ${ARCHS})
+endfunction(add_multiarch_library)
+
+
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CUCKOO_FILTER_SOURCE_FILES
         # cuckoo
@@ -187,5 +214,4 @@ set(SOURCE_FILES ${SOURCE_FILES}
         src/dtl/type_traits.hpp
         src/dtl/zone_mask.hpp
         )
-add_library(dtl STATIC ${SOURCE_FILES})
-target_include_directories(dtl PUBLIC src thirdparty)
+add_multiarch_library(dtl "${SOURCE_FILES}")
