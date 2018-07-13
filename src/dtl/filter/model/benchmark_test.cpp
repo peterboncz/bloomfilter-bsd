@@ -22,7 +22,6 @@ TEST(filter_benchmark, basic_test) {
   dtl::cuckoofilter::config cf_config;
   timing cf_timing = benchmark(cf_config, 8ull * 1024 * 8);
   std::cout << "cf:  cycles=" << cf_timing.cycles_per_lookup << ", nanos=" << cf_timing.nanos_per_lookup << std::endl;
-
 }
 //===----------------------------------------------------------------------===//
 

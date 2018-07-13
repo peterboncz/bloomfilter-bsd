@@ -102,10 +102,10 @@ benchmark::benchmark() {
 
 //===----------------------------------------------------------------------===//
 timing
-benchmark::run(filter& filter) {
+benchmark::run(filter& filter, $u32 thread_cnt = 0) {
   // prepare the parallel benchmark
   auto& platform = dtl::filter::platform::get_instance();
-  u64 thread_cnt = platform.get_thread_count();
+  thread_cnt = (thread_cnt == 0) ? platform.get_thread_count() : thread_cnt;
 
   statistics results;
   dtl::busy_barrier_one_shot barrier(thread_cnt);
@@ -202,20 +202,20 @@ benchmark::run(filter& filter) {
 
 //===----------------------------------------------------------------------===//
 timing
-benchmark::operator()(const dtl::blocked_bloomfilter_config& filter_config, u64 m) {
+benchmark::operator()(const dtl::blocked_bloomfilter_config& filter_config, u64 m, u32 thread_cnt) {
   // create an empty filter
   filter filter(filter_config, m);
-  return run(filter);
+  return run(filter, thread_cnt);
 }
 //===----------------------------------------------------------------------===//
 
 
 //===----------------------------------------------------------------------===//
 timing
-benchmark::operator()(const dtl::cuckoofilter::config& filter_config, u64 m) {
+benchmark::operator()(const dtl::cuckoofilter::config& filter_config, u64 m, u32 thread_cnt) {
   // create an empty filter
   filter filter(filter_config, m);
-  return run(filter);
+  return run(filter, thread_cnt);
 }
 //===----------------------------------------------------------------------===//
 

@@ -15,7 +15,6 @@ namespace filter {
 namespace model {
 
 //===----------------------------------------------------------------------===//
-
 class benchmark {
 
   using key_t = $u32;
@@ -23,16 +22,16 @@ class benchmark {
   std::vector<key_t, dtl::mem::numa_allocator<key_t>> probe_keys;
 
   timing
-  run(dtl::filter::filter& filter);
+  run(dtl::filter::filter& filter, $u32 thread_cnt);
 
 public:
   benchmark();
 
   timing
-  operator()(const dtl::blocked_bloomfilter_config& filter_config, u64 m);
+  operator()(const dtl::blocked_bloomfilter_config& filter_config, u64 m, u32 thread_cnt = 0);
 
   timing
-  operator()(const dtl::cuckoofilter::config& filter_config, u64 m);
+  operator()(const dtl::cuckoofilter::config& filter_config, u64 m, u32 thread_cnt = 0);
 
 };
 //===----------------------------------------------------------------------===//
