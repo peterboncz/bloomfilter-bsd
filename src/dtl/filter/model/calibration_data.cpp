@@ -349,7 +349,7 @@ calibration_data::put_timings(const cf_config_t& config, const timings_t& delta_
 //===----------------------------------------------------------------------===//
 /// Get the delta-t_l values for the given filter configuration.
 timings_t
-calibration_data::get_timings(const bbf_config_t& config) {
+calibration_data::get_timings(const bbf_config_t& config) const {
   auto search = bbf_delta_tls_.find(config);
   if (search != bbf_delta_tls_.end()) {
     return search->second;
@@ -370,7 +370,7 @@ calibration_data::get_timings(const bbf_config_t& config) {
 }
 
 timings_t
-calibration_data::get_timings(const cf_config_t& config) {
+calibration_data::get_timings(const cf_config_t& config) const {
   auto search = cf_delta_tls_.find(config);
   if (search != cf_delta_tls_.end()) {
     return search->second;
@@ -442,7 +442,7 @@ calibration_data::put_tuning_params(const cf_config_t& config, const tuning_para
 //===----------------------------------------------------------------------===//
 /// Get the tuning parameters for the given filter configuration.
 tuning_params
-calibration_data::get_tuning_params(const bbf_config_t& config) {
+calibration_data::get_tuning_params(const bbf_config_t& config) const {
   auto search = bbf_tuning_params_.find(config);
   if (search != bbf_tuning_params_.end()) {
     return search->second;
@@ -459,7 +459,7 @@ calibration_data::get_tuning_params(const bbf_config_t& config) {
   return params;
 }
 tuning_params
-calibration_data::get_tuning_params(const cf_config_t& config) {
+calibration_data::get_tuning_params(const cf_config_t& config) const {
   auto search = cf_tuning_params_.find(config);
   if (search != cf_tuning_params_.end()) {
     return search->second;

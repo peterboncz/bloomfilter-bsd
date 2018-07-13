@@ -81,7 +81,7 @@ class calibration_data {
   const tuning_params null_tuning_params_ { 1 };
 
   static std::string
-  get_default_filename() {
+  get_default_filename() { // TODO to be discussed with Peter
     const char* home_dir;
     if ((home_dir = getenv("HOME")) == NULL) {
       home_dir = getpwuid(getuid())->pw_dir;
@@ -165,6 +165,12 @@ class calibration_data {
     return cache_sizes_[level - 1];
   }
 
+  /// Returns the cache sizes [bytes]
+  std::vector<$u64>
+  get_cache_sizes() const {
+    return cache_sizes_;
+  }
+
   /// Returns height of the memory hierarchy level.
   std::size_t
   get_mem_levels() const {
@@ -190,6 +196,12 @@ class calibration_data {
     return filter_sizes_[mem_level - 1];
   }
 
+  /// Returns the cache size [bytes]
+  std::vector<$u64>
+  get_filter_sizes() const {
+    return filter_sizes_;
+  }
+
   /// Write the changes to the file.
   void
   persist();
@@ -208,9 +220,9 @@ class calibration_data {
 
   /// Get the delta-t_l values for the given filter configuration.
   timings_t
-  get_timings(const bbf_config_t& config);
+  get_timings(const bbf_config_t& config) const;
   timings_t
-  get_timings(const cf_config_t& config);
+  get_timings(const cf_config_t& config) const;
 
 
   /// Add the tuning parameters for the given filter configuration.
@@ -222,9 +234,9 @@ class calibration_data {
 
   /// Get the delta-t_l values for the given filter configuration.
   tuning_params
-  get_tuning_params(const bbf_config_t& config);
+  get_tuning_params(const bbf_config_t& config) const;
   tuning_params
-  get_tuning_params(const cf_config_t& config);
+  get_tuning_params(const cf_config_t& config) const;
 
   // TODO add skyline matrix
   // TODO write the number of threads used during calibration
