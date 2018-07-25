@@ -244,8 +244,8 @@ struct zoned_blocked_bloomfilter {
       case  0: _o<w, z, k, a, 0>(instance, op); break;
       case  1: _o<w, z, k, a, 1>(instance, op); break;
       case  2: _o<w, z, k, a, 2>(instance, op); break;
-#ifndef FAST_BUILD
       case  4: _o<w, z, k, a, 4>(instance, op); break;
+#ifndef FAST_BUILD
       case  8: _o<w, z, k, a, 8>(instance, op); break;
 #endif
       default:
