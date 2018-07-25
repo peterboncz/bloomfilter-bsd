@@ -24,6 +24,11 @@ struct timing {
     return cycles_per_lookup < other.cycles_per_lookup;
   }
 
+  $u1
+  operator>(const timing& other) const {
+    return cycles_per_lookup > other.cycles_per_lookup;
+  }
+
   timing
   operator*(f64 rhs) const {
     timing t;
