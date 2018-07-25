@@ -14,19 +14,20 @@ calibration_data::open_file() {
   assert(file_size_ == 0);
   assert(mapped_data_ == nullptr);
 
-  // drop in-memory state
-  cache_sizes_.clear();
-  filter_sizes_.clear();
-  bbf_tuning_params_.clear();
-  cf_tuning_params_.clear();
-  bbf_delta_tls_.clear();
-  cf_delta_tls_.clear();
-  changed_ = false;
-
   // test if the file exists
   file_descriptor_ = open(filename_.c_str(), O_RDONLY);
   if (file_descriptor_ != -1) {
     // file exists and is ready to be read
+
+    // drop in-memory state
+    cache_sizes_.clear();
+    filter_sizes_.clear();
+    bbf_tuning_params_.clear();
+    cf_tuning_params_.clear();
+    bbf_delta_tls_.clear();
+    cf_delta_tls_.clear();
+    changed_ = false;
+
     struct stat sb;
     fstat(file_descriptor_, &sb);
     file_size_ = static_cast<u64>(sb.st_size);
@@ -149,6 +150,7 @@ std::vector<$u8>
 calibration_data::serialize() {
 
   // read data from file to memory
+  u64 mem_levels = get_mem_levels();
   {
     // bloom
     u64 cnt = std::distance(bbf_config_begin_, bbf_config_end_);
@@ -157,18 +159,23 @@ calibration_data::serialize() {
     tuning_params* tuning_reader = bbf_tuning_params_begin_;
     for (std::size_t i = 0; i < cnt; i++) {
       // check if already in memory
-      auto search = bbf_delta_tls_.find(*config_reader);
-      if (search != bbf_delta_tls_.end()) {
-        continue;
+      auto search_delta_tls = bbf_delta_tls_.find(*config_reader);
+      if (search_delta_tls == bbf_delta_tls_.end()) {
+        // read from file
+        timings_t delta_timings;
+        for (std::size_t j = 0; j < mem_levels; j++) {
+          delta_timings.push_back(*timing_reader);
+          timing_reader++;
+        }
+        bbf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
       }
-      // read from file
-      timings_t delta_timings;
-      for (std::size_t j = 0; j < get_mem_levels(); j++) {
-        delta_timings.push_back(*timing_reader);
-        timing_reader++;
+      else {
+        timing_reader += mem_levels;
       }
-      bbf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
-      bbf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
+      auto search_tuning_params = bbf_tuning_params_.find(*config_reader);
+      if (search_tuning_params == bbf_tuning_params_.end()) {
+        bbf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
+      }
       config_reader++;
       tuning_reader++;
     }
@@ -181,18 +188,23 @@ calibration_data::serialize() {
     tuning_params* tuning_reader = bbf_tuning_params_begin_;
     for (std::size_t i = 0; i < cnt; i++) {
       // check if already in memory
-      auto search = cf_delta_tls_.find(*config_reader);
-      if (search != cf_delta_tls_.end()) {
-        continue;
+      auto search_timings = cf_delta_tls_.find(*config_reader);
+      if (search_timings == cf_delta_tls_.end()) {
+        // read from file
+        timings_t delta_timings;
+        for (std::size_t j = 0; j < mem_levels; j++) {
+          delta_timings.push_back(*timing_reader);
+          timing_reader++;
+        }
+        cf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
       }
-      // read from file
-      timings_t delta_timings;
-      for (std::size_t j = 0; j < get_mem_levels(); j++) {
-        delta_timings.push_back(*timing_reader);
-        timing_reader++;
+      else {
+        timing_reader += mem_levels;
       }
-      cf_delta_tls_.insert(std::make_pair(*config_reader, delta_timings));
-      cf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
+      auto search_tuning_params = cf_tuning_params_.find(*config_reader);
+      if (search_tuning_params == cf_tuning_params_.end()) {
+        cf_tuning_params_.insert(std::make_pair(*config_reader, *tuning_reader));
+      }
       config_reader++;
       tuning_reader++;
     }

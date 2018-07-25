@@ -16,6 +16,7 @@
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/cuckoofilter/cuckoofilter_config.hpp>
+#include <dtl/filter/platform.hpp>
 
 #include "timing.hpp"
 #include "tuning_params.hpp"
@@ -123,12 +124,22 @@ class calibration_data {
       bbf_delta_tls_(), cf_delta_tls_(),
       changed_(false),
       file_descriptor_(-1), file_size_(0), mapped_data_(nullptr) {
+    // init cache sizes
+    for (auto cs : dtl::filter::platform::get_instance().get_cache_sizes()) {
+      cache_sizes_.push_back(cs * 8); // unit bits
+    }
+
+    // init filter sizes
+    for (auto cs : cache_sizes_) {
+      filter_sizes_.push_back(cs / 2);
+    }
+    filter_sizes_.push_back(256ull * 1024 * 1024 * 8);
+
     open_file();
   }
 
   /// C'tor (using the default filename)
   calibration_data() : calibration_data(get_default_filename()) {};
-
 
   /// D'tor
   ~calibration_data() {
@@ -149,14 +160,17 @@ class calibration_data {
     return changed_;
   }
 
-  /// Set the cache sizes [bytes];
+  /// Set the cache sizes.
   void
   set_cache_sizes(const std::vector<uint64_t>& cache_sizes) {
+    if (cache_sizes.size() != cache_sizes_.size()) {
+      throw std::runtime_error("The number of memory levels must not be changed."); // TODO improve
+    }
     cache_sizes_ = cache_sizes;
     changed_ = true;
   }
 
-  /// Returns the cache size [bytes]
+  /// Returns the cache size.
   uint64_t
   get_cache_size(const std::size_t level) const {
     if (level == 0 || level > cache_sizes_.size()) {
@@ -165,19 +179,19 @@ class calibration_data {
     return cache_sizes_[level - 1];
   }
 
-  /// Returns the cache sizes [bytes]
+  /// Returns the cache sizes.
   std::vector<$u64>
   get_cache_sizes() const {
     return cache_sizes_;
   }
 
-  /// Returns height of the memory hierarchy level.
+  /// Returns the height of the memory hierarchy level.
   std::size_t
   get_mem_levels() const {
     return cache_sizes_.size() + 1;
   }
 
-  /// Set the cache sizes [bytes];
+  /// Sets the filter sizes for the individual memory levels.
   void
   set_filter_sizes(const std::vector<uint64_t>& filter_sizes) {
     if (filter_sizes.size() != cache_sizes_.size() + 1) {
@@ -187,7 +201,7 @@ class calibration_data {
     changed_ = true;
   }
 
-  /// Returns the cache size [bytes]
+  /// Returns the filter sizes for the given memory level.
   uint64_t
   get_filter_size(const std::size_t mem_level) const {
     if (mem_level == 0 || mem_level > filter_sizes_.size()) {
@@ -196,7 +210,7 @@ class calibration_data {
     return filter_sizes_[mem_level - 1];
   }
 
-  /// Returns the cache size [bytes]
+  /// Returns the filter sizes for the individual memory levels.
   std::vector<$u64>
   get_filter_sizes() const {
     return filter_sizes_;
