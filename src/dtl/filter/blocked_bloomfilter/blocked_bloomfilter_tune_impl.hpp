@@ -105,7 +105,9 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
           c.zone_cnt = 1;
           c.addr_mode = addr_mode;
           tune_unroll_factor(c);
-          if (word_cnt_per_block > 1) {
+          if (word_cnt_per_block > 1
+              && c.word_cnt_per_block >= c.k
+              && c.word_cnt_per_block % k == 0) {
             c.sector_cnt = c.word_cnt_per_block;
             tune_unroll_factor(c);
           }
