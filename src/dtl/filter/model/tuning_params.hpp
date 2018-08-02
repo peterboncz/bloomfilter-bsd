@@ -18,8 +18,16 @@ struct tuning_params {
   tuning_params& operator=(const tuning_params& rhs) = default;
   tuning_params& operator=(tuning_params&& rhs) = default;
 
-  $u1 operator==(const tuning_params& other) const {
+  $u1
+  operator==(const tuning_params& other) const {
     return unroll_factor == other.unroll_factor;
+  }
+
+  void
+  print(std::ostream& os) const {
+    std::stringstream str;
+    str << "u=" << unroll_factor;
+    os << str.str();
   }
 
 };

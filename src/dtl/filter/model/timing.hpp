@@ -83,6 +83,13 @@ struct timing {
     return t;
   }
 
+  void
+  print(std::ostream& os) const {
+    std::stringstream str;
+    str << "[" << cycles_per_lookup << "," << nanos_per_lookup << "]";
+    os << str.str();
+  }
+
 };
 //===----------------------------------------------------------------------===//
 
