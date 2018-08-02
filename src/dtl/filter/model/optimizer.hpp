@@ -55,7 +55,8 @@ class optimizer {
   $f64
   d(u64 m) const {
     // numerical differentiation (symmetric difference quotient)
-    u64 h = 1ull * 1024 * 8; // TODO remove magic number
+    u64 m_act = std::max(u64(1024), m);
+    u64 h = std::min(m_act / 64, 1ul * 1024 * 8); // TODO remove magic number
     auto a = f(m + h).cycles_per_lookup;
     auto b = f(m - h).cycles_per_lookup;
     f64 df = (a - b) / (2 * h);
