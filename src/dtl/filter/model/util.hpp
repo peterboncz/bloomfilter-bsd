@@ -30,6 +30,9 @@ get_valid_bbf_configs() {
           c.word_cnt_per_block = word_cnt;
           c.sector_cnt = sector_cnt;
           c.zone_cnt = 1;
+          c.addr_mode = dtl::block_addressing::POWER_OF_TWO;
+          bbf_configs.push_back(c);
+          c.addr_mode = dtl::block_addressing::MAGIC;
           bbf_configs.push_back(c);
         }
 
@@ -46,6 +49,9 @@ get_valid_bbf_configs() {
             c.word_cnt_per_block = word_cnt;
             c.sector_cnt = sector_cnt;
             c.zone_cnt = zone_cnt;
+            c.addr_mode = dtl::block_addressing::POWER_OF_TWO;
+            bbf_configs.push_back(c);
+            c.addr_mode = dtl::block_addressing::MAGIC;
             bbf_configs.push_back(c);
           }
         }
@@ -68,6 +74,9 @@ get_valid_cf_configs() {
       dtl::cuckoofilter::config c;
       c.bits_per_tag = bits_per_tag;
       c.tags_per_bucket = tags_per_bucket;
+      c.addr_mode = dtl::block_addressing::POWER_OF_TWO;
+      cf_configs.push_back(c);
+      c.addr_mode = dtl::block_addressing::MAGIC;
       cf_configs.push_back(c);
     }
   }
