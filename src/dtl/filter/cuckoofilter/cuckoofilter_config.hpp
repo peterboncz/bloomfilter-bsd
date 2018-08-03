@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
 
