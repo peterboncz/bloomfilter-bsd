@@ -70,8 +70,11 @@ set(TEST_FILES
         div_test.cpp
         cuckoofilter_test.cpp
         ../src/dtl/filter/filter_test.cpp
+        ../src/dtl/filter/platform_test.cpp
         ../src/dtl/filter/model/benchmark_test.cpp
+        ../src/dtl/filter/model/calibration_test.cpp
         ../src/dtl/filter/model/calibration_data_test.cpp
+        ../src/dtl/filter/model/optimizer_test.cpp
 
 #        bitset_test.cpp
 #        bitpack_test.cpp

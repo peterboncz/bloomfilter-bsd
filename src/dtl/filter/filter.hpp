@@ -7,6 +7,7 @@
 #include <dtl/filter/cuckoofilter/cuckoofilter_config.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/type_traits.hpp>
+#include <dtl/filter/model/calibration_data.hpp>
 
 #include "filter_base.hpp"
 #include "bbf_32.hpp"
@@ -68,6 +69,16 @@ private:
   construct(const cuckoofilter::config& config, u64 m) {
     std::shared_ptr<filter_base> instance = std::make_shared<dtl::cf>(m, config.bits_per_tag, config.tags_per_bucket);
     return instance;
+  }
+
+  // constructs a filter for the given n, tw values. // TODO implement refinement with time budget!
+  static std::shared_ptr<filter_base>
+  construct(u64 n, u64 tw, u64 time_budget_millis, const model::calibration_data& data) {
+    auto bbf_config_candidates = data.get_skyline_matrix()->get_candidate_bbf_configs(n, tw);
+    if (bbf_config_candidates.size() == 0) {
+      throw std::runtime_error("Failed to determine filter configuration due to missing skyline matrix.");
+    }
+    return construct(bbf_config_candidates[0].config_, bbf_config_candidates[0].m_);
   }
   //===----------------------------------------------------------------------===//
 
@@ -156,8 +167,10 @@ public:
       : shared_filter_instance(std::make_shared<filter_shared>(construct(config, m))) { }
   filter(const cuckoofilter::config& config, u64 m)
       : shared_filter_instance(std::make_shared<filter_shared>(construct(config, m))) { }
-
-  /// TODO C'tor for (n,tw) once skyline matrix is implemented
+  filter(u64 n, u64 tw, u64 time_budget_millis = 1000)
+      : shared_filter_instance(std::make_shared<filter_shared>(construct(n, tw, time_budget_millis, model::calibration_data::get_default_instance()))) { }
+  filter(u64 n, u64 tw, const model::calibration_data& calibration_data, u64 time_budget_millis = 1000)
+      : shared_filter_instance(std::make_shared<filter_shared>(construct(n, tw, time_budget_millis, calibration_data))) { }
 
   filter(const filter&) = default;
   filter(filter&&) = default;

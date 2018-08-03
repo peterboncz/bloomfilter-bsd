@@ -32,6 +32,12 @@ public:
     blocked_bloomfilter_config config_;
     $u64 m_ = 0;
     timing overhead_;
+
+    $u1
+    operator<(const entry_t& other) const {
+      return overhead_ < other.overhead_;
+    }
+
   };
 
   meta_data_t meta_data_;
@@ -42,9 +48,17 @@ public:
   n_values_begin() {
     return reinterpret_cast<$u64*>((&meta_data_) + 1);
   }
+  u64*
+  n_values_begin() const {
+    return reinterpret_cast<u64*>((&meta_data_) + 1);
+  }
 
   $u64*
   n_values_end() {
+    return n_values_begin() + meta_data_.n_values_count_;
+  }
+  u64*
+  n_values_end() const {
     return n_values_begin() + meta_data_.n_values_count_;
   }
 
@@ -52,9 +66,17 @@ public:
   tw_values_begin() {
     return n_values_end();
   }
+  u64*
+  tw_values_begin() const {
+    return n_values_end();
+  }
 
   $u64*
   tw_values_end() {
+    return tw_values_begin() + meta_data_.tw_values_count_;
+  }
+  u64*
+  tw_values_end() const {
     return tw_values_begin() + meta_data_.tw_values_count_;
   }
 
@@ -62,9 +84,18 @@ public:
   entries_begin() {
     return reinterpret_cast<entry_t*>(tw_values_end());
   }
+  const entry_t*
+  entries_begin() const {
+    return reinterpret_cast<const entry_t*>(tw_values_end());
+  }
 
   entry_t*
   entries_end() {
+    return entries_begin() + (meta_data_.n_values_count_ * meta_data_.tw_values_count_);
+  }
+
+  const entry_t*
+  entries_end() const {
     return entries_begin() + (meta_data_.n_values_count_ * meta_data_.tw_values_count_);
   }
 
@@ -84,14 +115,14 @@ public:
          + meta_data_.n_values_count_ * meta_data_.tw_values_count_ * sizeof(entry_t);
   }
 
-  std::vector<dtl::blocked_bloomfilter_config>
-  get_candiate_bbf_configs(u64 n, u64 tw) {
-    std::vector<dtl::blocked_bloomfilter_config> ret;
+  std::vector<entry_t>
+  get_candidate_bbf_configs(u64 n, u64 tw) const {
+    std::vector<entry_t> entries;
     const auto n_cnt = meta_data_.n_values_count_;
     const auto tw_cnt = meta_data_.tw_values_count_;
 
     // search n
-    if (n_values_begin() == n_values_end()) return ret;
+    if (n_values_begin() == n_values_end()) return entries;
     const auto n_search = std::lower_bound(n_values_begin(), n_values_end(), n);
     auto n_idx = std::distance(n_values_begin(), n_search);
     if (n_idx == n_cnt) {
@@ -99,7 +130,7 @@ public:
     }
 
     // search tw
-    if (tw_values_begin() == tw_values_end()) return ret;
+    if (tw_values_begin() == tw_values_end()) return entries;
     const auto tw_search = std::lower_bound(tw_values_begin(), tw_values_end(), tw);
     auto tw_idx = std::distance(tw_values_begin(), tw_search);
     if (tw_idx == tw_cnt) {
@@ -107,18 +138,20 @@ public:
     }
 
     // return the four candidate configurations
-    ret.push_back(entries_begin()[(tw_idx * n_cnt) + n_idx].config_);
+    entries.push_back(entries_begin()[(tw_idx * n_cnt) + n_idx]);
     if (n_idx + 1 < n_cnt) {
-      ret.push_back(entries_begin()[(tw_idx * n_cnt) + (n_idx + 1)].config_);
+      entries.push_back(entries_begin()[(tw_idx * n_cnt) + (n_idx + 1)]);
     }
     if (tw_idx + 1 < tw_cnt) {
-      ret.push_back(entries_begin()[((tw_idx + 1) * n_cnt) + n_idx].config_);
+      entries.push_back(entries_begin()[((tw_idx + 1) * n_cnt) + n_idx]);
     }
     if (n_idx + 1 < n_cnt
         && tw_idx + 1 < tw_cnt) {
-      ret.push_back(entries_begin()[((tw_idx + 1) * n_cnt) + (n_idx + 1)].config_);
+      entries.push_back(entries_begin()[((tw_idx + 1) * n_cnt) + (n_idx + 1)]);
     }
-    return ret;
+
+    std::sort(entries.begin(), entries.end());
+    return entries;
   }
 
   void
