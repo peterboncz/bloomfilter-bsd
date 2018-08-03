@@ -4,9 +4,9 @@
 #include <stdexcept>
 
 #include <dtl/dtl.hpp>
+#include <dtl/simd.hpp>
 #include <dtl/div.hpp>
 #include <dtl/math.hpp>
-#include <dtl/simd.hpp>
 
 
 namespace dtl {
