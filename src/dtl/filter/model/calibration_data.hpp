@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <new>
 #include <type_traits>
 
 #include <fcntl.h>
@@ -17,7 +18,9 @@
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/cuckoofilter/cuckoofilter_config.hpp>
 #include <dtl/filter/platform.hpp>
+#include <set>
 
+#include "skyline_matrix.hpp"
 #include "timing.hpp"
 #include "tuning_params.hpp"
 
@@ -78,9 +81,14 @@ class calibration_data {
   tuning_params* cf_tuning_params_begin_ = nullptr;
   tuning_params* cf_tuning_params_end_ = nullptr;
 
+  std::vector<$i8> skyline_matrix_mem_;
+  skyline_matrix* skyline_matrix_ = nullptr;
+
   const timing null_timing_ { 0.0, 0.0 };
   const tuning_params null_tuning_params_ { 1 };
 
+  //===----------------------------------------------------------------------===//
+  // Helper functions
   static std::string
   get_default_filename() { // TODO to be discussed with Peter
     const char* home_dir;
@@ -91,7 +99,35 @@ class calibration_data {
     return filename;
   }
 
- public:
+  void
+  init_skyline_matrix() {
+    skyline_matrix_mem_.resize(skyline_matrix_->size_in_bytes(0, 0));
+    new(&skyline_matrix_mem_[0]) skyline_matrix;
+  }
+
+  skyline_matrix*
+  get_skyline_matrix_ptr() {
+    if (skyline_matrix_mem_.size() > 0) {
+      return reinterpret_cast<skyline_matrix*>(&skyline_matrix_mem_[0]);
+    }
+    else {
+      return skyline_matrix_;
+    }
+  }
+
+  const skyline_matrix*
+  get_skyline_matrix_const_ptr() const {
+    if (skyline_matrix_mem_.size() > 0) {
+      return reinterpret_cast<const skyline_matrix*>(&skyline_matrix_mem_[0]);
+    }
+    else {
+      return skyline_matrix_;
+    }
+  }
+  //===----------------------------------------------------------------------===//
+
+
+public:
 
   timings_t
   get_null_timings() const {
@@ -134,6 +170,8 @@ class calibration_data {
       filter_sizes_.push_back(cs / 2);
     }
     filter_sizes_.push_back(256ull * 1024 * 1024 * 8);
+
+    init_skyline_matrix();
 
     open_file();
   }
@@ -197,6 +235,11 @@ class calibration_data {
     if (filter_sizes.size() != cache_sizes_.size() + 1) {
       throw std::invalid_argument("The number of filter sizes must be equal to the memory levels.");
     }
+    for (auto s : filter_sizes) {
+      if (!dtl::is_power_of_two(s)) {
+        throw std::invalid_argument("The filter sizes must be powers of two.");
+      }
+    }
     filter_sizes_ = filter_sizes;
     changed_ = true;
   }
@@ -238,6 +281,9 @@ class calibration_data {
   timings_t
   get_timings(const cf_config_t& config) const;
 
+  /// Returns true if delta-t_l values are known for the given filter configuration.
+  u1
+  has_timings(const bbf_config_t& config) const;
 
   /// Add the tuning parameters for the given filter configuration.
   /// Note: All changes are transient, until the persist function is called.
@@ -246,14 +292,43 @@ class calibration_data {
   void
   put_tuning_params(const cf_config_t& config, const tuning_params& params);
 
-  /// Get the delta-t_l values for the given filter configuration.
+  /// Get the tuning parameters for the given filter configuration.
   tuning_params
   get_tuning_params(const bbf_config_t& config) const;
   tuning_params
   get_tuning_params(const cf_config_t& config) const;
 
-  // TODO add skyline matrix
+  /// Copies the given skyline to the calibration data.
+  /// Note: All changes are transient, until the persist function is called.
+  void
+  put_skyline_matrix(const skyline_matrix& skyline) {
+    skyline_matrix_mem_.clear();
+    skyline_matrix_mem_.resize(skyline.size_in_bytes());
+    std::memcpy(&skyline_matrix_mem_[0], reinterpret_cast<const $u8*>(&skyline), skyline.size_in_bytes());
+    changed_ = true;
+  }
+
+  /// Returns a read-only pointer to the skyline matrix.
+  /// Caution: The pointer is invalidated if either the calibration data is
+  ///          persisted or modified in any way.
+  const skyline_matrix*
+  get_skyline_matrix() const {
+    return get_skyline_matrix_const_ptr();
+  }
+
   // TODO write the number of threads used during calibration
+
+  /// Returns all BBF configuration for which calibration data is available.
+  std::set<bbf_config_t>
+  get_bbf_configs() const;
+
+  /// Returns all CF configuration for which calibration data is available.
+  std::set<cf_config_t>
+  get_cf_configs() const;
+
+
+  void print(std::ostream& os) const;
+
 };
 //===----------------------------------------------------------------------===//
 

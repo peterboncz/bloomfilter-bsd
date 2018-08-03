@@ -1,9 +1,13 @@
 #include "calibration_data.hpp"
 
+#include <sstream>
+
 namespace dtl {
 namespace filter {
 namespace model {
 
+using bbf_config_t = dtl::blocked_bloomfilter_config;
+using cf_config_t = dtl::cuckoofilter::config;
 using timings_t = std::vector<timing>;
 
 //===----------------------------------------------------------------------===//
@@ -26,6 +30,7 @@ calibration_data::open_file() {
     cf_tuning_params_.clear();
     bbf_delta_tls_.clear();
     cf_delta_tls_.clear();
+    skyline_matrix_mem_.clear();
     changed_ = false;
 
     struct stat sb;
@@ -50,7 +55,7 @@ calibration_data::open_file() {
     }
 
     // check version
-    if (reinterpret_cast<u64*>(mapped_data_)[1] != file_version ) {
+    if (reinterpret_cast<u64*>(mapped_data_)[1] != file_version) {
       munmap(mapped_data_, file_size_);
       close(file_descriptor_);
       throw std::runtime_error("Failed to read file '" + filename_ + "'. Version mismatch.");
@@ -99,7 +104,16 @@ calibration_data::open_file() {
     cf_timing_begin_ = reinterpret_cast<timing*>(cf_config_end_);
     cf_timing_end_ = cf_timing_begin_ + mem_levels * cf_config_count;
     cf_tuning_params_begin_ = reinterpret_cast<tuning_params*>(cf_timing_end_);
-    cf_tuning_params_end_ = cf_tuning_params_begin_ + mem_levels * bbf_config_count;
+    cf_tuning_params_end_ = cf_tuning_params_begin_ + cf_config_count;
+
+    // check if the file contains a skyline matrix
+    const auto file_pos = std::distance(mapped_data_, reinterpret_cast<$u8*>(cf_tuning_params_end_));
+    if (file_pos < file_size_) {
+      skyline_matrix_ = reinterpret_cast<skyline_matrix*>(cf_tuning_params_end_);
+    }
+    else {
+      init_skyline_matrix();
+    }
 
     changed_ = false;
   }
@@ -210,8 +224,6 @@ calibration_data::serialize() {
     }
   }
 
-  // TODO read params from file
-
   u64 bbf_config_count = bbf_delta_tls_.size();
   u64 cf_config_count = cf_delta_tls_.size();
 
@@ -230,6 +242,7 @@ calibration_data::serialize() {
   const std::size_t buffer_size = header_size
       + bbf_config_count * (sizeof(bbf_config_t) + get_mem_levels() * sizeof(timing) + sizeof(tuning_params)) // bbf config + timings + tuning parameters
       + cf_config_count * (sizeof(cf_config_t) + get_mem_levels() * sizeof(timing) + sizeof(tuning_params)) // cf config + timings + tuning parameters
+      + get_skyline_matrix_ptr()->size_in_bytes() // skyline matrix
   ;
 
   // allocate a buffer
@@ -304,6 +317,10 @@ calibration_data::serialize() {
       *cf_tuning = search->second;
       cf_tuning++;
     }
+
+    u64 bf_skyline_offset = cf_tuning_offset + cf_config_count * sizeof(tuning_params);
+    get_skyline_matrix_ptr()->serialize(&buffer[bf_skyline_offset]);
+
   }
 
   return buffer;
@@ -380,6 +397,16 @@ calibration_data::get_timings(const bbf_config_t& config) const {
   }
   return timings;
 }
+
+u1
+calibration_data::has_timings(const bbf_config_t& config) const {
+  const auto delta_timings = get_timings(config);
+  if (delta_timings.empty() || delta_timings[0].cycles_per_lookup == 0.0 || delta_timings[0].nanos_per_lookup == 0.0) {
+    return false;
+  }
+  return true;
+}
+
 
 timings_t
 calibration_data::get_timings(const cf_config_t& config) const {
@@ -489,6 +516,70 @@ calibration_data::get_tuning_params(const cf_config_t& config) const {
 }
 //===----------------------------------------------------------------------===//
 
+
+//===----------------------------------------------------------------------===//
+/// Returns all BBF configuration for which calibration data is available.
+std::set<bbf_config_t>
+calibration_data::get_bbf_configs() const {
+  std::set<bbf_config_t> ret_val;
+  for (auto* it = bbf_config_begin_; it != bbf_config_end_; it++) {
+    if (has_timings(*it)) {
+      ret_val.insert(*it);
+    }
+  }
+  return ret_val;
+}
+
+/// Returns all CF configuration for which calibration data is available.
+std::set<cf_config_t>
+calibration_data::get_cf_configs() const {
+  std::set<cf_config_t> ret_val;
+  for (auto* it = cf_config_begin_; it != cf_config_end_; it++) {
+    ret_val.insert(*it);
+  }
+  for (auto& it : cf_delta_tls_) {
+    ret_val.insert(it.first);
+  }
+  return ret_val;
+}
+//===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+void
+calibration_data::print(std::ostream& os) const {
+  std::stringstream str;
+  const auto mem_levels = get_mem_levels();
+  str << "Cache sizes:" << std::endl;
+  const auto cache_sizes = get_cache_sizes();
+  for (std::size_t i = 0; i < cache_sizes.size(); i++) {
+    str << "L" << (i + 1) << ": " << cache_sizes[i] << std::endl;
+  }
+  const auto filter_sizes = get_filter_sizes();
+  str << "Filter sizes:" << std::endl;
+  for (std::size_t i = 0; i < filter_sizes.size(); i++) {
+    str << "Level " << (i + 1) << ": " << filter_sizes[i] << std::endl;
+  }
+
+  for (auto* it = bbf_config_begin_; it != bbf_config_end_; it++) {
+    const auto idx = std::distance(bbf_config_begin_, it);
+    str << "config=[" << *it << "]"
+        << ", tuning_params=[" << bbf_tuning_params_begin_[idx] << "]"
+        << ", delta_timings=[" << bbf_timing_begin_[mem_levels * idx];
+    for (std::size_t l = 1; l < mem_levels; l++) {
+      str << "," << bbf_timing_begin_[mem_levels * idx + l];
+    }
+    str << "]" << std::endl;
+  }
+
+  auto& skyline_meta = get_skyline_matrix()->meta_data_;
+  str << "Skyline matrix contains " << (skyline_meta.n_values_count_ * skyline_meta.tw_values_count_) << " entries." << std::endl;
+
+  // TODO dump CF data
+
+  os << str.str();
+}
+//===----------------------------------------------------------------------===//
 
 
 } // namespace model
