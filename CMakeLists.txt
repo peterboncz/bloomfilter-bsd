@@ -20,7 +20,7 @@ set(ARCHS
         skx
         )
 
-# replacement for 'add_executable'
+# replacement for 'add_library'
 function(add_multiarch_library library_name files)
     foreach(arch ${ARCHS})
         add_library(${library_name}_${arch} ${files})
