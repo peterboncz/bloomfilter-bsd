@@ -186,7 +186,7 @@ struct bbf_64::impl {
 
 bbf_64::bbf_64(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, sector_cnt) } {}
-//bbf_64::bbf_64(bbf_64&&) noexcept = default;
+bbf_64::bbf_64(bbf_64&&) noexcept = default;
 bbf_64::~bbf_64() = default;
 bbf_64& bbf_64::operator=(bbf_64&&) = default;
 

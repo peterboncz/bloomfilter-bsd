@@ -25,7 +25,7 @@ struct cf::impl {
 cf::cf(const std::size_t m, u32 bits_per_tag, u32 tags_per_bucket)
     : pimpl{ std::make_unique<impl>(m, bits_per_tag, tags_per_bucket) },
       bits_per_tag(bits_per_tag), tags_per_bucket(tags_per_bucket) {}
-//cf::cf(cf&&) noexcept = default;
+cf::cf(cf&&) noexcept = default;
 cf::~cf() = default;
 cf& cf::operator=(cf&&) = default;
 

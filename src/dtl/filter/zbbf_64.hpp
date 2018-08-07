@@ -53,7 +53,7 @@ public:
 
   zbbf_64(std::size_t m, u32 k, u32 word_cnt_per_block = 4, u32 zone_cnt = 2);
   ~zbbf_64() override;
-//  zbbf_64(zbbf_64&&) noexcept;
+  zbbf_64(zbbf_64&&) noexcept;
   zbbf_64(const zbbf_64&) = delete;
   zbbf_64& operator=(zbbf_64&&);
   zbbf_64& operator=(const zbbf_64&) = delete;

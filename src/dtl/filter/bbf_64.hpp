@@ -53,7 +53,7 @@ class bbf_64 : public dtl::filter::filter_base {
 
   bbf_64(std::size_t m, u32 k, u32 word_cnt_per_block = 1, u32 sector_cnt = 1);
   ~bbf_64() override;
-//  bbf_64(bbf_64&&) noexcept;
+  bbf_64(bbf_64&&) noexcept;
   bbf_64(const bbf_64&) = delete;
   bbf_64& operator=(bbf_64&&);
   bbf_64& operator=(const bbf_64&) = delete;

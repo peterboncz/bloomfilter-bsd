@@ -57,10 +57,10 @@ public:
 
   //===----------------------------------------------------------------------===//
 
-//  filter_base() = default;
+  filter_base() = default;
   virtual ~filter_base() = default;
 //  filter_base(filter_base&&) noexcept = 0;
-//  filter_base(filter_base&&) noexcept = default;
+  filter_base(filter_base&&) noexcept = default;
 //  filter_base(const filter_base&) = delete;
   virtual filter_base& operator=(filter_base&&) = default;
 //  filter_base& operator=(const filter_base&) = default;

@@ -52,7 +52,7 @@ public:
 
   bbf_32(std::size_t m, u32 k, u32 word_cnt_per_block = 1, u32 sector_cnt = 1);
   ~bbf_32() override;
-//  bbf_32(bbf_32&&) noexcept;
+  bbf_32(bbf_32&&) noexcept;
   bbf_32(const bbf_32&) = delete;
   bbf_32& operator=(bbf_32&&);
   bbf_32& operator=(const bbf_32&) = delete;

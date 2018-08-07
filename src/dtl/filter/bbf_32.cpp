@@ -26,7 +26,7 @@ struct bbf_32::impl {
 
 bbf_32::bbf_32(const size_t m, u32 k, u32 word_cnt_per_block, u32 sector_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, sector_cnt) } {}
-//bbf_32::bbf_32(bbf_32&&) noexcept = default;
+bbf_32::bbf_32(bbf_32&&) noexcept = default;
 bbf_32::~bbf_32() = default;
 bbf_32& bbf_32::operator=(bbf_32&&) = default;
 

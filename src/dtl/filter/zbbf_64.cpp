@@ -27,7 +27,7 @@ struct zbbf_64::impl {
 
 zbbf_64::zbbf_64(const size_t m, u32 k, u32 word_cnt_per_block, u32 zone_cnt)
     : pimpl{ std::make_unique<impl>(m, k, word_cnt_per_block, zone_cnt) } {}
-//zbbf_64::zbbf_64(zbbf_64&&) noexcept = default;
+zbbf_64::zbbf_64(zbbf_64&&) noexcept = default;
 zbbf_64::~zbbf_64() = default;
 zbbf_64& zbbf_64::operator=(zbbf_64&&) = default;
 

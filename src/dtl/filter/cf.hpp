@@ -74,7 +74,7 @@ public:
   explicit
   cf(std::size_t m, u32 bits_per_tag = 16, u32 tags_per_bucket = 4);
   ~cf() override;
-//  cf(cf&&) noexcept;
+  cf(cf&&) noexcept;
   cf(const cf&) = delete;
   cf& operator=(cf&&);
   cf& operator=(const cf&) = delete;

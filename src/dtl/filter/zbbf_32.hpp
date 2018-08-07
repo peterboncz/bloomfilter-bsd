@@ -52,7 +52,7 @@ public:
 
   zbbf_32(std::size_t m, u32 k, u32 word_cnt_per_block = 4, u32 zone_cnt = 2);
   ~zbbf_32() override;
-//  zbbf_32(zbbf_32&&) noexcept;
+  zbbf_32(zbbf_32&&) noexcept;
   zbbf_32(const zbbf_32&) = delete;
   zbbf_32& operator=(zbbf_32&&);
   zbbf_32& operator=(const zbbf_32&) = delete;
