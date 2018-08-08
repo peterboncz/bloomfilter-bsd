@@ -22,56 +22,6 @@
 
 namespace dtl {
 
-//namespace internal {
-//
-////===----------------------------------------------------------------------===//
-//// Check whether the given blocked bloom filter configuration is valid.
-//template<u32 w, u32 s, u32 k>
-//struct is_valid_bbf_config {
-//  static constexpr u1 value = (k % s) == 0;
-//};
-////===----------------------------------------------------------------------===//
-//
-//
-//////===----------------------------------------------------------------------===//
-////// Signals an invalid BBF configuration.
-////struct null_bbf {};
-//////===----------------------------------------------------------------------===//
-//
-//
-////===----------------------------------------------------------------------===//
-//// Checks whether the given BBF configuration is valid and resolves the
-//// corresponding BBF type.
-//// If the configuration is invalid this resolves to 'null_bbf'.
-//template<
-//    typename key_t, typename word_t,
-//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out,
-//    typename enable = void
-//>
-//struct bbf_switch;
-//
-//template<
-//    typename key_t, typename word_t,
-//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
-//>
-//struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
-//                  typename std::enable_if<is_valid_bbf_config<w, s, k>::value>::type> {
-//  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, w, s, k, a, early_out>;
-//};
-//
-//template<
-//    typename key_t, typename word_t,
-//    u32 w, u32 s, u32 k, dtl::block_addressing a, u1 early_out
-//>
-//struct bbf_switch<key_t, word_t, w, s, k, a, early_out,
-//                  typename std::enable_if<!is_valid_bbf_config<w, s, k>::value>::type> {
-////  using type = null_bbf; // invalid configuration
-//  using type = dtl::blocked_bloomfilter_logic<key_t, dtl::hash::stat::mul32, word_t, 1, 1, 1, dtl::block_addressing::POWER_OF_TWO, false>;
-//};
-////===----------------------------------------------------------------------===//
-//
-//
-//} // namespace internal
 
 //===----------------------------------------------------------------------===//
 template<typename Tw = $u32>

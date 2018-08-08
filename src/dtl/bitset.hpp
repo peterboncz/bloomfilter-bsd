@@ -12,6 +12,7 @@
 namespace dtl {
 
 
+//===----------------------------------------------------------------------===//
 template<u64 N>
 struct bitset {
 
@@ -631,6 +632,7 @@ std::basic_istream<CharT, Traits>&
 operator>>(std::basic_istream<CharT, Traits>& is, dtl::bitset<N>& x) {
   // TODO implement
 };
+//===----------------------------------------------------------------------===//
 
 
 // --- include utility functions for bitsets ---

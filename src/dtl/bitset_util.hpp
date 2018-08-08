@@ -6,6 +6,7 @@
 
 namespace dtl {
 
+//===----------------------------------------------------------------------===//
 /// converts a byte sequence of length LEN/8 into a bitset of length LEN
 /// Adopted and modified from "Exploiting SIMD for Complex Numerical Predicates" (http://idke.ruc.edu.cn/HardBD2016/HardBD16_3.pdf)
 template<u64 LEN, typename T>
@@ -21,14 +22,15 @@ to_bitset(const T* ptr) {
     for ($u64 m = dtl::bits::pop_count(bitmask); m > 0; m--) {
       u64 bit_pos = dtl::bits::tz_count(bitmask);
       bits.set(i * 8 + bit_pos);
-//      bitmask = _blsr_u32(bitmask);
       bitmask = dtl::bits::blsr_u32(bitmask);
     }
   }
   return bits;
 };
+//===----------------------------------------------------------------------===//
 
 
+//===----------------------------------------------------------------------===//
 /// iterates over the positions of "on" bits in the given bitset
 template<u64 N>
 class on_bits_iterator: public std::iterator<
@@ -76,8 +78,10 @@ public:
   }
 
 };
+//===----------------------------------------------------------------------===//
 
 
+//===----------------------------------------------------------------------===//
 /// iterates over the positions of "on" bits in the given bitset
 template<u64 N>
 on_bits_iterator<N>
@@ -102,6 +106,7 @@ typename dtl::bitset<N>::on_bits_iterator
 on_bits_end(const dtl::bitset<N>& bits) {
   return bits.on_bits_end();
 }
+//===----------------------------------------------------------------------===//
 
 
 } // namespace dtl
