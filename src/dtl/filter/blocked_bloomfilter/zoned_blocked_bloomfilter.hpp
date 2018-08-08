@@ -263,7 +263,7 @@ struct zoned_blocked_bloomfilter {
       case op_t::BIND:      instance._bind_logic<_t, unroll_factor>(); break;
       case op_t::DESTRUCT:  instance._destruct_logic<_t>();            break;
     }
-  };
+  }
   //===----------------------------------------------------------------------===//
 
 
