@@ -76,23 +76,3 @@ set(TEST_FILES
 
         )
 add_multiarch_executable(dtl_tester "${TEST_FILES}")
-
-
-set(VECTOR_TEST_FILES
-        vec_test.cpp
-        )
-add_multiarch_executable(vector_tester "${VECTOR_TEST_FILES}")
-
-
-
-set(BITSET_TEST_FILES
-        bitset_test.cpp
-        )
-add_multiarch_executable(bitset_tester "${BITSET_TEST_FILES}")
-
-
-set(MEM_TEST_FILES
-        mem_test.cpp
-        )
-add_multiarch_executable(mem_tester "${MEM_TEST_FILES}")
-
