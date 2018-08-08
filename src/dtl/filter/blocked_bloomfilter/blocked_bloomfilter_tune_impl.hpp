@@ -86,7 +86,6 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     c.sector_cnt = sector_cnt_actual;
 
     tuning_params tp = calibrate(c);
-
     calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
@@ -104,12 +103,18 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
           c.sector_cnt = 1;
           c.zone_cnt = 1;
           c.addr_mode = addr_mode;
-          tune_unroll_factor(c);
+          try {
+            tune_unroll_factor(c);
+          }
+          catch (...) {} // ignore
           if (word_cnt_per_block > 1
               && c.word_cnt_per_block >= c.k
               && c.word_cnt_per_block % k == 0) {
             c.sector_cnt = c.word_cnt_per_block;
-            tune_unroll_factor(c);
+            try {
+              tune_unroll_factor(c);
+            }
+            catch (...) {} // ignore
           }
         }
       }
@@ -214,9 +219,9 @@ struct blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
       return tuning_params { u_min };
 
     } catch (...) {
-      std::cerr<< " -> Failed to calibrate for k = " << c.k << "." << std::endl; // TODO remove
+      std::cerr << " -> Failed to calibrate: " << c << "." << std::endl;
     }
-    return tuning_params { 0 }; // defaults to scalar code
+    throw std::invalid_argument("Calibration failed.");
   }
   //===----------------------------------------------------------------------===//
 

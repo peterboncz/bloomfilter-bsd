@@ -12,8 +12,9 @@
 
 #include "immintrin.h"
 
-#include "../model/tuning_params.hpp"
 #include "../model/calibration_data.hpp"
+#include "../model/tuning_params.hpp"
+
 
 namespace dtl {
 
@@ -79,7 +80,6 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
     c.sector_cnt = c.word_cnt_per_block;
 
     tuning_params tp = calibrate(c);
-
     calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
@@ -101,7 +101,10 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
             c.sector_cnt = word_cnt_per_block;
             c.zone_cnt = zone_cnt;
             c.addr_mode = addr_mode;
-            tune_unroll_factor(c);
+            try {
+              tune_unroll_factor(c);
+            }
+            catch (...) {} // ignore
           }
         }
       }
@@ -208,9 +211,9 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
       return tuning_params { u_min };
 
     } catch (...) {
-      std::cerr<< " -> Failed to calibrate for k = " << c.k << "." << std::endl;
+      std::cerr << " -> Failed to calibrate: " << c << "." << std::endl;
     }
-    return tuning_params { 0 }; // defaults to scalar code
+    throw std::invalid_argument("Calibration failed.");
   }
   //===----------------------------------------------------------------------===//
 
