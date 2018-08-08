@@ -194,7 +194,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
     } catch (...) {
       std::cerr<< " -> Failed to calibrate for t=" << c.bits_per_tag << " and b=" << c.tags_per_bucket << "." << std::endl;
     }
-    return tuning_params { 1 };
+    return tuning_params { 1 }; // TODO throw exception (see bbf tune impl)
   }
   //===----------------------------------------------------------------------===//
 

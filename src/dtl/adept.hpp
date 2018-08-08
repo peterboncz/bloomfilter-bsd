@@ -36,6 +36,14 @@ using f64 = const double;
 using $f32 = float;
 using $f64 = double;
 
+/// compile-time constant to determine whether CUDA support is available
+constexpr u1 has_cuda_support =
+#if defined(HAVE_CUDA)
+    true;
+#else
+    false;
+#endif
+
 
 // polyfill until C++14
 template<u64...>

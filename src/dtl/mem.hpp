@@ -260,6 +260,21 @@ get_nearest_cpu_node(i32 hbm_numa_node_id) {
 #endif
 }
 
+//inline i32
+//get_node_of_address(const void* addr) {
+//#if defined(HAVE_NUMA)
+//  void* ptr_to_check = const_cast<void*>(addr); // TODO align ptr to page boundary
+//  $i32 status[1];
+//  status[0] = -1;
+//
+//  int numa_node = -1;
+//  get_mempolicy(&numa_node, NULL, 0, (void*)ptr_to_check, MPOL_F_NODE | MPOL_F_ADDR);
+//  return numa_node;
+//
+//#else
+//  return 0;
+//#endif
+//}
 inline i32
 get_node_of_address(const void* addr) {
 #if defined(HAVE_NUMA)
