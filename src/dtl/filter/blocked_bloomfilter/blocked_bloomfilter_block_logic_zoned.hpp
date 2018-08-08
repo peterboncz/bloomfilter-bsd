@@ -75,6 +75,7 @@ struct multizone_block {
 
   static constexpr u32 word_cnt_per_zone = word_cnt / zone_cnt;
   static_assert(word_cnt % zone_cnt == 0, "Parameter 'word_cnt' must be dividable by 'z'.");
+  __forceinline__ __host__ __device__
   static constexpr word_t zone_mask() { return static_cast<word_t>(word_cnt_per_zone) - 1; }
 
   // The number of hash bits required to determine the sector within a zone.

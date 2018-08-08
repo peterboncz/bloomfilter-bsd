@@ -54,6 +54,7 @@ struct word_block {
 
   static constexpr u32 sector_bitlength = word_bitlength / s;
   static constexpr u32 sector_bitlength_log2 = dtl::ct::log_2_u32<sector_bitlength>::value;
+  __forceinline__ __host__ __device__
   static constexpr word_t sector_mask() { return static_cast<word_t>(sector_bitlength) - 1; }
 
   static_assert(sector_bitlength >= 8, "A sector must be at least one byte in size.");

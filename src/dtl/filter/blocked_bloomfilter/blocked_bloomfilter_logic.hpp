@@ -121,6 +121,7 @@ struct blocked_bloomfilter_logic {
   //===----------------------------------------------------------------------===//
   // Contains
   //===----------------------------------------------------------------------===//
+  __forceinline__ __host__ __device__
   u1
   contains(const word_t* __restrict filter_data,
            const key_t key) const noexcept {
