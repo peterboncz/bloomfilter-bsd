@@ -21,8 +21,6 @@ constexpr dtl::r256 ALL_ONES { .i64 = {-1, -1, -1, -1}};
 struct mask4 {
   __m256i data;
   __forceinline__ u1 all() const { return _mm256_movemask_epi8(data) == -1; };
-//  __forceinline__ u1 any() const { return _mm256_movemask_epi8(data) != 0; };
-//  __forceinline__ u1 none() const { return _mm256_movemask_epi8(data) == 0; };
   __forceinline__ u1 any() const { return _mm256_testz_si256(data, ALL_ONES.i) == 0; };
   __forceinline__ u1 none() const { return _mm256_testz_si256(data, ALL_ONES.i) != 0; };
   __forceinline__ void set(u1 value) {
@@ -139,13 +137,8 @@ struct mask8 {
 
   __forceinline__ $u64
   to_positions($u32* positions, $u32 offset) const {
-    // only makes sense for unselective queries
-    //   const __m256i zero = _mm256_setzero_si256();
-    //   if (_mm256_testc_si256(zero, data)) return 0;
-
     const __m256i offset_vec = _mm256_set1_epi32(offset);
     i32 bitmask = _mm256_movemask_ps(reinterpret_cast<__m256>(data));
-//    const dtl::r256 match_pos_vec = { .i = { _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i) } };
     dtl::r256 match_pos_vec;
     match_pos_vec.i = _mm256_cvtepi16_epi32(dtl::simd::lut_match_pos[bitmask].i);
     const __m256i pos_vec = _mm256_add_epi32(offset_vec, match_pos_vec.i);
@@ -205,11 +198,11 @@ struct vs<$u64, 4> : base<$u64, 4> {
 template<>                                             \
 struct broadcast<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> { \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  __forceinline__ typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type             \
   operator()(const typename fn::value_type& a) const noexcept { \
     return IntrinFn(a);                                \
   }                                                    \
-  __forceinline__ typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type             \
   operator()(const typename fn::value_type& a,         \
              const typename fn::vector_type& src,      \
              const mask##LEN m) const noexcept {       \
@@ -228,7 +221,7 @@ __GENERATE($u64, __m256i, $u64, _mm256_set1_epi64x, 4)
 template<>                                             \
 struct blend<Tp, Tv, Ta> : vector_fn<Tp, Tv, Ta> {     \
   using fn = vector_fn<Tp, Tv, Ta>;                    \
-  __forceinline__ typename fn::vector_type                 \
+  __forceinline__ typename fn::vector_type             \
   operator()(const typename fn::vector_type& a,        \
              const typename fn::vector_type& b,        \
              const mask##LEN m) const noexcept {       \
