@@ -9,7 +9,6 @@ include_directories(src/)
 include_directories(thirdparty/)
 
 add_subdirectory(src/dtl/simd)
-#add_subdirectory(storage) #TODO remove
 
 
 ### build optimized executables for the following architectures
@@ -191,36 +190,26 @@ set(THIRDPARTY_SOURCE_FILES
 
 set(SOURCE_FILES ${SOURCE_FILES}
         ${FILTER_SOURCE_FILES}
-        src/dtl/adept.hpp #TODO remove
+        src/dtl/adept.hpp
         src/dtl/barrier.hpp
         src/dtl/batchwise.hpp
         src/dtl/bits.hpp
-        src/dtl/bitmask.hpp
-        src/dtl/bitpack.hpp
         src/dtl/bitset.hpp
         src/dtl/bitset_util.hpp
         src/dtl/color.hpp
-        src/dtl/dict.hpp
         src/dtl/div.hpp
         src/dtl/dtl.hpp
         src/dtl/env.hpp
         src/dtl/hash.hpp
-        src/dtl/index.hpp
-        src/dtl/like.hpp
         src/dtl/lockstripe.hpp
         src/dtl/math.hpp
         src/dtl/mem.hpp
         src/dtl/polyfill.hpp
-        src/dtl/psma.hpp
         src/dtl/simd.hpp
-        src/dtl/sma.hpp
-        src/dtl/storage.hpp
         src/dtl/thread.hpp
-        src/dtl/tree.hpp
-        src/dtl/tree_mask.hpp
         src/dtl/type_traits.hpp
-        src/dtl/zone_mask.hpp
         )
+
 add_multiarch_library(dtl "${SOURCE_FILES}")
 
 set(LIBS

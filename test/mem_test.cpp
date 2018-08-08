@@ -263,15 +263,3 @@ TEST(mem, bandwidth_test_hbm_rw) {
   std::cout  << (2 * n_gb * dtl::mem::get_cpu_nodes().size() * repeat_cnt * 1024.0 * 1024.0 * 1024.0 / 1000.0 / 1000.0) / (duration / nano_to_sec) << " MB/s" << std::endl;
 
 }
-
-TEST(foo, bar) {
-  uint64_t prev = 0;
-  for (uint32_t i = 0; i < std::numeric_limits<uint32_t>::max(); i++) {
-    if (dtl::bits::pop_count(i) < 3) {
-      uint64_t size = i; //(i + 64) / 1024.0 / 1024.0;
-      std::cout << std::bitset<32>(i) << " " << size << " - " << (size - prev) << std::endl;
-      prev = size;
-    }
-  }
-
-}

@@ -36,11 +36,11 @@ TEST(model_calibration_data, basic_persistence) {
     ASSERT_EQ(20, cd.get_cache_size(2));
     ASSERT_EQ(30, cd.get_cache_size(3));
 
-    cd.set_filter_sizes({5,15,25,35});
-    ASSERT_EQ(5, cd.get_filter_size(1));
-    ASSERT_EQ(15, cd.get_filter_size(2));
-    ASSERT_EQ(25, cd.get_filter_size(3));
-    ASSERT_EQ(35, cd.get_filter_size(4));
+    cd.set_filter_sizes({4,8,16,32});
+    ASSERT_EQ(4, cd.get_filter_size(1));
+    ASSERT_EQ(8, cd.get_filter_size(2));
+    ASSERT_EQ(16, cd.get_filter_size(3));
+    ASSERT_EQ(32, cd.get_filter_size(4));
 
     ASSERT_EQ(4, cd.get_mem_levels());
 
@@ -83,10 +83,10 @@ TEST(model_calibration_data, basic_persistence) {
     ASSERT_EQ(20, cd.get_cache_size(2));
     ASSERT_EQ(30, cd.get_cache_size(3));
 
-    ASSERT_EQ(5, cd.get_filter_size(1));
-    ASSERT_EQ(15, cd.get_filter_size(2));
-    ASSERT_EQ(25, cd.get_filter_size(3));
-    ASSERT_EQ(35, cd.get_filter_size(4));
+    ASSERT_EQ(4, cd.get_filter_size(1));
+    ASSERT_EQ(8, cd.get_filter_size(2));
+    ASSERT_EQ(16, cd.get_filter_size(3));
+    ASSERT_EQ(32, cd.get_filter_size(4));
 
     auto received_timings_1 = cd.get_timings(bbf_config_1);
     ASSERT_EQ(delta_timings_1, received_timings_1);
@@ -121,7 +121,7 @@ TEST(model_calibration_data, add_config) {
     // create a config file
     calibration_data cd(filename);
     cd.set_cache_sizes({10,20,30});
-    cd.set_filter_sizes({5,15,25,35});
+    cd.set_filter_sizes({4,8,16,32});
 
     // put first config
     cd.put_timings(bbf_config_1, delta_timings_1);
@@ -179,7 +179,7 @@ TEST(model_calibration_data, update_config) {
     // create a config file
     calibration_data cd(filename);
     cd.set_cache_sizes({10,20,30});
-    cd.set_filter_sizes({5,15,25,35});
+    cd.set_filter_sizes({4,8,16,32});
 
     // put first config
     cd.put_timings(bbf_config_1, delta_timings_1);

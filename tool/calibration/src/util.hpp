@@ -33,7 +33,7 @@ void dispatch(const std::vector<T> tasks,
       const auto task_idx_end = std::min(task_idx_begin + inc, task_cnt);
       if (task_idx_begin >= task_cnt) break;
       std::stringstream s;
-      s << "thread " << thread_id << " got " << (task_idx_end - task_idx_begin) << " task(s)" << std::endl;
+//      s << "thread " << thread_id << " got " << (task_idx_end - task_idx_begin) << " task(s)" << std::endl;
       std::cerr << s.str();
 
       std::stringstream str;
