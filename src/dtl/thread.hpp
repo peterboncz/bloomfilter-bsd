@@ -35,7 +35,7 @@ static inline void CPU_ZERO(cpu_set_t* cs) { cs->count = 0; }
 static inline void CPU_SET(int num, cpu_set_t* cs) { cs->count |= (1 << num); }
 static inline int CPU_ISSET(int num, cpu_set_t* cs) { return (cs->count & (1 << num)); }
 
-int sched_getaffinity(pid_t pid, std::size_t cpu_size, cpu_set_t* cpu_set) {
+inline int sched_getaffinity(pid_t pid, std::size_t cpu_size, cpu_set_t* cpu_set) {
   $i32 core_count = 0;
   std::size_t len = sizeof(core_count);
   i32 ret = sysctlbyname("machdep.cpu.core_count", &core_count, &len, 0, 0);
@@ -50,7 +50,7 @@ int sched_getaffinity(pid_t pid, std::size_t cpu_size, cpu_set_t* cpu_set) {
   return 0;
 }
 
-int pthread_setaffinity_np(pthread_t thread, std::size_t cpu_size, cpu_set_t* cpu_set) {
+inline int pthread_setaffinity_np(pthread_t thread, std::size_t cpu_size, cpu_set_t* cpu_set) {
   thread_port_t mach_thread;
   $i32 core = 0;
   for (core = 0; core < 8*cpu_size; core++) {
