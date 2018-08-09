@@ -48,6 +48,8 @@
 namespace dtl {
 namespace cuckoofilter {
 
+
+// Dispatch batch_contains calls either to batch_contains_scalar or batch_contains_vec.
 namespace internal {
 
 //===----------------------------------------------------------------------===//
@@ -102,20 +104,12 @@ struct batch_contains<filter_t, 0> {
 
 
 //===----------------------------------------------------------------------===//
-// Maximum number of cuckoo kicks before claiming failure.
-const std::size_t max_relocation_count = 500;
-//===----------------------------------------------------------------------===//
-
-
-//===----------------------------------------------------------------------===//
 // A cuckoo filter class exposes a Bloomier filter interface,
 // providing methods of insert, Delete, contain. It takes three
 // template parameters:
-//   key_t:  the type of item you want to insert // FIXME
-//   bits_per_item: how many bits each item is hashed into
-//   table_t: the storage of table, SingleTable by default, and
-// PackedTable to enable semi-sorting
-//
+//   bits_per_tag:    how many bits each item is hashed into
+//   tags_per_bucket: how items fit into a single bucket
+//   table_t:         the storage of the table
 //===----------------------------------------------------------------------===//
 template <std::size_t bits_per_tag,
           std::size_t tags_per_bucket,
@@ -123,6 +117,9 @@ template <std::size_t bits_per_tag,
           dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO
 >
 class cuckoofilter_logic {
+
+  // Maximum number of cuckoo kicks before claiming failure.
+  static constexpr std::size_t max_relocation_count = 500;
 
 public:
   using key_t = uint32_t;
@@ -171,7 +168,7 @@ public:
   /// Maps a 32-bit hash value to a bucket index.
   __forceinline__ __host__ __device__
   uint32_t
-  IndexHash(uint32_t hash_val) const {
+  index_hash(uint32_t hash_val) const {
     return block_addr.get_block_idx(hash_val);
   }
   //===----------------------------------------------------------------------===//
@@ -181,7 +178,7 @@ public:
   /// Derives a (valid) tag from the given 32 bit hash value.
   __forceinline__ __host__ __device__
   uint32_t
-  TagHash(uint32_t hash_value) const {
+  tag_hash(uint32_t hash_value) const {
     uint32_t tag;
     tag = hash_value & tag_mask;
     tag += (tag == 0);
@@ -191,7 +188,7 @@ public:
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
-  TagHash(const Tv& hash_value) const {
+  tag_hash(const Tv& hash_value) const {
     const auto m = tag_mask;
     auto tag = hash_value & m;
     tag[tag == 0] += 1;
@@ -204,9 +201,9 @@ public:
   /// Hash the key and derive the tag and the bucket index.
   __forceinline__ __host__ __device__
   void
-  GenerateIndexTagHash(const key_t& key, uint32_t* index, uint32_t* tag) const {
-    *index = IndexHash(dtl::hasher<uint32_t, 0>::hash(key));
-    *tag = TagHash(dtl::hasher<uint32_t, 1>::hash(key));
+  generate_index_tag_hash(const key_t& key, uint32_t* index, uint32_t* tag) const {
+    *index = index_hash(dtl::hasher<uint32_t, 0>::hash(key));
+    *tag = tag_hash(dtl::hasher<uint32_t, 1>::hash(key));
   }
   //===----------------------------------------------------------------------===//
 
@@ -216,8 +213,8 @@ public:
   /// where # of buckets is a power of two.
   __forceinline__ __host__ __device__
   uint32_t
-  AltIndex(const uint32_t bucket_idx, const uint32_t tag,
-           const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
+  alt_index(const uint32_t bucket_idx, const uint32_t tag,
+            const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
     // NOTE(binfan): originally we use:
     // bucket_idx ^ HashUtil::BobHash((const void*) (&tag), 4)) & table->INDEXMASK;
     // now doing a quick-n-dirty way:
@@ -228,8 +225,8 @@ public:
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
-  AltIndex(const Tv& bucket_idx, const Tv& tag,
-           const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
+  alt_index(const Tv& bucket_idx, const Tv& tag,
+            const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
     return (bucket_idx ^ (tag * 0x5bd1e995)) & block_addr.block_cnt_mask;
   }
 
@@ -237,23 +234,21 @@ public:
   /// where # of buckets is NOT a power of two (aka MAGIC addressing)
   __forceinline__ __host__ __device__
   uint32_t
-  AltIndex(const uint32_t bucket_idx, const uint32_t tag,
-           const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
+  alt_index(const uint32_t bucket_idx, const uint32_t tag,
+            const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
     // If the number of buckets is not a power of two, we cannot use XOR anymore.
     // Instead we use the following self-inverse function:
     // f_sig(x) = - (s + x) mod m
     // where m denotes the number of buckets.
     return block_addr.get_block_idx(-(bucket_idx + (tag * 0x5bd1e995)));
-//    return block_addr.get_block_idx(-(bucket_idx + tag)); //FIXME
   }
   // vectorized
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
-  AltIndex(const Tv& bucket_idx, const Tv& tag,
-           const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
+  alt_index(const Tv& bucket_idx, const Tv& tag,
+            const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
     return block_addr.get_block_idxs(Tv::make(0) - (bucket_idx + (tag * 0x5bd1e995))); // TODO make(0) can be optimized
-//    return block_addr.get_block_idxs(Tv::make(0) - (bucket_idx + tag)); // TODO make(0) can be optimized
   }
 
 
@@ -261,46 +256,17 @@ public:
   /// Compute the alternative bucket index.
   __forceinline__ __host__ __device__
   uint32_t
-  AltIndex(const uint32_t bucket_idx, const uint32_t tag) const {
+  alt_index(const uint32_t bucket_idx, const uint32_t tag) const {
     // Dispatch based on the addressing type.
     // Note: This doesn't induce runtime overhead.
-    return AltIndex(bucket_idx, tag, block_addr);
+    return alt_index(bucket_idx, tag, block_addr);
   }
   // vectorized
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
-  AltIndex(const Tv& bucket_idx, const Tv& tag) const {
-    return AltIndex(bucket_idx, tag, block_addr);
-  }
-  //===----------------------------------------------------------------------===//
-
-
-  //===----------------------------------------------------------------------===//
-  bool
-  AddImpl(word_t* __restrict filter_data, const uint32_t i, const uint32_t tag) const {
-    uint32_t curindex = i;
-    uint32_t curtag = tag;
-    uint32_t oldtag;
-
-    for (uint32_t count = 0; count < max_relocation_count; count++) {
-      bool kickout = count > 0;
-      oldtag = 0;
-      if (table.insert_tag_to_bucket(filter_data, curindex, curtag, kickout, oldtag)) {
-        return true;
-      }
-      if (kickout) {
-        curtag = oldtag;
-      }
-      assert(AltIndex(AltIndex(curindex, curtag), curtag) == curindex);
-      curindex = AltIndex(curindex, curtag);
-    }
-
-    victim_cache_t& victim = *reinterpret_cast<victim_cache_t*>(&filter_data[victim_cache_offset]);
-    victim.index = curindex;
-    victim.tag = curtag;
-    victim.used = true;
-    return true;
+  alt_index(const Tv& bucket_idx, const Tv& tag) const {
+    return alt_index(bucket_idx, tag, block_addr);
   }
   //===----------------------------------------------------------------------===//
 
@@ -314,13 +280,33 @@ public:
   insert(word_t* __restrict filter_data, const key_t& key) {
     uint32_t i;
     uint32_t tag;
-    const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
+    victim_cache_t& victim = *reinterpret_cast<victim_cache_t*>(&filter_data[victim_cache_offset]);
     if (victim.used) {
       return false;
     }
 
-    GenerateIndexTagHash(key, &i, &tag);
-    return AddImpl(filter_data, i, tag);
+    generate_index_tag_hash(key, &i, &tag);
+    uint32_t curindex = i;
+    uint32_t curtag = tag;
+    uint32_t oldtag;
+
+    for (uint32_t count = 0; count < max_relocation_count; count++) {
+      bool kickout = count > 0;
+      oldtag = 0;
+      if (table.insert_tag_to_bucket(filter_data, curindex, curtag, kickout, oldtag)) {
+        return true;
+      }
+      if (kickout) {
+        curtag = oldtag;
+      }
+      assert(alt_index(alt_index(curindex, curtag), curtag) == curindex);
+      curindex = alt_index(curindex, curtag);
+    }
+
+    victim.index = curindex;
+    victim.tag = curtag;
+    victim.used = true;
+    return true;
   };
   //===----------------------------------------------------------------------===//
 
@@ -351,10 +337,10 @@ public:
     uint32_t i1, i2;
     uint32_t tag;
 
-    GenerateIndexTagHash(key, &i1, &tag);
-    i2 = AltIndex(i1, tag);
+    generate_index_tag_hash(key, &i1, &tag);
+    i2 = alt_index(i1, tag);
 
-    assert(i1 == AltIndex(i2, tag));
+    assert(i1 == alt_index(i2, tag));
 
     const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
     bool found = victim.used && (tag == victim.tag) &&
@@ -370,8 +356,8 @@ public:
   contains_vec(const word_t* __restrict filter_data, const Tv& keys) const {
 
     Tv i1 = block_addr.get_block_idxs(dtl::hasher<Tv, 0>::hash(keys));
-    Tv tags = TagHash(dtl::hasher<Tv, 1>::hash(keys));
-    Tv i2 = AltIndex(i1, tags);
+    Tv tags = tag_hash(dtl::hasher<Tv, 1>::hash(keys));
+    Tv i2 = alt_index(i1, tags);
 
     auto found_mask = Tv::mask::make_none_mask();
     const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
@@ -436,10 +422,6 @@ public:
   }
 
 
-//  template<
-//      std::size_t vector_len = dtl::simd::lane_count<u32>,
-//      typename = std::enable_if_t<table_t<bits_per_tag, tags_per_bucket>::is_vectorized>
-//  >
   template<
       std::size_t vector_len = dtl::simd::lane_count<u32>
   >
@@ -486,9 +468,6 @@ public:
   //===----------------------------------------------------------------------===//
 
 
-
-  // TODO cleanup
-
   /// Returns the size of the filter in number of words.
   __forceinline__ __host__ __device__
   std::size_t
@@ -501,50 +480,29 @@ public:
     return table_t<bits_per_tag, tags_per_bucket>::bytes_per_bucket * table.num_buckets_;
   }
 
-
-  /// Returns the size of the filter in bits.
-  /// @deprecated use word_cnt() instead
-  std::size_t
-  get_length() const {
-    return word_cnt() * sizeof(word_t);
-  }
-
-
-  /// @deprecated use word_cnt() instead
   std::size_t
   count_occupied_slots(const word_t* __restrict filter_data) const {
     const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
     return table.count_occupied_entires(filter_data) + victim.used;
   }
 
-
-  /// @deprecated use word_cnt() instead
-  std::vector<std::size_t>
-  slotOccupationHistogram(const word_t* __restrict filter_data) const {
-    std::vector<std::size_t> histo(slotCountPerBucket() + 1, 0);
-    for (uint32_t bucket_idx = 0; bucket_idx < bucketCount(); bucket_idx++) {
-      histo[table.count_occupied_entries_in_bucket(filter_data, bucket_idx)]++;
-    }
-    return histo;
-  }
-
-  std::size_t bucketCount() const {
+  std::size_t
+  get_bucket_count() const {
     return table.num_buckets();
   }
 
-  std::size_t get_bucket_count() const {
-    return table.num_buckets();
-  }
-
-  std::size_t slotCount() const {
+  std::size_t
+  get_slot_count() const {
     return table.size_in_tags() + 1 /* victim cache */;
   }
 
-  std::size_t slotCountPerBucket() const {
+  std::size_t
+  get_tags_per_bucket() const {
     return tags_per_bucket;
   }
 
-  std::size_t tag_size_bits() const {
+  std::size_t
+  get_bits_per_tag() const {
     return bits_per_tag;
   }
 
