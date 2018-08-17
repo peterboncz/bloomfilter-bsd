@@ -18,7 +18,6 @@
 #include "cuckoofilter_logic.hpp"
 #include "cuckoofilter_table.hpp"
 #include "cuckoofilter_tune.hpp"
-//#include "cuckoofilter_tune_impl.hpp"
 
 namespace dtl {
 namespace cuckoofilter {
