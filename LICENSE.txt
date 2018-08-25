@@ -1,0 +1,4 @@
+This work is dual-licensed under BSD (3-clause) and Apache 2.0 (or any later version).
+You can choose between one of them if you use this work.
+
+See files LICENSE_BSD.txt and LICENSE_APACHE.txt for details.
