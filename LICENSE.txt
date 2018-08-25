@@ -2,3 +2,15 @@ This work is dual-licensed under BSD (3-clause) and Apache 2.0 (or any later ver
 You can choose between one of them if you use this work.
 
 See files LICENSE_BSD.txt and LICENSE_APACHE.txt for details.
+
+
+Third party dependencies:
+
+Cuckoo filter:
+ Parts of the Cuckoo filter implementation are derived from
+ https://github.com/efficient/cuckoofilter which
+ is available under the Apache License, Version 2.0.
+
+Libdivide:
+ Usable under the terms in either zlib or Boost license.
+ See 'thirdparty/libdivide/LICENSE.txt' for details.
