@@ -81,6 +81,7 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic.hpp
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp
+        src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sgew_specialization.hpp
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_zoned.hpp
         src/dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp
