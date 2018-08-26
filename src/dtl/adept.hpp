@@ -134,6 +134,10 @@ struct array_info<std::array<T, N>> {
   #endif
 #endif
 
+#if !defined(__noinline__) && !(defined(__CUDACC__) || defined(__CUDA_ARCH__) || defined(__CUDA_LIBDEVICE__))
+#define __noinline__ __attribute__((noinline))
+#endif
+
 #if defined(NDEBUG)
   #define unroll_loops __attribute__((optimize("unroll-loops")))
 #else
