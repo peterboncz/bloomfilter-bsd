@@ -1,15 +1,23 @@
 cmake_minimum_required(VERSION 3.5)
 project(dtl)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -march=native")
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+
+SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
-#include_directories(SYSTEM ../)
 include_directories(src/)
 include_directories(thirdparty/)
 
 add_subdirectory(src/dtl/simd)
 
+
+
+find_package(Numa)
+if (NUMA_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_NUMA")
+endif(NUMA_FOUND)
 
 ### build optimized executables for the following architectures
 set(ARCHS
@@ -34,7 +42,6 @@ function(add_multiarch_library library_name files)
 endfunction(add_multiarch_library)
 
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CUCKOO_FILTER_SOURCE_FILES
         # cuckoo
@@ -214,11 +221,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
 add_multiarch_library(dtl "${SOURCE_FILES}")
 
 set(LIBS
-        ssl
-        crypto
         pthread
-        numa
-        dl
+        ${NUMA_LIBRARY}
         )
 
 # replacement for 'add_executable'

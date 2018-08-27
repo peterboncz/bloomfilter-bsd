@@ -1,21 +1,16 @@
 #pragma once
 
-// require NUMA support (for now)
-#if !defined(HAVE_NUMA)
-#define HAVE_NUMA
-#endif
-
-#include "adept.hpp"
-
 #include <cstring>
 #include <limits>
 #include <memory>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/mman.h>
 #if defined(HAVE_NUMA)
 #include <numa.h>
 #include <numaif.h>
 #endif
+
+#include <dtl/dtl.hpp>
 
 namespace dtl {
 namespace mem {
@@ -39,6 +34,8 @@ is_aligned(const T* const ptr, u64 n = alignof(T)) {
 }
 
 namespace detail {
+
+#if defined(HAVE_NUMA)
 
 /// encapsulates a pointer to a numa bitmask (supports move and copy construction, etc.)
 struct bitmask_wrap {
@@ -85,8 +82,28 @@ struct bitmask_wrap {
   ~bitmask_wrap() { if (ptr) numa_bitmask_free(ptr); };
 };
 
+#else
+
+// Mock (if numa is not available)
+struct bitmask_wrap {
+
+  $u1 value_;
+
+  bitmask_wrap() : value_(false) { };
+  explicit bitmask_wrap(u1 value) : value_(value) { };
+  bitmask_wrap(bitmask_wrap&&) = default;
+  bitmask_wrap(const bitmask_wrap&) = default;
+  bitmask_wrap& operator=(const bitmask_wrap&) = default;
+  bitmask_wrap& operator=(bitmask_wrap&&) = default;
+  $u1 operator==(const bitmask_wrap& other) const { return value_ == other.value_; }
+  ~bitmask_wrap() = default;
+};
+
+#endif
+
 inline bitmask_wrap
 get_hbm_nodemask() {
+#if defined(HAVE_NUMA)
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
   numa_bitmask_setall(mask);
@@ -96,10 +113,14 @@ get_hbm_nodemask() {
     numa_bitmask_clearbit(mask, numa_node_of_cpu(i));
   }
   return bitmask_wrap(mask);
+#else
+  return bitmask_wrap(false);
+#endif
 }
 
 inline bitmask_wrap
 get_cpu_nodemask() {
+#if defined(HAVE_NUMA)
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
   numa_bitmask_clearall(mask);
@@ -109,16 +130,22 @@ get_cpu_nodemask() {
     numa_bitmask_setbit(mask, numa_node_of_cpu(i));
   }
   return bitmask_wrap(mask);
+#else
+  return bitmask_wrap(true);
+#endif
 }
 
 inline bitmask_wrap
 get_all_nodemask() {
+#if defined(HAVE_NUMA)
   i32 node_cnt = numa_num_configured_nodes();
   bitmask* mask = numa_bitmask_alloc(node_cnt);
   numa_bitmask_setall(mask);
   return bitmask_wrap(mask);
+#else
+  return bitmask_wrap(true);
+#endif
 }
-
 
 } // namespace detail
 
@@ -321,11 +348,11 @@ private:
 
   /// c'tor for allocations on a specific node
   allocator_config(u32 numa_node)
-      : policy(allocation_policy::on_node), node_mask(nullptr), numa_node(numa_node) { }
+      : policy(allocation_policy::on_node), node_mask(), numa_node(numa_node) { }
 
   /// c'tor for local allocations
   allocator_config()
-      : policy(allocation_policy::local), node_mask(nullptr), numa_node(~u32(0)) { }
+      : policy(allocation_policy::local), node_mask(), numa_node(~u32(0)) { }
 
 
 public:
@@ -375,12 +402,16 @@ public:
 
   static allocator_config
   on_node(const std::vector<$u32>& numa_nodes) {
+#if defined(HAVE_NUMA)
     i32 node_cnt = numa_num_configured_nodes();
     bitmask* mask = numa_bitmask_alloc(node_cnt);
     for (auto node_id : numa_nodes) {
       numa_bitmask_setbit(mask, node_id);
     }
     return allocator_config(detail::bitmask_wrap(mask));
+#else
+    return allocator_config(detail::bitmask_wrap(numa_nodes.size() > 0));
+#endif
   }
 
   /// allocate memory on the thread local node (default behavior)
@@ -394,11 +425,20 @@ public:
     switch (policy) {
       case allocation_policy::interleaved:
         os << "interleaved on nodes ";
+#if defined(HAVE_NUMA)
         for (std::size_t i = 0; i < node_mask.ptr->size; i++) {
           if (numa_bitmask_isbitset(node_mask.ptr, i)) {
             os << i << " ";
           }
         }
+#else
+        if (node_mask.value_) {
+          os << 1 << " ";
+        }
+        else {
+          os << 0 << " ";
+        }
+#endif
         break;
       case allocation_policy::on_node:
         os << "on node " << numa_node;
@@ -453,6 +493,7 @@ struct numa_allocator {
       throw std::bad_alloc();
     }
 
+#if defined(HAVE_NUMA)
     switch (config.policy) {
       case allocation_policy::interleaved:
         ptr = numa_alloc_interleaved_subset(size, config.node_mask.ptr);
@@ -464,7 +505,9 @@ struct numa_allocator {
         ptr = numa_alloc_local(size);
         break;
     }
-
+#else
+    ptr = malloc(size);
+#endif
     if (!ptr) {
       throw std::bad_alloc();
     }
@@ -473,7 +516,11 @@ struct numa_allocator {
 
   void
   deallocate(pointer ptr, size_type n) throw() {
+#if defined(HAVE_NUMA)
     numa_free(ptr, n * sizeof(T));
+#else
+    free(ptr);
+#endif
   }
 
 };
