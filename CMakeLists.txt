@@ -7,8 +7,9 @@ SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
-include_directories(src/)
-include_directories(thirdparty/)
+#include_directories(SYSTEM ../)
+include_directories(src/ PUBLIC)
+include_directories(thirdparty/ PUBLIC)
 
 add_subdirectory(src/dtl/simd)
 
