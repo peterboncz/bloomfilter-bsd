@@ -62,7 +62,7 @@ zbbf_64::calibrate() {
 
 void
 zbbf_64::force_unroll_factor(u32 u) {
-  throw "not yet implemented";
+  tuner.set_unroll_factor(u);
 }
 
 std::string

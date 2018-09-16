@@ -59,6 +59,18 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
   }
 
 
+  void
+  set_unroll_factor(u32 unroll_factor) {
+    for ($u32 bits_per_tag : { 4u, 8u, 12u, 16u, 32u } ) {
+      for ($u32 tags_per_bucket : { 1u, 2u, 4u } ) {
+        for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+          set_unroll_factor(bits_per_tag, tags_per_bucket, addr_mode, unroll_factor);
+        }
+      }
+    }
+  }
+
+
   $u32
   get_unroll_factor(u32 bits_per_tag,
                     u32 tags_per_bucket,

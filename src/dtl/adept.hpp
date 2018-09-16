@@ -135,7 +135,8 @@ struct array_info<std::array<T, N>> {
 #endif
 
 #if !defined(__noinline__) && !(defined(__CUDACC__) || defined(__CUDA_ARCH__) || defined(__CUDA_LIBDEVICE__))
-#define __noinline__ __attribute__((noinline))
+//#define __noinline__ __attribute__((noinline))
+#define __noinline__
 #endif
 
 #if defined(NDEBUG)

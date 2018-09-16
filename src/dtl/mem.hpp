@@ -208,6 +208,8 @@ get_cpu_nodes() {
       cpu_nodes.push_back(i);
     }
   }
+#else
+  cpu_nodes.push_back(0);
 #endif
   return cpu_nodes;
 }

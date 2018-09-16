@@ -58,6 +58,32 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
   }
 
 
+  void
+  set_unroll_factor(u32 unroll_factor) {
+    for ($u32 word_cnt_per_block = 4; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
+      for ($u32 zone_cnt = 2; zone_cnt <= 8; zone_cnt *= 2) {
+        if (zone_cnt >= word_cnt_per_block) continue;
+        for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
+          for ($u32 k = 2; k <= 16; k += 2) {
+            if ((k % zone_cnt) != 0) continue;
+            blocked_bloomfilter_config c;
+            c.k = k;
+            c.word_size = sizeof(word_t);
+            c.word_cnt_per_block = word_cnt_per_block;
+            c.sector_cnt = word_cnt_per_block;
+            c.zone_cnt = zone_cnt;
+            c.addr_mode = addr_mode;
+            try {
+              set_unroll_factor(c, unroll_factor);
+            }
+            catch (...) {} // ignore
+          }
+        }
+      }
+    }
+  }
+
+
   $u32
   get_unroll_factor(const blocked_bloomfilter_config& config) const override {
     blocked_bloomfilter_config c = config;
