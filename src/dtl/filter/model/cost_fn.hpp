@@ -34,7 +34,7 @@ class cost_fn {
   //===----------------------------------------------------------------------===//
   /// Compute the probability of a cache miss.
   /// Note: Filter and cache sizes must have the same unit. (Typically bits)
-  static auto
+  static f64
   p_miss(u64 level, u64 filter_size, const std::vector<$u64>& cache_sizes) {
     if (level == 0) return 1.0;
     f64 cache_size = cache_sizes[level - 1];
@@ -47,7 +47,7 @@ class cost_fn {
 
   //===----------------------------------------------------------------------===//
   // Sanitize the timings (e.g., L2 should not be faster than L1)
-  static auto
+  static std::vector<timing>
   sanitize_timings(const std::vector<timing>& timings) {
     std::vector<timing> sanitized(timings.begin(), timings.end());
     for (std::size_t i = 1; i < sanitized.size(); i++) {
@@ -56,6 +56,7 @@ class cost_fn {
         sanitized[i] = sanitized[i - 1];
       }
     }
+    return sanitized;
   };
   //===----------------------------------------------------------------------===//
 

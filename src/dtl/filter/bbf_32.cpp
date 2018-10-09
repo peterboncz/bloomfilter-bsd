@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "bbf_32.hpp"
 
 #include "blocked_bloomfilter/instances/blocked_bloomfilter_logic_u32_instance.hpp" // extern templates to parallelize builds

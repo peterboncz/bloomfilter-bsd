@@ -52,11 +52,11 @@ fpr(u64 m,
 static f64
 fpr(u64 m,
     u64 n,
-    const blocked_bloomfilter_config& c) {
+    const blocked_bloomfilter_config& c, u1 self_collisions = true) {
 
   auto block_size_bits = c.word_size * 8 * c.word_cnt_per_block;
   auto sector_size_bits = block_size_bits / c.sector_cnt;
-  return fpr(m, n, c.k, block_size_bits, sector_size_bits, c.zone_cnt);
+  return fpr(m, n, c.k, block_size_bits, sector_size_bits, c.zone_cnt, self_collisions);
 }
 
 } // namespace filter

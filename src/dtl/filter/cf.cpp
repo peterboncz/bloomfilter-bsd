@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "cf.hpp"
 
 #include <dtl/filter/cuckoofilter/cuckoofilter.hpp>

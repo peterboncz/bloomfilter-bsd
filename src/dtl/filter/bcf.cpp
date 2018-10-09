@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "bcf.hpp"
 
 #include "blocked_cuckoofilter/blocked_cuckoofilter.hpp"

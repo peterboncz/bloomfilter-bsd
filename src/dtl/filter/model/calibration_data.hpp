@@ -84,8 +84,8 @@ class calibration_data {
   std::vector<$i8> skyline_matrix_mem_;
   skyline_matrix* skyline_matrix_ = nullptr;
 
-  const timing null_timing_ { 0.0, 0.0 };
-  const tuning_params null_tuning_params_ { 1 };
+  const timing null_timing_;
+  const tuning_params null_tuning_params_;
 
   //===----------------------------------------------------------------------===//
   // Helper functions
