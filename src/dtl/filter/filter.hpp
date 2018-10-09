@@ -101,7 +101,7 @@ private:
     // Locks, that are acquired during replication.
     std::vector<std::mutex> replica_mutexes;
 
-    static auto
+    static dtl::mem::numa_allocator<$u64>
     get_default_allocator() {
       const auto& platform = dtl::filter::platform::get_instance();
       u32 mem_node_id = platform.get_memory_node_of_this_thread();

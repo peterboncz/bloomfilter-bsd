@@ -224,7 +224,7 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& sector_start_word_idxs) noexcept {
@@ -248,7 +248,7 @@ struct multiword_sector {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
@@ -365,12 +365,12 @@ struct multiword_sector<key_t, word_t, word_cnt, k, hasher, hash_value_t, hash_f
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& sector_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_in_sector_mask) noexcept {
+           const typename vec<word_t,n>::mask& is_contained_in_sector_mask) noexcept {
     // End of recursion.
     return is_contained_in_sector_mask;
   }
@@ -534,7 +534,7 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& block_start_word_idxs) noexcept {
@@ -558,7 +558,7 @@ struct multisector_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
@@ -573,7 +573,7 @@ struct multisector_block {
             multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                              hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
                              k_cnt_per_sector>;
-    auto found_in_sector_mask = sector_t::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, vec<word_t,n>::mask::make_all_mask());
+    typename vec<word_t,n>::mask found_in_sector_mask = sector_t::contains(keys, hash_vals, bitvector_base_address, sector_start_word_idxs, vec<word_t,n>::mask::make_all_mask());
 
     // Early out
     if (early_out) {
@@ -637,7 +637,7 @@ struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, ha
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,

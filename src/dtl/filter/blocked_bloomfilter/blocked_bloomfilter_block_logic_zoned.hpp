@@ -216,7 +216,7 @@ struct multizone_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            const word_t* __restrict bitvector_base_address,
            const vec<hash_value_t,n>& block_start_word_idxs) noexcept {
@@ -240,7 +240,7 @@ struct multizone_block {
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
@@ -331,12 +331,12 @@ struct multizone_block<key_t, word_t, word_cnt, z, k, hasher, hash_value_t, hash
   //===----------------------------------------------------------------------===//
   template<u64 n>
   __forceinline__ __unroll_loops__
-  static auto
+  static typename vec<word_t,n>::mask
   contains(const vec<key_t,n>& keys,
            vec<hash_value_t,n>& hash_vals,
            const word_t* __restrict bitvector_base_address,
            const vec<key_t,n>& block_start_word_idxs,
-           const typename vec<word_t,n>::mask is_contained_in_block_mask) noexcept {
+           const typename vec<word_t,n>::mask& is_contained_in_block_mask) noexcept {
     // End of recursion.
     return is_contained_in_block_mask;
   }

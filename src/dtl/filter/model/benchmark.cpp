@@ -31,7 +31,7 @@ batchwise_contains(input_it begin, input_it end,
                    const filter::probe_t& probe,
                    consumer_fn consumer) {
   // Process the input batch-wise
-  dtl::batch_wise(begin, end, [&](const auto batch_begin, const auto batch_end) {
+  dtl::batch_wise(begin, end, [&](const input_it batch_begin, const input_it batch_end) {
     std::size_t match_count = 0;
     $u32 match_pos[dtl::BATCH_SIZE];
     match_count += probe(batch_begin, batch_end, &match_pos[0], 0u);
