@@ -277,6 +277,34 @@ struct gather<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256
 
 
 // Store
+template<>
+struct store<$i32, __m256i> : vector_fn<$i32, __m256i> {
+  __forceinline__ void operator()(__m256i* mem_addr, const __m256i& what) const noexcept {
+    _mm256_store_si256(mem_addr, what);
+  }
+};
+
+template<>
+struct storeu<$i32, __m256i> : vector_fn<$i32, __m256i> {
+  __forceinline__ void operator()($i32* mem_addr, const __m256i& what) const noexcept {
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(mem_addr), what);
+  }
+};
+
+template<>
+struct store<$u32, __m256i> : vector_fn<$u32, __m256i> {
+  __forceinline__ void operator()(__m256i* mem_addr, const __m256i& what) const noexcept {
+    _mm256_store_si256(mem_addr, what);
+  }
+};
+
+template<>
+struct storeu<$u32, __m256i> : vector_fn<$u32, __m256i> {
+  __forceinline__ void operator()($u32* mem_addr, const __m256i& what) const noexcept {
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(mem_addr), what);
+  }
+};
+
 //template<>
 //struct scatter<$i32, __m256i, __m256i> : vector_fn<$i32, __m256i, __m256i, __m256i> {
 //  __forceinline__ __m256i operator()($i32* base_addr, const __m256i& idxs, const __m256i& what) const noexcept {
@@ -321,6 +349,78 @@ struct gather<$u64, __m256i, __m256i> : vector_fn<$u64, __m256i, __m256i, __m256
 //  }
 //};
 
+
+// Compress
+template<>
+struct compress<$i32, __m256i> : vector_fn<$i32, __m256i> {
+  // source: https://stackoverflow.com/questions/36932240/avx2-what-is-the-most-efficient-way-to-pack-left-based-on-a-mask
+  __forceinline__ __m256i operator()(const __m256i& src, const mask8& m) const noexcept {
+    const uint64_t int_mask = _mm256_movemask_ps((__m256)m.data);
+    uint64_t expanded_mask = _pdep_u64(int_mask, 0x0101010101010101);  // unpack each bit to a byte
+    expanded_mask *= 0xFF;    // mask |= mask<<1 | mask<<2 | ... | mask<<7;
+    // ABC... -> AAAAAAAABBBBBBBBCCCCCCCC...: replicate each bit to fill its byte
+
+    const uint64_t identity_indices = 0x0706050403020100;    // the identity shuffle for vpermps, packed to one index per byte
+    uint64_t wanted_indices = _pext_u64(identity_indices, expanded_mask);
+
+    __m128i bytevec = _mm_cvtsi64_si128(wanted_indices);
+    __m256i shufmask = _mm256_cvtepu8_epi32(bytevec);
+
+    return (__m256i)_mm256_permutevar8x32_ps((__m256)src, shufmask);
+  }
+
+  __forceinline__ __m256i operator()(const __m256i& src, const mask8& m, uint32_t& pop_cnt) const noexcept {
+    const uint32_t int_mask = _mm256_movemask_ps((__m256)m.data);
+    pop_cnt = dtl::bits::pop_count(int_mask);
+    uint64_t expanded_mask = _pdep_u64(int_mask, 0x0101010101010101);  // unpack each bit to a byte
+    expanded_mask *= 0xFF;    // mask |= mask<<1 | mask<<2 | ... | mask<<7;
+    // ABC... -> AAAAAAAABBBBBBBBCCCCCCCC...: replicate each bit to fill its byte
+
+    const uint64_t identity_indices = 0x0706050403020100;    // the identity shuffle for vpermps, packed to one index per byte
+    uint64_t wanted_indices = _pext_u64(identity_indices, expanded_mask);
+
+    __m128i bytevec = _mm_cvtsi64_si128(wanted_indices);
+    __m256i shufmask = _mm256_cvtepu8_epi32(bytevec);
+
+    return (__m256i)_mm256_permutevar8x32_ps((__m256)src, shufmask);
+  }
+};
+
+
+template<>
+struct compress<$u32, __m256i> : vector_fn<$u32, __m256i> {
+  // source: https://stackoverflow.com/questions/36932240/avx2-what-is-the-most-efficient-way-to-pack-left-based-on-a-mask
+  __forceinline__ __m256i operator()(const __m256i& src, const mask8& m) const noexcept {
+    const uint64_t int_mask = _mm256_movemask_ps((__m256)m.data);
+    uint64_t expanded_mask = _pdep_u64(int_mask, 0x0101010101010101);  // unpack each bit to a byte
+    expanded_mask *= 0xFF;    // mask |= mask<<1 | mask<<2 | ... | mask<<7;
+    // ABC... -> AAAAAAAABBBBBBBBCCCCCCCC...: replicate each bit to fill its byte
+
+    const uint64_t identity_indices = 0x0706050403020100;    // the identity shuffle for vpermps, packed to one index per byte
+    uint64_t wanted_indices = _pext_u64(identity_indices, expanded_mask);
+
+    __m128i bytevec = _mm_cvtsi64_si128(wanted_indices);
+    __m256i shufmask = _mm256_cvtepu8_epi32(bytevec);
+
+    return (__m256i)_mm256_permutevar8x32_ps((__m256)src, shufmask);
+  }
+
+  __forceinline__ __m256i operator()(const __m256i& src, const mask8& m, uint32_t& pop_cnt) const noexcept {
+    const uint32_t int_mask = _mm256_movemask_ps((__m256)m.data);
+    pop_cnt = dtl::bits::pop_count(int_mask);
+    uint64_t expanded_mask = _pdep_u64(int_mask, 0x0101010101010101);  // unpack each bit to a byte
+    expanded_mask *= 0xFF;    // mask |= mask<<1 | mask<<2 | ... | mask<<7;
+    // ABC... -> AAAAAAAABBBBBBBBCCCCCCCC...: replicate each bit to fill its byte
+
+    const uint64_t identity_indices = 0x0706050403020100;    // the identity shuffle for vpermps, packed to one index per byte
+    uint64_t wanted_indices = _pext_u64(identity_indices, expanded_mask);
+
+    __m128i bytevec = _mm_cvtsi64_si128(wanted_indices);
+    __m256i shufmask = _mm256_cvtepu8_epi32(bytevec);
+
+    return (__m256i)_mm256_permutevar8x32_ps((__m256)src, shufmask);
+  }
+};
 
 
 // Arithmetic

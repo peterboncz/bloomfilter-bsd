@@ -497,6 +497,11 @@ struct v : v_base {
     using set = dtl::simd::set<scalar_type, nested_type, nested_type>;
     using blend = dtl::simd::blend<scalar_type, nested_type, nested_type>;
 
+    using compress = dtl::simd::compress<scalar_type, nested_type>;
+
+    using store = dtl::simd::store<scalar_type, nested_type>;
+    using storeu = dtl::simd::storeu<scalar_type, nested_type>;
+
     using plus = dtl::simd::plus<scalar_type, nested_type>;
     using minus = dtl::simd::minus<scalar_type, nested_type>;
     using multiplies = dtl::simd::multiplies<scalar_type, nested_type>;
@@ -824,6 +829,40 @@ struct v : v_base {
 //    return result;
 //  }
 
+
+  //===----------------------------------------------------------------------===//
+  // Compress (aka left-pack)
+  //===----------------------------------------------------------------------===//
+  template<u1 Compound = false, typename Fn>
+  static __forceinline__ nested_type
+  compress_op(Fn fn, const nested_type& a, const nested_mask_type& m) noexcept {
+    return fn(a, m);
+  }
+
+  template<u1 Compound, typename Fn, typename = std::enable_if_t<Compound>>
+  static __forceinline__ compound_type
+  compress_op(Fn fn, const compound_type& a, const compound_mask_type m) noexcept {
+    compound_type result;
+    scalar_type* writer = reinterpret_cast<scalar_type*>(&result);
+    uint32_t pop_cnt_0 = 0;
+    nested_type r_0 = fn(a[0], m[0], pop_cnt_0);
+    auto store_fn = typename op::store();
+    store_fn(reinterpret_cast<nested_type*>(writer), r_0); // first store is aligned
+    writer += pop_cnt_0;
+    for ($u64 i = 1; i < nested_vector_cnt; i++) {
+      uint32_t pop_cnt = 0;
+      nested_type r = fn(a[i], m[i], pop_cnt);
+      auto storeu_fn = typename op::storeu();
+      storeu_fn(writer, r);
+      writer += pop_cnt;
+    }
+    return result;
+  }
+
+  v compress(const m& mask) {
+    return compress_op<is_compound>(typename op::compress(), data, mask.data);
+  }
+  //===----------------------------------------------------------------------===//
 
   template<typename VECTOR_FN>
   __forceinline__ v map(const v& o) const noexcept { return v { binary_op<is_compound, VECTOR_FN>(VECTOR_FN(), data, o.data) }; }
@@ -1224,7 +1263,6 @@ struct v : v_base {
   // TODO specialize for all valid primitive types
 
   // ---
-
 
 };
 

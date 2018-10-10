@@ -26,6 +26,9 @@ struct mask16 {
   __forceinline__ void set(u64 idx, u1 value) {
     data = __mmask16(1) << idx;
   }
+  __forceinline__ void set_from_int(u64 int_bitmask) {
+    data = int_bitmask;
+  };
   __forceinline__ u1 get(u64 idx) const {
     return (data & (__mmask16(1) << idx)) != __mmask16(0);
   }
@@ -41,6 +44,11 @@ struct mask16 {
     const __m512i seq = _mm512_add_epi64(sequence, _mm512_set1_epi32(offset));
     _mm512_mask_compressstoreu_epi32(positions, data, seq);
     return dtl::bits::pop_count(static_cast<u32>(data));
+  }
+
+  __forceinline__ $u64
+  to_int() const {
+    return data;
   }
 };
 
@@ -185,6 +193,35 @@ __GENERATE($u64, 8, __m512i, __m512i, _mm512_i64gather_epi64, _mm512_mask_i64gat
 
 
 // --- Store
+// Store
+template<>
+struct store<$i32, __m512i> : vector_fn<$i32, __m512i> {
+  __forceinline__ void operator()(__m512i* mem_addr, const __m512i& what) const noexcept {
+    _mm512_store_si512(mem_addr, what);
+  }
+};
+
+template<>
+struct storeu<$i32, __m512i> : vector_fn<$i32, __m512i> {
+  __forceinline__ void operator()($i32* mem_addr, const __m512i& what) const noexcept {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(mem_addr), what);
+  }
+};
+
+template<>
+struct store<$u32, __m512i> : vector_fn<$u32, __m512i> {
+  __forceinline__ void operator()(__m512i* mem_addr, const __m512i& what) const noexcept {
+    _mm512_store_si512(mem_addr, what);
+  }
+};
+
+template<>
+struct storeu<$u32, __m512i> : vector_fn<$u32, __m512i> {
+  __forceinline__ void operator()($u32* mem_addr, const __m512i& what) const noexcept {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(mem_addr), what);
+  }
+};
+
 
 #define __GENERATE(Tp, Scale, Tv, Ta, IntrinFn, IntrinFnMask) \
 template<>                                             \
@@ -212,6 +249,32 @@ __GENERATE($u32, 4, __m512i, __m512i, _mm512_i32scatter_epi32, _mm512_mask_i32sc
 __GENERATE($i64, 8, __m512i, __m512i, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
 __GENERATE($u64, 8, __m512i, __m512i, _mm512_i64scatter_epi64, _mm512_mask_i64scatter_epi64)
 #undef __GENERATE
+
+
+// --- Compress
+template<>
+struct compress<$i32, __m512i> : vector_fn<$i32, __m512i> {
+  __forceinline__ __m512i operator()(const __m512i& src, const mask16& m) const noexcept {
+    return _mm512_maskz_compress_epi32(m.data, src);
+  }
+
+  __forceinline__ __m512i operator()(const __m512i& src, const mask16& m, uint32_t& pop_cnt) const noexcept {
+    pop_cnt = dtl::bits::pop_count(m.data);
+    return _mm512_maskz_compress_epi32(m.data, src);
+  }
+};
+
+template<>
+struct compress<$u32, __m512i> : vector_fn<$u32, __m512i> {
+  __forceinline__ __m512i operator()(const __m512i& src, const mask16& m) const noexcept {
+    return _mm512_maskz_compress_epi32(m.data, src);
+  }
+
+  __forceinline__ __m512i operator()(const __m512i& src, const mask16& m, uint32_t& pop_cnt) const noexcept {
+    pop_cnt = dtl::bits::pop_count(m.data);
+    return _mm512_maskz_compress_epi32(m.data, src);
+  }
+};
 
 
 // --- Arithmetic

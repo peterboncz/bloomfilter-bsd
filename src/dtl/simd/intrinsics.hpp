@@ -48,6 +48,9 @@ struct set : vector_fn<primitive_t, vector_t, argument_t> {};
 template<typename primitive_t, typename vector_t, typename argument_t = vector_t>
 struct blend : vector_fn<primitive_t, vector_t, argument_t> {};
 
+// Compress (aka left-pack)
+template<typename primitive_t, typename vector_t, typename argument_t = primitive_t>
+struct compress : vector_fn<primitive_t, vector_t> {};
 
 // Load
 template<typename primitive_t, typename vector_t, typename argument_t>
@@ -55,6 +58,12 @@ struct gather : vector_fn<primitive_t, vector_t, argument_t> {};
 
 
 // Store
+template<typename primitive_t, typename vector_t, typename argument_t = primitive_t>
+struct store : vector_fn<primitive_t, vector_t> {};
+
+template<typename primitive_t, typename vector_t, typename argument_t = primitive_t>
+struct storeu : vector_fn<primitive_t, vector_t> {};
+
 template<typename primitive_t, typename vector_t, typename argument_t>
 struct scatter : vector_fn<primitive_t, vector_t> {};
 

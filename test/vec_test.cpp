@@ -308,7 +308,6 @@ TEST(vec, is_vector) {
 
 
 TEST(vec, cast_mask) {
-std::cout << std::endl;
   using src_value_t = $i64;
   using dst_value_t = $i32;
   constexpr u64 vec_len = simd::lane_count<src_value_t> * 2;
@@ -328,5 +327,56 @@ std::cout << std::endl;
 
   auto md = cast_mask<dst_vec_t::m>(ms);
   ASSERT_EQ(md.to_int(), ms.to_int());
+}
 
+TEST(vec, compress_native_vector) {
+  u64 vec_len = simd::lane_count<u32>;
+
+  using vec_t = v<$i32, vec_len>;
+  auto vec = vec_t::make(0);
+  vec.insert(3, 1);
+  vec.insert(4, 3);
+  vec.insert(5, 5);
+  vec.insert(6, 7);
+
+  auto mask = vec > 0;
+
+  auto vec_compressed = vec.compress(mask);
+
+  ASSERT_EQ(3, vec_compressed[0]);
+  ASSERT_EQ(4, vec_compressed[1]);
+  ASSERT_EQ(5, vec_compressed[2]);
+  ASSERT_EQ(6, vec_compressed[3]);
+}
+
+TEST(vec, compress_compund_vector) {
+  u64 vec_len = simd::lane_count<i32> * 4;
+
+  using vec_t = v<$i32, vec_len>;
+  auto vec = vec_t::make(0);
+  vec.insert( 1, 1);
+  vec.insert( 2, 3);
+  vec.insert( 3, 5);
+  vec.insert( 4, 7);
+  vec.insert( 5, simd::lane_count<i32> + 1); // span multiple native vectors
+  vec.insert( 6, simd::lane_count<i32> + 3);
+  vec.insert( 7, simd::lane_count<i32> + 5);
+  vec.insert( 8, simd::lane_count<i32> + 7);
+  vec.insert( 9, simd::lane_count<i32> * 3 + 1);
+  vec.insert(10, simd::lane_count<i32> * 3 + 3);
+
+  auto mask = vec > 0;
+
+  auto vec_compressed = vec.compress(mask);
+
+  ASSERT_EQ( 1, vec_compressed[0]);
+  ASSERT_EQ( 2, vec_compressed[1]);
+  ASSERT_EQ( 3, vec_compressed[2]);
+  ASSERT_EQ( 4, vec_compressed[3]);
+  ASSERT_EQ( 5, vec_compressed[4]);
+  ASSERT_EQ( 6, vec_compressed[5]);
+  ASSERT_EQ( 7, vec_compressed[6]);
+  ASSERT_EQ( 8, vec_compressed[7]);
+  ASSERT_EQ( 9, vec_compressed[8]);
+  ASSERT_EQ(10, vec_compressed[9]);
 }
