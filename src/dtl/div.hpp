@@ -133,7 +133,7 @@ __forceinline__
 static __m512i
 fast_div_u32(const __m512i dividend, const uint32_t magic, const uint32_t shift_amount) {
   const __m512i quotient = mulhi_u32(dividend, magic);
-  return _mm512_srli_epi32(quotient, shift_amount);
+  return _mm512_srlv_epi32(quotient, _mm512_set1_epi32(shift_amount));
 }
 
 __forceinline__
