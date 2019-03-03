@@ -25,8 +25,7 @@ struct dispatch {
   using mask_t = typename vec<key_t, vector_len>::mask;
 
 
-  __attribute__ ((__noinline__))
-  static $u64
+  static $u64 __attribute__ ((__noinline__))
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
                  const key_t* __restrict keys, u32 key_cnt,
@@ -69,6 +68,45 @@ struct dispatch {
     return match_writer - match_positions;
   }
 
+  static void __attribute__ ((__noinline__))
+  batch_get_block_idx(const filter_t& filter,
+                      const key_t* __restrict keys,
+                      u32 key_cnt,
+                      $u32* __restrict block_idxs) {
+    const key_t* reader = keys;
+    $u32* writer = block_idxs;
+
+    // Determine the number of keys that need to be probed sequentially, due to alignment
+    u64 required_alignment_bytes = vec_t::byte_alignment;
+    u1 is_aligned = (reinterpret_cast<uintptr_t>(reader) % alignof(key_t)) == 0; // TODO use dtl instead
+    u64 t = is_aligned  // should always be true
+            ? (required_alignment_bytes - (reinterpret_cast<uintptr_t>(reader) % required_alignment_bytes)) / sizeof(key_t) // FIXME first elements are processed sequentially even if aligned
+            : key_cnt;
+    u64 unaligned_key_cnt = std::min(static_cast<$u64>(key_cnt), t);
+    // process the unaligned keys sequentially
+    $u64 read_pos = 0;
+    for (; read_pos < unaligned_key_cnt; read_pos++) {
+      *writer = filter.get_block_idx(*reader);
+      writer++;
+      reader++;
+    }
+    // Process the aligned keys vectorized
+    u64 aligned_key_cnt = ((key_cnt - unaligned_key_cnt) / vector_len) * vector_len;
+    for (; read_pos < (unaligned_key_cnt + aligned_key_cnt); read_pos += vector_len) {
+      const auto b = filter.template get_block_idx_vec<vector_len>(
+          *reinterpret_cast<const vec_t*>(reader));
+      b.storeu(writer);
+      writer += vector_len;
+      reader += vector_len;
+    }
+    // process remaining keys sequentially
+    for (; read_pos < key_cnt; read_pos++) {
+      *writer = filter.get_block_idx(*reader);
+      writer++;
+      reader++;
+    }
+  }
+
 };
 
 
@@ -84,7 +122,6 @@ struct dispatch<filter_t, 0> {
   using key_t = typename filter_t::key_t;
   using word_t = typename filter_t::word_t;
 
-//  __forceinline__
   static $u64
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
@@ -114,6 +151,32 @@ struct dispatch<filter_t, 0> {
       match_writer += is_match;
     }
     return match_writer - match_positions;
+  }
+
+  static void
+  batch_get_block_idx(const filter_t& filter,
+                      const key_t* __restrict keys,
+                      u32 key_cnt,
+                      $u32* __restrict block_idxs) {
+    $u32* match_writer = block_idxs;
+    $u32 i = 0;
+    if (key_cnt >= 4) {
+      for (; i < key_cnt - 4; i += 4) {
+        u32 block_idx_0 = filter.get_block_idx(keys[i]);
+        u32 block_idx_1 = filter.get_block_idx(keys[i + 1]);
+        u32 block_idx_2 = filter.get_block_idx(keys[i + 2]);
+        u32 block_idx_3 = filter.get_block_idx(keys[i + 3]);
+        match_writer[0] = block_idx_0;
+        match_writer[1] = block_idx_1;
+        match_writer[2] = block_idx_2;
+        match_writer[3] = block_idx_3;
+        match_writer += 4;
+      }
+    }
+    for (; i < key_cnt; i++) {
+      *match_writer = filter.get_block_idx(keys[i]);
+      match_writer++;
+    }
   }
 
 };

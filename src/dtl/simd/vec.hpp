@@ -1145,6 +1145,29 @@ struct v : v_base {
   store(T* const base_address, const v<T, N>& what, const m& mask) {
     store<is_compound>(base_address, data, what.data, mask.data);
   }
+
+
+  /// Unaligned store
+  template<u1 Compound = false>
+  static __forceinline__ void
+  storeu(Tp* const address, const nested_type& what) noexcept {
+    typename op::storeu fn;
+    return fn(address, what);
+  }
+
+  template<u1 Compound, typename = std::enable_if_t<Compound>>
+  static __forceinline__ void
+  storeu(Tp* const address,
+         const compound_type& what) noexcept {
+    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+     storeu<!Compound>(address, what[i]);
+    }
+  }
+
+  __forceinline__ void
+  storeu(Tp* const address) const {
+    storeu<is_compound>(address, data);
+  }
   // ---
 
 

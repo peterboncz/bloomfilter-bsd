@@ -192,6 +192,54 @@ struct blocked_bloomfilter_logic {
   }
   //===----------------------------------------------------------------------===//
 
+
+  //===----------------------------------------------------------------------===//
+  // "Low-level" functions.
+  //===----------------------------------------------------------------------===//
+  /// Determines the block index for the given key.
+  __forceinline__ __host__ __device__
+  hash_value_t
+  get_block_idx(const key_t key) const noexcept {
+    const hash_value_t block_addressing_hash_val = Hasher<const key_t, 0>::hash(key);
+    const hash_value_t block_idx = addr.get_block_idx(block_addressing_hash_val);
+    return block_idx;
+  }
+
+  /// Determines the block index for the given key (called by batch_get_block_idx).
+  template<u64 n> // the vector length
+  __forceinline__ __host__
+  vec<hash_value_t, n>
+  get_block_idx_vec(const vec<key_t, n>& keys) const noexcept {
+    // Typedef the vector types.
+    using key_vt = vec<key_t, n>;
+    using hash_value_vt = vec<hash_value_t, n>;
+
+    const hash_value_vt block_addressing_hash_vals = Hasher<key_vt, 0>::hash(keys);
+    const hash_value_vt block_idxs = addr.get_block_idxs(block_addressing_hash_vals);
+    return block_idxs;
+  }
+
+  /// Determines the block indexes for a batch of keys.
+  template<u64 vector_len>
+  void
+  batch_get_block_idx(const key_t* __restrict keys, u32 key_cnt,
+                      $u32* __restrict block_idxs) const {
+    internal::dispatch<blocked_bloomfilter_logic, vector_len>
+        ::batch_get_block_idx(*this, keys, key_cnt, block_idxs);
+  }
+
+  /// Returns a pointer to the block with the given index.
+  __forceinline__ __host__ __device__
+  const word_t*
+  get_block_ptr(const word_t* __restrict filter_data,
+                const hash_value_t block_idx) const noexcept {
+    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
+    const word_t* block_ptr = &filter_data[bitvector_word_idx];
+    return block_ptr;
+  }
+  //===----------------------------------------------------------------------===//
+
+
 };
 
 } // namespace dtl
