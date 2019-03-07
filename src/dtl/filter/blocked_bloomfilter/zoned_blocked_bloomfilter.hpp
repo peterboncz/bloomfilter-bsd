@@ -188,7 +188,7 @@ struct zoned_blocked_bloomfilter {
     switch (instance.zone_cnt) {
       case  2: _k<w, boost::static_unsigned_min<w/2, 2>::value>(instance, op); break;
       case  4: _k<w, boost::static_unsigned_min<w/2, 4>::value>(instance, op); break;
-      case  8: _k<w, boost::static_unsigned_min<w/2, 4>::value>(instance, op); break;
+      case  8: _k<w, boost::static_unsigned_min<w/2, 8>::value>(instance, op); break;
       default:
         throw std::invalid_argument("The given 'zone_cnt' is not supported.");
     }
