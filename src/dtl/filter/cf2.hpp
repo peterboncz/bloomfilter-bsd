@@ -8,7 +8,7 @@ namespace dtl {
 //===----------------------------------------------------------------------===//
 // PImpl wrapper to reduce compilation time.
 //===----------------------------------------------------------------------===//
-class cf : public dtl::filter::filter_base {
+class cf2 : public dtl::filter::filter_base {
   class impl;
   std::unique_ptr<impl> pimpl;
   std::size_t bits_per_tag;
@@ -73,12 +73,12 @@ public:
   //===----------------------------------------------------------------------===//
 
   explicit
-  cf(std::size_t m, u32 bits_per_tag = 16, u32 tags_per_bucket = 4);
-  ~cf() override;
-  cf(cf&&) noexcept;
-  cf(const cf&) = delete;
-  cf& operator=(cf&&) noexcept;
-  cf& operator=(const cf&) = delete;
+  cf2(std::size_t m, u32 bits_per_tag = 16, u32 tags_per_bucket = 4);
+  ~cf2() override;
+  cf2(cf2&&) noexcept;
+  cf2(const cf2&) = delete;
+  cf2& operator=(cf2&&) noexcept;
+  cf2& operator=(const cf2&) = delete;
 
 };
 

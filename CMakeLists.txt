@@ -75,6 +75,8 @@ set(CUCKOO_FILTER_SOURCE_FILES
         # cuckoo filter (pimpl wrapper)
         src/dtl/filter/cf.hpp
         src/dtl/filter/cf.cpp
+        src/dtl/filter/cf2.hpp
+        src/dtl/filter/cf2.cpp
         )
 
 
@@ -134,8 +136,8 @@ set(BLOOM_FILTER_SOURCE_FILES
         # blocked bloom (pimpl wrapper)
         src/dtl/filter/bbf_32.hpp
         src/dtl/filter/bbf_32.cpp
-        src/dtl/filter/bbf_64.hpp
-        src/dtl/filter/bbf_64.cpp
+#        src/dtl/filter/bbf_64.hpp
+#        src/dtl/filter/bbf_64.cpp
         # blocked bloom (extern templates to parallelize build)
         src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_instance.inc
         src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u32_instance.hpp
@@ -149,23 +151,23 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u32_w4.cpp
         src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u32_w8.cpp
         src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u32_w16.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_instance.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w1.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w2.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w4.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w8.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w16.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w1.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w2.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w4.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w8.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w16.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_instance.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w1.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w2.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w4.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w8.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w16.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w1.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w2.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w4.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w8.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/blocked_bloomfilter_logic_u64_w16.cpp
 
         # cache-sectorized (pimpl wrapper)
         src/dtl/filter/zbbf_32.hpp
         src/dtl/filter/zbbf_32.cpp
-        src/dtl/filter/zbbf_64.hpp
-        src/dtl/filter/zbbf_64.cpp
+#        src/dtl/filter/zbbf_64.hpp
+#        src/dtl/filter/zbbf_64.cpp
         # cache-sectorized (extern templates to parallelize build)
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_instance.inc
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u32_instance.hpp
@@ -175,13 +177,13 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u32_w4.cpp
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u32_w8.cpp
         src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u32_w16.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_instance.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w4.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w8.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w16.hpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w4.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w8.cpp
-        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w16.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_instance.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w4.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w8.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w16.hpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w4.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w8.cpp
+#        src/dtl/filter/blocked_bloomfilter/instances/zoned_blocked_bloomfilter_logic_u64_w16.cpp
         )
 
 set(FILTER_SOURCE_FILES

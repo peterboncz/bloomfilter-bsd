@@ -152,7 +152,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
 
         // Instantiate bloom filter logic.
         internal::cuckoofilter_tune_mock tune_mock { u };
-        cuckoofilter cf(m , c.bits_per_tag, c.tags_per_bucket, tune_mock);
+        cuckoofilter<> cf(m , c.bits_per_tag, c.tags_per_bucket, tune_mock);
 
         // Allocate memory.
         dtl::mem::allocator_config alloc_config = dtl::mem::allocator_config::local();

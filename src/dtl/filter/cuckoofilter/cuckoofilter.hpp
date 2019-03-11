@@ -31,6 +31,7 @@ static cuckoofilter_tune* cuckoofilter_default_tuning = nullptr;
 
 
 //===----------------------------------------------------------------------===//
+template<u1 has_victim_cache = true>
 struct cuckoofilter {
 
   using key_t = $u32;
@@ -65,7 +66,8 @@ struct cuckoofilter {
       bits_per_tag,
       tags_per_bucket,
       table_t,
-      block_addressing>;
+      block_addressing,
+      has_victim_cache>;
 
 
   //===----------------------------------------------------------------------===//
@@ -339,6 +341,7 @@ struct cuckoofilter {
          + ",\"delete_support\":" + "false"
          + ",\"u\":" + std::to_string(tune.get_unroll_factor(bits_per_tag, tags_per_bucket, get_addressing_mode()))
          + ",\"addr\":" + (get_addressing_mode() == dtl::block_addressing::POWER_OF_TWO ? "\"pow2\"" : "\"magic\"")
+         + ",\"has_victim_cache\":" + (has_victim_cache ? "\"true\"" : "\"false\"")
          + "}";
   }
   //===----------------------------------------------------------------------===//

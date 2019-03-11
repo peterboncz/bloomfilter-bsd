@@ -26,12 +26,12 @@ void calibration::calibrate_tuning_params() {
   std::cout << "Determining the best performing filter implementations:" << std::endl;
   std::cout << " - Benchmarking blocked Bloom filter (32-bit words)" << std::endl;
   bbf_32::calibrate();
-  std::cout << " - Benchmarking blocked Bloom filter (64-bit words)" << std::endl;
-  bbf_64::calibrate();
+//  std::cout << " - Benchmarking blocked Bloom filter (64-bit words)" << std::endl;
+//  bbf_64::calibrate();
   std::cout << " - Benchmarking zoned blocked Bloom filter (32-bit words)" << std::endl;
   zbbf_32::calibrate();
-  std::cout << " - Benchmarking zoned blocked Bloom filter (64-bit words)" << std::endl;
-  zbbf_64::calibrate();
+//  std::cout << " - Benchmarking zoned blocked Bloom filter (64-bit words)" << std::endl;
+//  zbbf_64::calibrate();
   std::cout << " - Benchmarking Cuckoo filter" << std::endl;
   cf::calibrate();
 }

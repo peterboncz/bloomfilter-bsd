@@ -71,7 +71,8 @@ struct batch_contains {
            const word_t* __restrict filter_data,
            const key_t* __restrict keys, u32 key_cnt,
            $u32* __restrict match_positions, u32 match_offset) {
-    return filter.template batch_contains_vec<vector_len>(filter_data, keys, key_cnt, match_positions, match_offset);
+    return filter.template batch_contains_vec<vector_len>(filter_data, keys,
+        key_cnt, match_positions, match_offset);
   }
 
 };
@@ -95,7 +96,8 @@ struct batch_contains<filter_t, 0> {
            const word_t* __restrict filter_data,
            const key_t* __restrict keys, u32 key_cnt,
            $u32* __restrict match_positions, u32 match_offset) {
-    return filter.batch_contains_scalar(filter_data, keys, key_cnt, match_positions, match_offset);
+    return filter.batch_contains_scalar(filter_data, keys, key_cnt,
+        match_positions, match_offset);
   }
 
 };
@@ -114,7 +116,8 @@ struct batch_contains<filter_t, 0> {
 template <std::size_t bits_per_tag,
           std::size_t tags_per_bucket,
           template <std::size_t, std::size_t> class table_t = cuckoofilter_table,
-          dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO
+          dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
+          u1 has_victim_cache = true
 >
 class cuckoofilter_logic {
 
@@ -125,7 +128,8 @@ public:
   using key_t = uint32_t;
   using word_t = typename table_t<bits_per_tag, tags_per_bucket>::word_t;
 
-  static constexpr uint32_t tag_mask = static_cast<uint32_t>((1ull << bits_per_tag) - 1);
+  static constexpr uint32_t tag_mask =
+      static_cast<uint32_t>((1ull << bits_per_tag) - 1);
 
   // An overflow entry for a single item (used when the filter became full)
   typedef struct {
@@ -142,24 +146,24 @@ public:
   // The table logic.
   const table_t<bits_per_tag, tags_per_bucket> table;
 
-  // The victim cache is stored at the very end of the (externally managed) filter data. // TODO consider removing the victim cache.
+  // The victim cache is stored at the very end of the (externally managed)
+  // filter data.
   const std::size_t victim_cache_offset;
 
-  static constexpr std::size_t
-      bucket_bitlength = table_t<bits_per_tag, tags_per_bucket>::bytes_per_bucket * 8;
-
+  static constexpr std::size_t bucket_bitlength =
+      table_t<bits_per_tag, tags_per_bucket>::bytes_per_bucket * 8;
 
   //===----------------------------------------------------------------------===//
   explicit
   cuckoofilter_logic(const std::size_t desired_bitlength)
       : block_addr((desired_bitlength + (bucket_bitlength - 1)) / bucket_bitlength),
         table(block_addr.get_block_cnt()),
-        victim_cache_offset(table.word_cnt()) {
+        victim_cache_offset(has_victim_cache ? table.word_cnt() : 0) {
   }
   cuckoofilter_logic(cuckoofilter_logic&&) noexcept = default;
   cuckoofilter_logic(const cuckoofilter_logic&) = default;
   ~cuckoofilter_logic() = default;
-  cuckoofilter_logic& operator=(cuckoofilter_logic&&) = default;
+  cuckoofilter_logic& operator=(cuckoofilter_logic&&) noexcept = default;
   cuckoofilter_logic& operator=(const cuckoofilter_logic&) = default;
   //===----------------------------------------------------------------------===//
 
@@ -214,7 +218,8 @@ public:
   __forceinline__ __host__ __device__
   uint32_t
   alt_index(const uint32_t bucket_idx, const uint32_t tag,
-            const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
+      const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>&
+      addr_logic) const {
     // NOTE(binfan): originally we use:
     // bucket_idx ^ HashUtil::BobHash((const void*) (&tag), 4)) & table->INDEXMASK;
     // now doing a quick-n-dirty way:
@@ -226,7 +231,8 @@ public:
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
   alt_index(const Tv& bucket_idx, const Tv& tag,
-            const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
+      const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>&
+      addr_logic) const {
     return (bucket_idx ^ (tag * 0x5bd1e995)) & block_addr.block_cnt_mask;
   }
 
@@ -235,7 +241,8 @@ public:
   __forceinline__ __host__ __device__
   uint32_t
   alt_index(const uint32_t bucket_idx, const uint32_t tag,
-            const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
+      const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>&
+      addr_logic) const {
     // If the number of buckets is not a power of two, we cannot use XOR anymore.
     // Instead we use the following self-inverse function:
     // f_sig(x) = - (s + x) mod m
@@ -247,11 +254,10 @@ public:
   __forceinline__ __host__
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
   alt_index(const Tv& bucket_idx, const Tv& tag,
-            const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
+      const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>&
+      addr_logic) const {
     return block_addr.get_block_idxs(Tv::make(0) - (bucket_idx + (tag * 0x5bd1e995))); // TODO make(0) can be optimized
   }
-
-
 
   /// Compute the alternative bucket index.
   __forceinline__ __host__ __device__
@@ -280,9 +286,12 @@ public:
   insert(word_t* __restrict filter_data, const key_t& key) {
     uint32_t i;
     uint32_t tag;
-    victim_cache_t& victim = *reinterpret_cast<victim_cache_t*>(&filter_data[victim_cache_offset]);
-    if (victim.used) {
-      return false;
+    victim_cache_t& victim =
+        *reinterpret_cast<victim_cache_t*>(&filter_data[victim_cache_offset]);
+    if (has_victim_cache) {
+      if (victim.used) {
+        return false;
+      }
     }
 
     generate_index_tag_hash(key, &i, &tag);
@@ -303,9 +312,11 @@ public:
       curindex = alt_index(curindex, curtag);
     }
 
-    victim.index = curindex;
-    victim.tag = curtag;
-    victim.used = true;
+    if (has_victim_cache) {
+      victim.index = curindex;
+      victim.tag = curtag;
+      victim.used = true;
+    }
     return true;
   };
   //===----------------------------------------------------------------------===//
@@ -342,11 +353,17 @@ public:
 
     assert(i1 == alt_index(i2, tag));
 
-    const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
-    bool found = victim.used && (tag == victim.tag) &&
-        (i1 == victim.index || i2 == victim.index);
+    if (has_victim_cache) {
+      const victim_cache_t& victim =
+          *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
+      bool found = victim.used && (tag == victim.tag) &&
+          (i1 == victim.index || i2 == victim.index);
+      return found | table.find_tag_in_buckets(filter_data, i1, i2, tag);
+    }
+    else {
+      return table.find_tag_in_buckets(filter_data, i1, i2, tag);
+    }
 
-    return found | table.find_tag_in_buckets(filter_data, i1, i2, tag);
   }
 
   // Vectorized code path.
@@ -359,15 +376,21 @@ public:
     Tv tags = tag_hash(dtl::hasher<Tv, 1>::hash(keys));
     Tv i2 = alt_index(i1, tags);
 
-    auto found_mask = Tv::mask::make_none_mask();
-    const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
-    if (victim.used) {
-      auto found_in_victim_cache = (tags == victim.tag) & ((i1 == victim.index) | (i2 == victim.index));
-      found_mask |= found_in_victim_cache;
+    if (has_victim_cache) {
+      auto found_mask = Tv::mask::make_none_mask();
+      const victim_cache_t& victim =
+          *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
+      if (victim.used) {
+        auto found_in_victim_cache = (tags == victim.tag)
+            & ((i1 == victim.index) | (i2 == victim.index));
+        found_mask |= found_in_victim_cache;
+      }
+      found_mask |= table.find_tag_in_buckets(filter_data, i1, i2, tags);
+      return found_mask;
     }
-
-    found_mask |= table.find_tag_in_buckets(filter_data, i1, i2, tags);
-    return found_mask;
+    else {
+      return table.find_tag_in_buckets(filter_data, i1, i2, tags);
+    }
   }
   //===----------------------------------------------------------------------===//
 
@@ -381,9 +404,10 @@ public:
                  const key_t* __restrict keys, u32 key_cnt,
                  $u32* __restrict match_positions, u32 match_offset) const {
     // determine whether a SIMD implementation is available
-    constexpr u64 actual_vector_len = table_t<bits_per_tag, tags_per_bucket>::is_vectorized
-                                      ? vector_len
-                                      : 0;
+    constexpr u64 actual_vector_len =
+        table_t<bits_per_tag, tags_per_bucket>::is_vectorized
+        ? vector_len
+        : 0;
     return internal::batch_contains<cuckoofilter_logic, actual_vector_len>
                    ::dispatch(*this, filter_data,
                               keys, key_cnt,
@@ -472,18 +496,31 @@ public:
   __forceinline__ __host__ __device__
   std::size_t
   word_cnt() const {
-    return table.word_cnt() + ((sizeof(victim_cache_t) + (sizeof(word_t) - 1)) / sizeof(word_t));
+    if (has_victim_cache) {
+      return table.word_cnt()
+          + ((sizeof(victim_cache_t) + (sizeof(word_t) - 1)) / sizeof(word_t));
+    }
+    else {
+      return table.word_cnt();
+    }
   }
 
   std::size_t
   size_in_bytes() const {
-    return table_t<bits_per_tag, tags_per_bucket>::bytes_per_bucket * table.num_buckets_;
+    return table_t<bits_per_tag, tags_per_bucket>::bytes_per_bucket
+        * table.num_buckets_;
   }
 
   std::size_t
   count_occupied_slots(const word_t* __restrict filter_data) const {
-    const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(&filter_data[victim_cache_offset]);
-    return table.count_occupied_entires(filter_data) + victim.used;
+    if (has_victim_cache) {
+      const victim_cache_t& victim = *reinterpret_cast<const victim_cache_t*>(
+          &filter_data[victim_cache_offset]);
+      return table.count_occupied_entires(filter_data) + victim.used;
+    }
+    else {
+      return table.count_occupied_entires(filter_data);
+    }
   }
 
   std::size_t
@@ -493,7 +530,12 @@ public:
 
   std::size_t
   get_slot_count() const {
-    return table.size_in_tags() + 1 /* victim cache */;
+    if (has_victim_cache) {
+      return table.size_in_tags() + 1 /* victim cache */;
+    }
+    else{
+      return table.size_in_tags();
+    }
   }
 
   std::size_t
