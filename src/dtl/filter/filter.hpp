@@ -11,10 +11,10 @@
 
 #include "filter_base.hpp"
 #include "bbf_32.hpp"
-#include "bbf_64.hpp"
+//#include "bbf_64.hpp"
 #include "cf.hpp"
 #include "zbbf_32.hpp"
-#include "zbbf_64.hpp"
+//#include "zbbf_64.hpp"
 #include "platform.hpp"
 
 namespace dtl {
@@ -51,16 +51,16 @@ private:
           return instance;
         }
       }
-      case 8: {
-        if (config.zone_cnt == 1) {
-          std::shared_ptr<filter_base> instance = std::make_shared<dtl::bbf_64>(m, config.k, config.word_cnt_per_block, config.sector_cnt);
-          return instance;
-        }
-        else {
-          std::shared_ptr<filter_base> instance = std::make_shared<dtl::zbbf_64>(m, config.k, config.word_cnt_per_block, config.zone_cnt);
-          return instance;
-        }
-      }
+//      case 8: {
+//        if (config.zone_cnt == 1) {
+//          std::shared_ptr<filter_base> instance = std::make_shared<dtl::bbf_64>(m, config.k, config.word_cnt_per_block, config.sector_cnt);
+//          return instance;
+//        }
+//        else {
+//          std::shared_ptr<filter_base> instance = std::make_shared<dtl::zbbf_64>(m, config.k, config.word_cnt_per_block, config.zone_cnt);
+//          return instance;
+//        }
+//      }
       default: throw std::runtime_error("Illegal configuration. Word size must be either 4 or 8.");
     }
   }
