@@ -64,7 +64,11 @@ struct is_vector {
   static constexpr bool value = std::is_base_of<v_base, T>::value;
 };
 
-
+template<u32 bitwidth> struct mask_storage_type {};
+template<> struct mask_storage_type<8> { using type = $u8; };
+template<> struct mask_storage_type<16> { using type = $u16; };
+template<> struct mask_storage_type<32> { using type = $u32; };
+template<> struct mask_storage_type<64> { using type = $u64; };
 
 /// The general vector class with N components of the (primitive) type Tp.
 ///
@@ -149,6 +153,7 @@ struct v : v_base {
 
     /// The actual mask data. (the one and only non-static member variable of this class)
     compound_mask_type data;
+    using storage_type = typename mask_storage_type<nested_vector_length>::type;
 
     m() {
       set<is_compound>(this->data, false);
@@ -387,6 +392,32 @@ struct v : v_base {
     }
 
 
+    /// Converts the mask into a bitmap.
+    template<u1 Compound = false>
+    static void __forceinline__
+    to_bitmap(const nested_mask_type& mask, storage_type* bitmap) {
+      auto int_mask = mask.to_int();
+      *bitmap = static_cast<storage_type>(int_mask);
+    }
+
+    /// Converts the mask into a bitmap.
+    template<u1 Compound, typename = std::enable_if_t<Compound>>
+    static void __forceinline__
+    to_bitmap(const compound_mask_type& compound_mask, storage_type* bitmap) {
+      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+        to_bitmap<!Compound>(compound_mask[i], bitmap + i);
+      }
+    }
+
+    /// Converts the mask into a bitmap.
+    __forceinline__ void
+    to_bitmap($u8* bitmap) const {
+      static_assert(N >= 8, "Not yet implemented.");
+      return to_bitmap<is_compound>(data,
+          reinterpret_cast<storage_type*>(bitmap));
+    }
+
+
     /// Converts the mask into an integer.
     template<u1 Compound = false>
     static __forceinline__ $u64
@@ -413,7 +444,24 @@ struct v : v_base {
       return to_int<is_compound>(data);
     }
 
-
+//    /// Converts the mask into an integer.
+//    template<u1 Compound = false>
+//    static __forceinline__ $u64
+//    to_bitmap(const nested_mask_type& mask) {
+//      return mask.to_int();
+//    }
+//
+//    /// Converts the mask into an integer.
+//    template<u1 Compound, typename = std::enable_if_t<Compound>>
+//    static __forceinline__ $u64
+//    to_bitmap(const compound_mask_type& compound_mask) {
+//      $u64 int_bitmask = 0;
+//      for ($u64 i = 0; i < nested_vector_cnt; i++) {
+//        u64 t = to_int<!Compound>(compound_mask[i]);
+//        int_bitmask |= t << ((N/nested_vector_cnt) * i);
+//      }
+//      return int_bitmask;
+//    }
 
     /// Initializes the mask according to the bits set in the integer.
     template<u1 Compound = false>
@@ -501,6 +549,9 @@ struct v : v_base {
 
     using store = dtl::simd::store<scalar_type, nested_type>;
     using storeu = dtl::simd::storeu<scalar_type, nested_type>;
+
+    using load = dtl::simd::load<scalar_type, nested_type>;
+    using loadu = dtl::simd::loadu<scalar_type, nested_type>;
 
     using plus = dtl::simd::plus<scalar_type, nested_type>;
     using minus = dtl::simd::minus<scalar_type, nested_type>;
@@ -1077,21 +1128,39 @@ struct v : v_base {
 //
 //
 //  template<typename T>
-//  v<T, N> load(const T* const base_addr) const {
+//  v<T, N> loadu(const T* const base_addr) const {
 //    using result_t = v<T, N>;
-//    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
-//    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
-//    return result_t { load<is_compound, T>(base_addr, data) };
+//    return result_t { loadu<is_compound, T>(base_addr, data) };
 //  }
 //
 //  template<typename T>
 ////  v<T, N, vs<T, nested_vector_length>>
-//  v<T, N> load() const {
+//  v<T, N> loadu() const {
 //    using result_t = v<T, N>;
-//    static_assert(result_t::nested_vector_length == nested_vector_length, "BAM");
-//    static_assert(result_t::nested_vector_cnt == nested_vector_cnt, "BAM");
 //    return result_t { load<is_compound, T>(nullptr, data) };
 //  }
+
+  /// Unaligned load
+  template<u1 Compound = false>
+  static void __forceinline__
+  loadu(const Tp* const address, nested_type& dst) noexcept {
+    typename op::loadu fn;
+    dst = fn(address);
+  }
+
+  template<u1 Compound, typename = std::enable_if_t<Compound>>
+  static void __forceinline__
+  loadu(const Tp* const address, compound_type& dst) noexcept {
+    for ($u64 i = 0; i < nested_vector_cnt; i++) {
+     loadu<!Compound>(address + (nested_vector_length * i), dst[i]);
+    }
+  }
+
+  __forceinline__ void
+  loadu(const Tp* const address) {
+    loadu<is_compound>(address, data);
+  }
+
   // ---
 
 
@@ -1160,7 +1229,7 @@ struct v : v_base {
   storeu(Tp* const address,
          const compound_type& what) noexcept {
     for ($u64 i = 0; i < nested_vector_cnt; i++) {
-     storeu<!Compound>(address, what[i]);
+     storeu<!Compound>(address + (nested_vector_length * i), what[i]);
     }
   }
 
@@ -1183,7 +1252,7 @@ struct v : v_base {
   }
 
   template<u64... Idxs>
-  static constexpr v
+  static constexpr void
   make_index_vector(std::array<scalar_type, N>* const arr, integer_sequence<Idxs...>) {
     *arr = { Idxs... };
   }

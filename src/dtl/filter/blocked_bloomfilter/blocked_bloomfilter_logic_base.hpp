@@ -4,20 +4,26 @@
 
 namespace dtl {
 //===----------------------------------------------------------------------===//
-template<
-    typename Tk  // the key type
->
+/// The base class for all blocked Bloom filter.
 struct blocked_bloomfilter_logic_base {
 
-  using key_t = typename std::remove_cv<Tk>::type;
+  using key_t = $u32;
+  using word_t = $u32;
 
-  void
-  insert(word_t* __restrict filter_data, const key_t key) noexcept;
+  virtual void
+  insert(word_t* __restrict filter_data, const key_t key) noexcept = 0;
 
-  u1
-  contains(const word_t* __restrict filter_data,
-      const key_t key) const noexcept;
+  __host__ __device__
+  virtual u1
+  contains(const word_t* __restrict filter_data, const key_t key) const
+    noexcept = 0;
 
-  };
+  virtual std::size_t
+  word_cnt() const noexcept = 0;
+
+  virtual
+  ~blocked_bloomfilter_logic_base() = default;
+
+};
 //===----------------------------------------------------------------------===//
 } // namespace dtl

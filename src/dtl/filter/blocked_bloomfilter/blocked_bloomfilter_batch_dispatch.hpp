@@ -25,6 +25,33 @@ struct dispatch {
   using mask_t = typename vec<key_t, vector_len>::mask;
 
 
+  static void __attribute__ ((__noinline__))
+  batch_contains_bitmap(const filter_t& filter,
+      const word_t* __restrict filter_data,
+      const key_t* __restrict keys, u32 key_cnt,
+      $u32* __restrict bitmap) {
+    vec_t key_vec;
+    auto* result_bitmap = reinterpret_cast<$u8*>(bitmap);
+    constexpr auto bytes_per_vector = vector_len / 8;
+
+    $u64 read_pos = 0;
+    for (; (read_pos + vector_len) <= key_cnt; read_pos += vector_len) {
+      key_vec.loadu(keys + read_pos);
+      const auto mask = filter.template contains_vec<vector_len>(
+          filter_data, key_vec);
+      mask.to_bitmap(result_bitmap + ((read_pos / vector_len) * bytes_per_vector));
+    }
+    // process remaining keys sequentially
+    if (read_pos < key_cnt) {
+      const auto last_word_idx = read_pos;
+      result_bitmap[last_word_idx] = u8(0);
+      for (; read_pos < key_cnt; read_pos++) {
+        u1 is_match = filter.contains(filter_data, keys[read_pos]);
+        result_bitmap[last_word_idx] |= u8(is_match) << (read_pos % 8);
+      }
+    }
+  }
+
   static $u64 __attribute__ ((__noinline__))
   batch_contains(const filter_t& filter,
                  const word_t* __restrict filter_data,
@@ -121,6 +148,44 @@ struct dispatch<filter_t, 0> {
   // Typedefs
   using key_t = typename filter_t::key_t;
   using word_t = typename filter_t::word_t;
+
+  static void __attribute__ ((__noinline__))
+  batch_contains_bitmap(const filter_t& filter,
+      const word_t* __restrict filter_data,
+      const key_t* __restrict keys, u32 key_cnt,
+      $u32* __restrict bitmap) {
+    auto* result_bitmap = reinterpret_cast<$u8*>(bitmap);
+    $u8* match_writer = result_bitmap;
+    $u32 i = 0;
+    if (key_cnt >= 8) {
+      for (; i < key_cnt - 8; i += 8) {
+        u1 is_match_0 = u8(filter.contains(filter_data, keys[i + 0]));
+        u1 is_match_1 = u8(filter.contains(filter_data, keys[i + 1]));
+        u1 is_match_2 = u8(filter.contains(filter_data, keys[i + 2]));
+        u1 is_match_3 = u8(filter.contains(filter_data, keys[i + 3]));
+        u1 is_match_4 = u8(filter.contains(filter_data, keys[i + 4]));
+        u1 is_match_5 = u8(filter.contains(filter_data, keys[i + 5]));
+        u1 is_match_6 = u8(filter.contains(filter_data, keys[i + 6]));
+        u1 is_match_7 = u8(filter.contains(filter_data, keys[i + 7]));
+        u8 matches =
+            (u8(is_match_0) << 0) |
+            (u8(is_match_1) << 1) |
+            (u8(is_match_2) << 2) |
+            (u8(is_match_3) << 3) |
+            (u8(is_match_4) << 4) |
+            (u8(is_match_5) << 5) |
+            (u8(is_match_6) << 6) |
+            (u8(is_match_7) << 7);
+        *match_writer = matches;
+        match_writer++;
+      }
+    }
+    *match_writer = u8(0);
+    for (; i < key_cnt; i++) {
+      u1 is_match = filter.contains(filter_data, keys[i]);
+      *match_writer |= u8(is_match) << (i % 8);
+    }
+  }
 
   static $u64
   batch_contains(const filter_t& filter,

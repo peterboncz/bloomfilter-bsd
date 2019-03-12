@@ -26,24 +26,24 @@ struct mask {
   __forceinline__ u1 all() const { return data; };
   __forceinline__ u1 any() const { return data; };
   __forceinline__ u1 none() const { return !data; };
-  __forceinline__ void set(u1 value) {
-    data = value;
-  }
-  __forceinline__ void set(u64 /* idx */, u1 value) {
-    data = value;
+  __forceinline__ void set(u1 value) { data = value; }
+  __forceinline__ void set(u64 /* idx */, u1 value) { data = value; };
+  __forceinline__ void set(u64 bits) { data = bits != 0; };
+  __forceinline__ u1 get(u64 /* idx */) const { return data; };
+  __forceinline__ mask bit_and(const mask &o) const {
+    u1 r = data & o.data;
+    return mask{r};
   };
-  __forceinline__ void set(u64 bits) {
-    data = bits != 0;
+  __forceinline__ mask bit_or(const mask &o) const {
+    u1 r = data | o.data;
+    return mask{r};
   };
-  __forceinline__ u1 get(u64 /* idx */) const {
-    return data;
+  __forceinline__ mask bit_xor(const mask &o) const {
+    u1 r = data ^ o.data;
+    return mask{r};
   };
-  __forceinline__ mask bit_and(const mask& o) const { return mask { data & o.data }; };
-  __forceinline__ mask bit_or(const mask& o) const { return mask { data | o.data }; };
-  __forceinline__ mask bit_xor(const mask& o) const { return mask { data ^ o.data }; };
-  __forceinline__ mask bit_not() const { return mask { !data }; };
-  __forceinline__ $u64
-  to_positions($u32* positions, $u32 offset) const {
+  __forceinline__ mask bit_not() const { return mask{!data}; };
+  __forceinline__ $u64 to_positions($u32 *positions, $u32 offset) const {
     positions[0] = offset;
     return data;
   }

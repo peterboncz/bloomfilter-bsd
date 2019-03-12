@@ -36,6 +36,9 @@ using f64 = const double;
 using $f32 = float;
 using $f64 = double;
 
+template<typename T>
+static constexpr std::size_t bitwidth = sizeof(T) * 8;
+
 /// compile-time constant to determine whether CUDA support is available
 constexpr u1 has_cuda_support =
 #if defined(HAVE_CUDA)

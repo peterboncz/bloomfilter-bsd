@@ -423,6 +423,7 @@ struct multisector_block {
   static constexpr u32 k = _k;
   static constexpr u32 word_cnt = _word_cnt;
   static constexpr u32 sector_cnt = _s;
+  static constexpr u32 zone_cnt = sector_cnt;
   static_assert(dtl::is_power_of_two(sector_cnt), "Parameter 'sector_cnt' must be a power of two.");
   static constexpr u32 sector_cnt_log2 = dtl::ct::log_2<sector_cnt>::value;
 

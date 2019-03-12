@@ -13,8 +13,7 @@
 #include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_batch_dispatch.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic.hpp>
-
-#include <boost/integer/static_min_max.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic_base.hpp>
 
 #include "immintrin.h"
 
@@ -31,7 +30,7 @@ template<
     dtl::block_addressing block_addressing = dtl::block_addressing::POWER_OF_TWO,
     u1 early_out = false          // branch out early, if possible
 >
-struct blocked_bloomfilter_logic {
+struct blocked_bloomfilter_logic : public blocked_bloomfilter_logic_base {
 
   //===----------------------------------------------------------------------===//
   // The static part.
@@ -60,8 +59,10 @@ struct blocked_bloomfilter_logic {
 
   static constexpr u32 k = block_t::k;
   static constexpr u32 sector_cnt = block_t::sector_cnt;
+  static constexpr u32 zone_cnt = block_t::zone_cnt;
 
   // The block addressing logic (either MAGIC or POWER_OF_TWO).
+  static constexpr dtl::block_addressing addr_mode = block_addressing;
   using addr_t = block_addressing_logic<block_addressing>;
   //===----------------------------------------------------------------------===//
 
@@ -172,6 +173,15 @@ struct blocked_bloomfilter_logic {
                               keys, key_cnt,
                               match_positions, match_offset);
   }
+
+  template<u64 vector_len>
+  void
+  batch_contains_bitmap(const word_t* __restrict filter_data,
+      const key_t* __restrict keys, u32 key_cnt,
+      word_t* __restrict bitmap) const {
+    internal::dispatch<blocked_bloomfilter_logic, vector_len>
+        ::batch_contains_bitmap(*this, filter_data, keys, key_cnt, bitmap);
+  }
   //===----------------------------------------------------------------------===//
 
 
@@ -228,15 +238,15 @@ struct blocked_bloomfilter_logic {
         ::batch_get_block_idx(*this, keys, key_cnt, block_idxs);
   }
 
-  /// Returns a pointer to the block with the given index.
-  __forceinline__ __host__ __device__
-  const word_t*
-  get_block_ptr(const word_t* __restrict filter_data,
-                const hash_value_t block_idx) const noexcept {
-    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
-    const word_t* block_ptr = &filter_data[bitvector_word_idx];
-    return block_ptr;
-  }
+//  /// Returns a pointer to the block with the given index.
+//  __forceinline__ __host__ __device__
+//  const word_t*
+//  get_block_ptr(const word_t* __restrict filter_data,
+//                const hash_value_t block_idx) const noexcept {
+//    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
+//    const word_t* block_ptr = &filter_data[bitvector_word_idx];
+//    return block_ptr;
+//  }
   //===----------------------------------------------------------------------===//
 
 

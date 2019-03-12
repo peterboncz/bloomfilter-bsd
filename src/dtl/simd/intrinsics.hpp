@@ -56,6 +56,12 @@ struct compress : vector_fn<primitive_t, vector_t> {};
 template<typename primitive_t, typename vector_t, typename argument_t>
 struct gather : vector_fn<primitive_t, vector_t, argument_t> {};
 
+template<typename primitive_t, typename vector_t>
+struct load : vector_fn<primitive_t, vector_t> {};
+
+template<typename primitive_t, typename vector_t>
+struct loadu : vector_fn<primitive_t, vector_t> {};
+
 
 // Store
 template<typename primitive_t, typename vector_t, typename argument_t = primitive_t>

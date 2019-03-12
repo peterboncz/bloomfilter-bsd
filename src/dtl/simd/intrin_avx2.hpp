@@ -245,6 +245,13 @@ struct set<$i32, __m256i, $i32> : vector_fn<$i32, __m256i, $i32> {
 
 
 // Load
+template<typename Tp>
+struct loadu<Tp, __m256i> : vector_fn<Tp, __m256i, __m256i, __m256i> {
+  __forceinline__ __m256i operator()(const Tp* const base_addr) const noexcept {
+    return _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(base_addr));
+  }
+};
+
 template<>
 struct gather<$i32, __m256i, __m256i> : vector_fn<$i32, __m256i, __m256i, __m256i> {
   __forceinline__ __m256i operator()(const i32* const base_addr, const __m256i& idxs) const noexcept {

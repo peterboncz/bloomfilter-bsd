@@ -197,7 +197,8 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 //} // anonymous namespace
 } // namespace dtl
 
-#include "blocked_bloomfilter_block_logic_sgew_specialization.hpp"
+// FIXME buggy
+//#include "blocked_bloomfilter_block_logic_sgew_specialization.hpp"
 
 
 namespace dtl {
@@ -240,12 +241,15 @@ struct multiword_block {
 
   static constexpr u32 sector_cnt = _s;
   static_assert(dtl::is_power_of_two(sector_cnt), "Parameter 'sector_cnt' must be a power of two.");
+  static constexpr u32 zone_cnt = sector_cnt;
+
 
   static constexpr u32 sector_cnt_per_word = sector_cnt / word_cnt;
   static_assert(sector_cnt_per_word > 0, "The number of sectors must be at least 'word_cnt'.");
 
   static constexpr u32 k_cnt_per_word = k / word_cnt;
 
+  __host__ __device__
   static constexpr u32 current_word_idx() { return word_cnt - remaining_word_cnt; }
   //===----------------------------------------------------------------------===//
 
