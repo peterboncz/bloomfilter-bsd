@@ -114,8 +114,8 @@ _w(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
     case  32: _s<Fn,  32>(conf, fn); break;
     case  64: _s<Fn,  64>(conf, fn); break;
     case 128: _s<Fn, 128>(conf, fn); break;
-    default:  _s<Fn,   0>(conf, fn);
 #endif
+    default:  _s<Fn,   0>(conf, fn);
   }
 }
 //===----------------------------------------------------------------------===//
