@@ -60,6 +60,8 @@ class ProbeLite {
 
 public:
 
+  using result_type = bitmap_view<bitmap_storage_t>;
+
   explicit
   ProbeLite(const AmsFilter& filter,
       internal::replicas::shared_device_vector_t& filter_data,
@@ -145,7 +147,7 @@ public:
   }
 
   /// Gives access to the result bitmap.
-  bitmap_view<bitmap_storage_t>
+  result_type
   get_results() {
     return bitmap_view<bitmap_storage_t> {
         host_bitmap_.begin(),
