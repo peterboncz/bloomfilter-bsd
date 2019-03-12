@@ -114,6 +114,11 @@ get_word_access_cnt(u32 word_cnt, u32 sector_cnt, u32 zone_cnt, u32 k) {
                 ? word_cnt
                 : k;
 };
+static constexpr
+std::size_t
+get_word_access_cnt(const dtl::blocked_bloomfilter_config& c) {
+  return get_word_access_cnt(c.word_cnt_per_block, c.sector_cnt, c.zone_cnt, c.k);
+};
 //===----------------------------------------------------------------------===//
 /// Determines whether a given blocked Bloom filter configuration is valid.
 template<
