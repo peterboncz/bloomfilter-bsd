@@ -70,7 +70,7 @@ struct AmsFilter::impl {
 };
 //===----------------------------------------------------------------------===//
 AmsFilter::AmsFilter(const Config& config, const std::size_t desired_length)
-    : desired_length_(desired_length),
+    : config_(config), desired_length_(desired_length),
       pimpl{std::make_unique<impl>(config_, desired_length_)} {}
 //AmsFilter::AmsFilter(AmsFilter&&) noexcept = default;
 AmsFilter::~AmsFilter() = default;
