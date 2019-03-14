@@ -75,39 +75,19 @@ if (CUB_FOUND)
     include_directories(${CUB_INCLUDE_DIR})
 endif()
 
-#find_package(CUDAAPIWrappers REQUIRED)
-#include_directories(${CUDA_API_WRAPPERS_INCLUDE_DIRS})
-## but what about the library search path?
-
-#link_libraries(${CUDA_API_WRAPPERS_LIBS} stdc++fs)
-#
-#### build optimized executables for the following architectures
-#set(ARCHS
-#        corei7
-#        core-avx2
-#        knl
-#        skx
-#        )
-#
-## replacement for 'add_executable'
-#function(add_multiarch_executable executable_name files)
-#    foreach(arch ${ARCHS})
-#        add_executable(${executable_name}_${arch} ${files})
-#        # workaround for older compilers which don't know the 'skx' architecture.
-#        if (arch STREQUAL "skx")
-#            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
-#        else()
-#            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
-#        endif()
-#        target_link_libraries(${executable_name}_${arch} ${LIBS} dtl_${arch})
-#    endforeach(arch ${ARCHS})
-#endfunction(add_multiarch_executable)
-#
-#
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-
-
 include_directories(src)
+
+# For debugging purposes.
+if(AMSFILTER_PARTIAL_BUILD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAMSFILTER_PARTIAL_BUILD")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DAMSFILTER_PARTIAL_BUILD")
+endif()
+
+if(AMSFILTER_NO_MAGIC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAMSFILTER_NO_MAGIC")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DAMSFILTER_NO_MAGIC")
+endif()
+
 
 SET(SOURCE_FILES
         src/amsfilter/internal/blocked_bloomfilter_resolve.hpp
@@ -147,8 +127,8 @@ if (CUDA_FOUND)
     set_target_properties(amsfilter
             PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_property(TARGET amsfilter PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-#    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
+    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
 else()
     add_library(amsfilter STATIC ${AMSFILTER_SOURCE_FILES})
-#    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
+    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
 endif()
