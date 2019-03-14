@@ -89,8 +89,11 @@ struct probe_impl {
 //    batch_contains_fn_ = std::bind(
 //        &resolved_type::template batch_contains_bitmap<0>, filter_logic.get(),
 //        _1, _2, _3, _4);
+
+    constexpr auto unroll_factor = 2;
+    constexpr auto vector_len = dtl::simd::lane_count<key_t> * unroll_factor;
     batch_contains_fn_ = std::bind(
-        &resolved_type::template batch_contains_bitmap<dtl::simd::lane_count<key_t>>, filter_logic.get(),
+        &resolved_type::template batch_contains_bitmap<vector_len>, filter_logic.get(),
         _1, _2, _3, _4);
     filter_logic_ = std::move(filter_logic);
   }
