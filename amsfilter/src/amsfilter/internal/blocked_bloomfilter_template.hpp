@@ -43,7 +43,7 @@ struct bbf_block_switch {
   /// This block type is know to be dominated by classic-blocked wrt. precision
   /// and by register-blocked and cache-sectorized wrt. performance on CPUs.
   using sectorized_rnd = dtl::multisector_block<key_t, word_t, word_cnt,
-      sector_cnt, k, dtl::hasher, hash_value_t, block_hash_fn_idx, 0, word_cnt,
+      sector_cnt, k, dtl::hasher, hash_value_t, block_hash_fn_idx, 0, sector_cnt,
       early_out>;
 
   /// Sectorized blocked Bloom filter, where the number of sectors is equal to
@@ -145,6 +145,15 @@ struct bbf_config_is_valid {
       ;
 };
 //===----------------------------------------------------------------------===//
+struct bbf_invalid_t {
+  static constexpr u32 word_cnt_per_block = 0;
+  static constexpr u32 k = 0;
+  static constexpr u32 sector_cnt = 0;
+  static constexpr u32 zone_cnt = 0;
+  static constexpr dtl::block_addressing addr_mode =
+      dtl::block_addressing::POWER_OF_TWO;
+};
+//===----------------------------------------------------------------------===//
 /// Resolves the blocked Bloom filter type for the given parameters.  It refers
 /// to 'bbf_default_t' if the parameters are invalid or not supported.
 template<u32 w, u32 s, u32 z, u32 k, dtl::block_addressing a>
@@ -152,7 +161,8 @@ struct bbf_type {
   // Are the given parameters valid?
   static constexpr u1 config_is_valid = bbf_config_is_valid<w,s,z,k,a>::value;
   // The fallback-type is used in case of invalid parameters.
-  using fallback_type = bbf_default_t;
+//  using fallback_type = bbf_default_t;
+  using fallback_type = bbf_invalid_t;
   // The actual blocked Bloom filter type.
   using valid_type = bbf_t<w, s, z, k, a>;
 
