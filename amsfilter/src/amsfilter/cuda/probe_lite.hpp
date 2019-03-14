@@ -114,6 +114,8 @@ public:
       throw std::invalid_argument("The 'key_cnt' argument must not exceed"
           " the max. batch size.");
     }
+    cudaSetDevice(cuda_device_no_);
+    cuda_check_error();
     // Copy the keys to the pre-allocated device memory.
     cudaMemcpyAsync(device_keys_.begin(), keys, key_cnt * sizeof(key_t),
         cudaMemcpyHostToDevice, *cuda_stream_);
