@@ -16,8 +16,8 @@ include_directories(./)
 include_directories(thirdparty/)
 
 set(LIBS
-        ssl
-        crypto
+#        ssl
+#        crypto
         pthread
         numa
         dl
@@ -72,6 +72,7 @@ endif()
 
 find_package(CUB)
 if (CUB_FOUND)
+    message("including CUB: ${CUB_INCLUDE_DIR}")
     include_directories(${CUB_INCLUDE_DIR})
 endif()
 

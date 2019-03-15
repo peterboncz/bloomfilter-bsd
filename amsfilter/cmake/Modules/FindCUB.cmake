@@ -22,10 +22,11 @@ if(NOT EXISTS "${CUB_INCLUDE_DIR}")
 			${CMAKE_SOURCE_DIR}/include
 			${CMAKE_SOURCE_DIR}
 			${CMAKE_CURRENT_SOURCE_DIR}/cub
+			${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cub
 			${PROJECT_SOURCE_DIR}
 			${PROJECT_SOURCE_DIR}/include 
-			/opt 
-			$ENV{HOME}/opt 
+			/opt
+			$ENV{HOME}/opt
 			#ENV CUB_DIR 
 			ENV CUB_INCLUDE_DIR 
 			ENV CUB_PATH

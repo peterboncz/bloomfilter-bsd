@@ -1,0 +1,4 @@
+[submodule "cub"]
+	path = amsfilter/thirdparty/cub
+	url = https://github.com/NVlabs/cub.git
+	branch = 1.8.0
