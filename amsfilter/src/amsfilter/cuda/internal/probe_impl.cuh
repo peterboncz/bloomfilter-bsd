@@ -13,6 +13,10 @@ namespace amsfilter {
 namespace cuda {
 namespace internal {
 //===----------------------------------------------------------------------===//
+// used to switch kernels
+struct kernel_default {};
+struct kernel_block_prefetch {};
+//===----------------------------------------------------------------------===//
 /// TODO
 struct probe_impl {
 
@@ -83,12 +87,29 @@ struct probe_impl {
     i32 elements_per_block = block_size * elements_per_thread;
     i32 block_cnt = (key_cnt + elements_per_block - 1) / elements_per_block;
     // Execute the kernel.
+    contains_kernel<filter_t>
+        <<<block_cnt, block_size, 0, cuda_stream>>>(
+        *filter, filter_data, keys, key_cnt, result_bitmap);
+  }
+  template<typename filter_t>
+  void __attribute__((noinline))
+  execute_kernel_with_block_prefetch(const word_t* __restrict filter_data,
+      const key_t* keys, u32 key_cnt,
+      word_t* __restrict result_bitmap,
+      const cudaStream_t& cuda_stream
+      ) {
+    const filter_t* filter = static_cast<const filter_t*>(filter_logic_.get());
+    i32 block_size = warp_size; // dtl::env<$i32>::get("BLOCK_SIZE", warp_size);
+    i32 elements_per_thread = warp_size;
+    i32 elements_per_block = block_size * elements_per_thread;
+    i32 block_cnt = (key_cnt + elements_per_block - 1) / elements_per_block;
+    // Execute the kernel.
     contains_kernel_with_block_prefetch<filter_t>
         <<<block_cnt, block_size, 0, cuda_stream>>>(
         *filter, filter_data, keys, key_cnt, result_bitmap);
   }
 
-  // This function is called by 'get_instance'.
+  // This function is called by get_instance().
   template<u32 w, u32 s, u32 z, u32 k, dtl::block_addressing a>
   void
   operator()(const dtl::blocked_bloomfilter_config& conf) {
@@ -111,6 +132,22 @@ struct probe_impl {
     // Instantiate the resolved type.
     filter_logic_ = std::make_unique<resolved_type>(desired_length_);
     // Bind the (specialized) execute_kernel function.
+    using kernel_type = typename std::conditional<w == 1,
+        kernel_default, kernel_block_prefetch>::type;
+    bind_kernel_fn<resolved_type>(kernel_type());
+  }
+
+  template<typename resolved_type>
+  void
+  bind_kernel_fn(const kernel_default&) {
+    using namespace std::placeholders;
+    execute_kernel_fn_ = std::bind(
+        &probe_impl::template execute_kernel<resolved_type>, this,
+        _1, _2, _3, _4, _5);
+  }
+  template<typename resolved_type>
+  void
+  bind_kernel_fn(const kernel_block_prefetch&) {
     using namespace std::placeholders;
     execute_kernel_fn_ = std::bind(
         &probe_impl::template execute_kernel<resolved_type>, this,
