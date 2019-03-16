@@ -14,7 +14,7 @@ template<typename filter_t>
 __global__
 void
 contains_kernel(
-    const filter_t& filter_logic, // TODO should be a reference?
+    const filter_t filter_logic,
     const typename filter_t::word_t* __restrict__ word_array,
     u32* __restrict__ keys, u32 key_cnt, $u32* __restrict__ result_bitmap) {
 
@@ -44,7 +44,9 @@ contains_kernel(
   __syncwarp();
   // Every thread writes a single word of the output bitmap.
   u32 write_pos = global_thread_id();
-  result_bitmap[write_pos] = thread_local_bitmap;
+  if (write_pos < ((key_cnt + 31) / 32)) {
+    result_bitmap[write_pos] = thread_local_bitmap;
+  }
 }
 //===----------------------------------------------------------------------===//
 /// Similar to the straight-forward kernel above, but the blocks are explicitly
@@ -56,10 +58,11 @@ template<typename filter_t>
 __global__
 void
 contains_kernel_with_block_prefetch(
-    const filter_t filter_logic, // TODO should be a reference?
+    const filter_t filter_logic,
     const typename filter_t::word_t* __restrict__ word_array,
     u32* __restrict__ keys, u32 key_cnt, $u32* __restrict__ result_bitmap) {
 
+  using key_t = typename filter_t::key_t;
   using word_t = typename filter_t::word_t;
   static constexpr u32 word_cnt_per_block = filter_t::word_cnt_per_block;
 
@@ -84,11 +87,15 @@ contains_kernel_with_block_prefetch(
   // Each thread processes multiple elements sequentially.
   for ($u32 i = 0; i != elements_per_thread; ++i) {
     auto is_contained = false;
+    key_t key = 0;
+    const word_t* block_ptr = word_array;
     if (read_pos < key_cnt) {
-      const auto key = keys[read_pos];
+      key = keys[read_pos];
       const auto block_idx = filter_logic.get_block_idx(key);
-      const auto block_ptr = word_array + (word_cnt_per_block * block_idx);
-      block_gather<word_t, word_cnt_per_block>::load(block_ptr, block_cache);
+      block_ptr = word_array + (word_cnt_per_block * block_idx);
+    }
+    block_gather<word_t, word_cnt_per_block>::load(block_ptr, block_cache);
+    if (read_pos < key_cnt) {
       is_contained = filter_t::block_t::contains(block_cache_ptr, key);
     }
     u32 bitmap = __ballot_sync(0xffffffff, is_contained);

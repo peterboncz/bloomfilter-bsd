@@ -139,7 +139,7 @@ struct probe_impl {
 
   template<typename resolved_type>
   void
-  bind_kernel_fn(const kernel_default&) {
+  bind_kernel_fn(const kernel_default& /* selector */) {
     using namespace std::placeholders;
     execute_kernel_fn_ = std::bind(
         &probe_impl::template execute_kernel<resolved_type>, this,
@@ -147,10 +147,10 @@ struct probe_impl {
   }
   template<typename resolved_type>
   void
-  bind_kernel_fn(const kernel_block_prefetch&) {
+  bind_kernel_fn(const kernel_block_prefetch& /* selector */) {
     using namespace std::placeholders;
     execute_kernel_fn_ = std::bind(
-        &probe_impl::template execute_kernel<resolved_type>, this,
+        &probe_impl::template execute_kernel_with_block_prefetch<resolved_type>, this,
         _1, _2, _3, _4, _5);
   }
   //===--------------------------------------------------------------------===//
