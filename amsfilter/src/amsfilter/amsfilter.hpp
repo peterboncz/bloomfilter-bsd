@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <amsfilter/common.hpp>
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 
