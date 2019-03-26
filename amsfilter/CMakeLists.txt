@@ -128,8 +128,6 @@ if (CUDA_FOUND)
     set_target_properties(amsfilter
             PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_property(TARGET amsfilter PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
 else()
     add_library(amsfilter STATIC ${AMSFILTER_SOURCE_FILES})
-    set_target_properties(amsfilter PROPERTIES COMPILE_FLAGS "-march=native")
 endif()
