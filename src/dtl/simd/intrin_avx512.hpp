@@ -151,6 +151,13 @@ __GENERATE_BLEND($i64, __m512i, __m512i, _mm512_mask_blend_epi64)
 __GENERATE_BLEND($u64, __m512i, __m512i, _mm512_mask_blend_epi64)
 #undef __GENERATE
 
+// Load
+template<typename Tp>
+struct loadu<Tp, __m512i> : vector_fn<Tp, __m512i, __m512i, __m512i> {
+  __forceinline__ __m512i operator()(const Tp* const base_addr) const noexcept {
+    return _mm512_loadu_si512(reinterpret_cast<const __m512i*>(base_addr));
+  }
+};
 
 // --- Gather
 
