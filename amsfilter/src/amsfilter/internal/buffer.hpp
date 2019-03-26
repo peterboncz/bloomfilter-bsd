@@ -6,7 +6,7 @@
 namespace amsfilter {
 namespace internal {
 //===----------------------------------------------------------------------===//
-template<typename T, typename Alloc = std::allocator<T>>
+template<typename T, typename Alloc = boost::alignment::aligned_allocator<T, 64>>
 class buffer {
   Alloc allocator_;
   T* begin_;
