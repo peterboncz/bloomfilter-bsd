@@ -185,6 +185,7 @@ _w(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
 template<typename Fn>
 static void
 get_instance(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
+  if (conf.word_size != 4) resolve::_fail(conf);
   resolve::_w<Fn>(conf,fn);
 }
 //===----------------------------------------------------------------------===//
