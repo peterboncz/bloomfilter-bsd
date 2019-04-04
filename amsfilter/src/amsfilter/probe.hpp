@@ -26,6 +26,7 @@ public:
   /// that memory.
   explicit
   Probe(const AmsFilter& filter);
+  Probe(const AmsFilter& filter, const TuningParams& tuning_params);
   Probe(const Probe& other) = delete;
   Probe(Probe&& other) noexcept;
   Probe& operator=(const Probe& other) = delete;

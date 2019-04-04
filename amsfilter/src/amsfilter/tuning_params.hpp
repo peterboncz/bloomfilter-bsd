@@ -4,7 +4,9 @@
 
 namespace amsfilter {
 //===----------------------------------------------------------------------===//
+/// Encapsulates hardware related tuning parameters.
 struct tuning_params {
+  /// The SIMD unrolling factor. 
   $u32 unroll_factor = 1;
 
   tuning_params() = default;

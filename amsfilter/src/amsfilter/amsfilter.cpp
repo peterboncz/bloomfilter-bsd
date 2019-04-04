@@ -72,37 +72,27 @@ struct AmsFilter::impl {
 //===----------------------------------------------------------------------===//
 AmsFilter::AmsFilter(const Config& config, const std::size_t desired_length)
     : config_(config),
-      tuning_params_(),
       desired_length_(desired_length),
-      pimpl{std::make_unique<impl>(config_, desired_length_)} {
-  // Use SIMD by default, but without further unrolling.
-  tuning_params_.unroll_factor = 1;
-}
+      pimpl_{std::make_unique<impl>(config_, desired_length_)} {}
 
-AmsFilter::AmsFilter(const Config& config, const TuningParams& tuning_params,
-    const std::size_t desired_length)
-    : config_(config),
-      tuning_params_(tuning_params),
-      desired_length_(desired_length),
-      pimpl{std::make_unique<impl>(config_, desired_length_)} {}
 AmsFilter::~AmsFilter() = default;
 
 $u1
 AmsFilter::insert(AmsFilter::word_t* __restrict filter_data,
     const AmsFilter::key_t key) {
-  pimpl->instance->insert(filter_data, key);
+  pimpl_->instance->insert(filter_data, key);
   return true; // inserts never fail
 }
 
 $u1
 AmsFilter::contains(const AmsFilter::word_t* __restrict filter_data,
     const AmsFilter::key_t key) const {
-  return pimpl->instance->contains(filter_data, key);
+  return pimpl_->instance->contains(filter_data, key);
 }
 
 std::size_t
 AmsFilter::size() const {
-  return pimpl->instance->word_cnt();
+  return pimpl_->instance->word_cnt();
 }
 //===----------------------------------------------------------------------===//
 } // namespace amsfilter

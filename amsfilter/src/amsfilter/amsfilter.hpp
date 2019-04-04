@@ -11,30 +11,23 @@ namespace amsfilter {
 using Config = dtl::blocked_bloomfilter_config;
 using TuningParams = amsfilter::tuning_params;
 //===----------------------------------------------------------------------===//
-class Probe;
-//===----------------------------------------------------------------------===//
 class AmsFilter {
-  friend class Probe;
   class impl;
 
   /// The filter parameters.
   Config config_;
-  /// The tuning parameters, used for hardware related optimizations.
-  TuningParams tuning_params_;
   /// The desired length of the Bloom filter (in bits).
   std::size_t desired_length_;
   /// Pointer to the implementation.
-  std::unique_ptr<impl> pimpl;
+  std::unique_ptr<impl> pimpl_;
 
 public:
 
-  using key_t = $u32;
-  using word_t = $u32;
+  using key_t = amsfilter::key_t;
+  using word_t = amsfilter::word_t;
 
   explicit
   AmsFilter(const Config& config, const std::size_t desired_length);
-  AmsFilter(const Config& config, const TuningParams& tuning_params,
-      const std::size_t desired_length);
   AmsFilter(const AmsFilter& other) = delete;
   AmsFilter(AmsFilter&& other) noexcept = default;
   AmsFilter& operator=(const AmsFilter& other) = delete;
@@ -63,14 +56,6 @@ public:
   std::size_t
   get_desired_length() const {
     return desired_length_;
-  }
-
-private:
-
-  /// Returns a copy of the tuning parameters. Needed by the friend class Probe.
-  TuningParams
-  get_tuning_params() const {
-    return tuning_params_;
   }
 
 };

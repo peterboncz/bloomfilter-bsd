@@ -30,9 +30,16 @@ struct Probe::impl {
 //===----------------------------------------------------------------------===//
 Probe::Probe(const AmsFilter& filter)
     : pimpl_{std::make_unique<impl>(filter.get_config(),
-        filter.get_tuning_params(),
+        TuningParams(), // use default settings
         filter.get_desired_length())} {}
+
+Probe::Probe(const AmsFilter& filter, const TuningParams& tuning_params)
+    : pimpl_{std::make_unique<impl>(filter.get_config(),
+        tuning_params,
+        filter.get_desired_length())} {}
+
 Probe::Probe(Probe&&) noexcept = default;
+
 Probe::~Probe() = default;
 
 void

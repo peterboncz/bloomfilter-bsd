@@ -30,10 +30,6 @@ public:
   AmsFilterLite(const Config& config, const std::size_t desired_length)
       : amsfilter_(config, desired_length),
         filter_data_(std::make_shared<filter_data_t>(amsfilter_.size())) {}
-  AmsFilterLite(const Config& config, const TuningParams& tuning_params,
-      const std::size_t desired_length)
-      : amsfilter_(config, tuning_params, desired_length),
-        filter_data_(std::make_shared<filter_data_t>(amsfilter_.size())) {}
   AmsFilterLite(const AmsFilterLite& other) = delete;
   AmsFilterLite(AmsFilterLite&& other) noexcept = default;
   AmsFilterLite& operator=(const AmsFilterLite& other) = delete;
@@ -71,6 +67,13 @@ public:
   std::size_t
   get_desired_length() const {
     return amsfilter_.get_desired_length();
+  }
+
+  ProbeLite
+  batch_probe(std::size_t max_batch_size, const TuningParams& tuning_params) {
+    ProbeLite probe_instance(amsfilter_, filter_data_, max_batch_size,
+        tuning_params);
+    return std::move(probe_instance);
   }
 
   ProbeLite

@@ -46,11 +46,18 @@ public:
 
   using result_type = bitmap_view<bitmap_storage_t>;
 
-  explicit
   ProbeLite(const AmsFilter& filter,
       shared_filter_data_t& filter_data,
       std::size_t max_batch_size)
       : probe_instance_(filter),
+        filter_data_(filter_data),
+        max_batch_size_(max_batch_size),
+        result_bitmap_(bitmap_word_cnt(max_batch_size_)) {};
+  ProbeLite(const AmsFilter& filter,
+      shared_filter_data_t& filter_data,
+      std::size_t max_batch_size,
+      const TuningParams& tuning_params)
+      : probe_instance_(filter, tuning_params),
         filter_data_(filter_data),
         max_batch_size_(max_batch_size),
         result_bitmap_(bitmap_word_cnt(max_batch_size_)) {};
