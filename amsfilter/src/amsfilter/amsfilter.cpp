@@ -28,7 +28,8 @@ struct AmsFilter::impl {
   std::size_t desired_length;
 
   impl(const Config& config, const std::size_t desired_length)
-      : config(config), desired_length(desired_length) {
+      : config(config),
+        desired_length(desired_length) {
     init();
   };
 
@@ -70,11 +71,21 @@ struct AmsFilter::impl {
 };
 //===----------------------------------------------------------------------===//
 AmsFilter::AmsFilter(const Config& config, const std::size_t desired_length)
-    : config_(config), desired_length_(desired_length),
+    : config_(config),
+      tuning_params_(),
+      desired_length_(desired_length),
+      pimpl{std::make_unique<impl>(config_, desired_length_)} {
+  // Use SIMD by default, but without further unrolling.
+  tuning_params_.unroll_factor = 1;
+}
+
+AmsFilter::AmsFilter(const Config& config, const TuningParams& tuning_params,
+    const std::size_t desired_length)
+    : config_(config),
+      tuning_params_(tuning_params),
+      desired_length_(desired_length),
       pimpl{std::make_unique<impl>(config_, desired_length_)} {}
-//AmsFilter::AmsFilter(AmsFilter&&) noexcept = default;
 AmsFilter::~AmsFilter() = default;
-//AmsFilter& AmsFilter::operator=(AmsFilter&&) = default;
 
 $u1
 AmsFilter::insert(AmsFilter::word_t* __restrict filter_data,

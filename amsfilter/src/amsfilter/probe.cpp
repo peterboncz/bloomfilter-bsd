@@ -17,8 +17,9 @@ struct Probe::impl {
   /// The actual probe instance.
   internal::probe_impl instance;
 
-  impl(const Config& config, const std::size_t desired_length)
-      : instance(config, desired_length) {}
+  impl(const Config& config, const TuningParams& tuning_params,
+      const std::size_t desired_length)
+      : instance(config, tuning_params, desired_length) {}
   ~impl() = default;
   impl(impl&&) = default;
   impl(const impl&) = delete;
@@ -29,7 +30,8 @@ struct Probe::impl {
 //===----------------------------------------------------------------------===//
 Probe::Probe(const AmsFilter& filter)
     : pimpl_{std::make_unique<impl>(filter.get_config(),
-    filter.get_desired_length())} {}
+        filter.get_tuning_params(),
+        filter.get_desired_length())} {}
 Probe::Probe(Probe&&) noexcept = default;
 Probe::~Probe() = default;
 
