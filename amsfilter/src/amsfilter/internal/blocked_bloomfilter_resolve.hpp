@@ -46,7 +46,7 @@ _v(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
 template<typename Fn, u32 w, u32 s, u32 z, u32 k>
 static void
 _a(const dtl::blocked_bloomfilter_config& conf, Fn& fn, const valid_t& /*selector*/) {
-#if defined(AMSFILTER_PARTIAL_BUILD) || defined(AMSFILTER_NO_MAGIC)
+#if defined(AMSFILTER_NO_MAGIC)
   _v<Fn, w, s, z, k, dtl::block_addressing::POWER_OF_TWO>(conf, fn);
 #else
   switch (conf.addr_mode) {
