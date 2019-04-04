@@ -103,6 +103,7 @@ SET(SOURCE_FILES
         src/amsfilter/probe.cpp
         src/amsfilter/probe.hpp
         src/amsfilter/probe_lite.hpp
+        src/amsfilter/tuning_params.hpp
         )
 
 SET(SOURCE_FILES_CUDA

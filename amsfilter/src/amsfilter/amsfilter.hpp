@@ -2,14 +2,14 @@
 
 #include <memory>
 #include <amsfilter/common.hpp>
+#include <amsfilter/tuning_params.hpp>
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
-#include <dtl/filter/model/tuning_params.hpp>
 
 namespace amsfilter {
 //===----------------------------------------------------------------------===//
 using Config = dtl::blocked_bloomfilter_config;
-using TuningParams = dtl::filter::model::tuning_params;
+using TuningParams = amsfilter::tuning_params;
 //===----------------------------------------------------------------------===//
 class Probe;
 //===----------------------------------------------------------------------===//
