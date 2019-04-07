@@ -26,7 +26,7 @@ get_cuda_device_name(u32 cuda_device_no) {
 static u32
 get_cuda_device_count() {
   $i32 count;
-  cudaError_t cudaGetDeviceCount(&count);
+  cudaGetDeviceCount(&count);
   return static_cast<u32>(count);
 }
 //===----------------------------------------------------------------------===//
