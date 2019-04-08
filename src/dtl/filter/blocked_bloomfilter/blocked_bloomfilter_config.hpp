@@ -38,13 +38,16 @@ struct blocked_bloomfilter_config {
 
   void print(std::ostream& os) const {
     std::stringstream str;
-    str << "bbf"
-        << ",k=" << k
-        << ",word_size=" << word_size
-        << ",word_cnt=" << word_cnt_per_block
-        << ",sector_cnt=" << sector_cnt
-        << ",addr=" << (addr_mode == dtl::block_addressing::POWER_OF_TWO ? "pow2" : "magic")
-        << ",zone_cnt=" << zone_cnt;
+    str << "{\"type\":\"bbf\""
+        << ",\"word_size\":" << word_size
+        << ",\"word_cnt_per_block\":" << word_cnt_per_block
+        << ",\"sector_cnt\":" << sector_cnt
+        << ",\"zone_cnt\":" << zone_cnt
+        << ",\"k\":" << k
+        << ",\"addr\":" << (addr_mode == dtl::block_addressing::POWER_OF_TWO
+          ? "\"pow2\""
+          : "\"magic\"")
+        << "}";
     os << str.str();
   }
 
