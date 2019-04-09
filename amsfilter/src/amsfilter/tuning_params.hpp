@@ -6,8 +6,10 @@ namespace amsfilter {
 //===----------------------------------------------------------------------===//
 /// Encapsulates hardware related tuning parameters.
 struct tuning_params {
-  /// The SIMD unrolling factor. 
+  /// The SIMD unrolling factor.
   $u32 unroll_factor = 1;
+  /// The maximum unrolling factor.
+  static constexpr u32 max_unroll_factor = 4;
 
   tuning_params() = default;
   ~tuning_params() = default;
@@ -24,9 +26,7 @@ struct tuning_params {
 
   void
   print(std::ostream& os) const {
-    std::stringstream str;
-    str << "u=" << unroll_factor;
-    os << str.str();
+    os <<  "u=" << unroll_factor;
   }
 
 };
