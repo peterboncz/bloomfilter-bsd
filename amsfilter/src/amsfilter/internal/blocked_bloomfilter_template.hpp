@@ -2,6 +2,7 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sltw.hpp>
