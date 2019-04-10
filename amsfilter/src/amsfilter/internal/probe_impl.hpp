@@ -29,12 +29,6 @@ struct probe_impl {
   TuningParams tuning_params_;
   /// The (desired) bit length of the Bloom filter.
   std::size_t desired_length_;
-  /// Pointer to the (specialized) contains functions.
-  std::function<void(
-      const word_t* __restrict /*filter_data*/,
-      const key_t* __restrict /*keys*/, u32 /*key_cnt*/,
-      word_t* __restrict /*result bitmap*/)>
-    batch_contains_fn_;
 
   /// Construct a probe instance.
   probe_impl(const Config& config, const TuningParams& tuning_params,
@@ -60,7 +54,9 @@ struct probe_impl {
       word_t* __restrict result_bitmap) {
     if (key_cnt == 0) return;
     // Execute the kernel.
-    batch_contains_fn_(filter_data, keys, key_cnt, result_bitmap);
+    filter_logic_->batch_contains_bitmap(
+        filter_data, keys, key_cnt, result_bitmap,
+        tuning_params_.unroll_factor);
   }
 
   //===--------------------------------------------------------------------===//
@@ -95,47 +91,6 @@ struct probe_impl {
     }
     // Instantiate the resolved type.
     auto filter_logic = std::make_unique<resolved_type>(desired_length_);
-
-    // Bind the (specialized) execute_kernel function.
-    using namespace std::placeholders;
-    const auto unroll_factor = tuning_params_.unroll_factor;
-    switch (unroll_factor) {
-      case 0: {
-        constexpr auto vector_len = 0; // use scalar code path
-        batch_contains_fn_ = std::bind(
-            &resolved_type::template batch_contains_bitmap<vector_len>,
-            filter_logic.get(),
-            _1, _2, _3, _4);
-        break;
-      }
-      case 1: {
-        constexpr auto vector_len = dtl::simd::lane_count<key_t> * 1;
-        batch_contains_fn_ = std::bind(
-            &resolved_type::template batch_contains_bitmap<vector_len>,
-            filter_logic.get(),
-            _1, _2, _3, _4);
-        break;
-      }
-      case 2: {
-        constexpr auto vector_len = dtl::simd::lane_count<key_t> * 2;
-        batch_contains_fn_ = std::bind(
-            &resolved_type::template batch_contains_bitmap<vector_len>,
-            filter_logic.get(),
-            _1, _2, _3, _4);
-        break;
-      }
-      case 4: {
-        constexpr auto vector_len = dtl::simd::lane_count<key_t> * 4;
-        batch_contains_fn_ = std::bind(
-            &resolved_type::template batch_contains_bitmap<vector_len>,
-            filter_logic.get(),
-            _1, _2, _3, _4);
-        break;
-      }
-      default:
-        throw std::invalid_argument(
-            "Invalid unrolling factor: " + std::to_string(unroll_factor));
-    }
     filter_logic_ = std::move(filter_logic);
   }
   //===--------------------------------------------------------------------===//
