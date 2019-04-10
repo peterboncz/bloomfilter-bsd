@@ -1,7 +1,6 @@
 #include <dtl/dtl.hpp>
-#include <amsfilter/amsfilter.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
-#include "config_valid.hpp"
+#include "config.hpp"
 
 namespace amsfilter {
 //===----------------------------------------------------------------------===//

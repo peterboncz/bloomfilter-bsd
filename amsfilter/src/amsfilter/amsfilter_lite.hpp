@@ -4,8 +4,6 @@
 #include <vector>
 
 #include <dtl/dtl.hpp>
-#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
-
 #include <amsfilter/internal/buffer.hpp>
 #include <amsfilter/amsfilter.hpp>
 #include <amsfilter/common.hpp>
@@ -29,7 +27,7 @@ public:
   explicit
   AmsFilterLite(const Config& config, const std::size_t desired_length)
       : amsfilter_(config, desired_length),
-        filter_data_(std::make_shared<filter_data_t>(amsfilter_.size())) {}
+        filter_data_(std::make_shared<filter_data_t>(amsfilter_.size())) {} // FIXME
   AmsFilterLite(const AmsFilterLite& other) = delete;
   AmsFilterLite(AmsFilterLite&& other) noexcept = default;
   AmsFilterLite& operator=(const AmsFilterLite& other) = delete;

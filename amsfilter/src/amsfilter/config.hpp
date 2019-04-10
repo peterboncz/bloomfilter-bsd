@@ -1,9 +1,11 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
-#include <amsfilter/amsfilter.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 
 namespace amsfilter {
+//===----------------------------------------------------------------------===//
+using Config = dtl::blocked_bloomfilter_config;
 //===----------------------------------------------------------------------===//
 /// Returns true if the given configuration is valid, false otherwise.
 $u1
