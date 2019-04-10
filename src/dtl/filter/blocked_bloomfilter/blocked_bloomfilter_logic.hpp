@@ -182,6 +182,27 @@ struct blocked_bloomfilter_logic : public blocked_bloomfilter_logic_base {
     internal::dispatch<blocked_bloomfilter_logic, vector_len>
         ::batch_contains_bitmap(*this, filter_data, keys, key_cnt, bitmap);
   }
+
+  void
+  batch_contains_bitmap(const word_t* __restrict filter_data,
+      const key_t* __restrict keys, u32 key_cnt,
+      word_t* __restrict bitmap, u32 unroll_factor) const {
+#ifdef __CUDACC__
+    batch_contains_bitmap<dtl::simd::lane_count<key_t> * 0>(
+        filter_data, keys, key_cnt, bitmap);
+#else
+    switch (unroll_factor) {
+      case 0: batch_contains_bitmap<dtl::simd::lane_count<key_t> * 0>(
+            filter_data, keys, key_cnt, bitmap); break;
+      case 4: batch_contains_bitmap<dtl::simd::lane_count<key_t> * 4>(
+            filter_data, keys, key_cnt, bitmap); break;
+      case 2: batch_contains_bitmap<dtl::simd::lane_count<key_t> * 2>(
+            filter_data, keys, key_cnt, bitmap); break;
+     default: batch_contains_bitmap<dtl::simd::lane_count<key_t> * 1>(
+            filter_data, keys, key_cnt, bitmap); break;
+    }
+#endif
+  }
   //===----------------------------------------------------------------------===//
 
 
