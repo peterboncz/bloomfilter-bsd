@@ -1,14 +1,5 @@
+#include <amsfilter/internal/probe_impl.hpp>
 #include "probe.hpp"
-
-#include <dtl/dtl.hpp>
-
-#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
-#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp>
-
-#include <amsfilter/internal/blocked_bloomfilter_template.hpp>
-#include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
-
-#include "internal/probe_impl.hpp"
 
 namespace amsfilter {
 //===----------------------------------------------------------------------===//
