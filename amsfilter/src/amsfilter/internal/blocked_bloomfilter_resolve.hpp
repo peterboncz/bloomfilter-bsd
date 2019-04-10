@@ -96,6 +96,8 @@ _k(const dtl::blocked_bloomfilter_config& conf, Fn& fn, const valid_t& /*selecto
     case 12: _k_post<Fn, w, s, z, 12>(conf, fn); break;
     case 13: _k_post<Fn, w, s, z, 13>(conf, fn); break;
     case 14: _k_post<Fn, w, s, z, 14>(conf, fn); break;
+    case 15: _k_post<Fn, w, s, z, 15>(conf, fn); break;
+    case 16: _k_post<Fn, w, s, z, 16>(conf, fn); break;
 #endif
     default: _fail(conf);
   }
@@ -154,8 +156,8 @@ _s(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
 #ifndef AMSFILTER_PARTIAL_BUILD
     case  16: _s_post<Fn, w,  16>(conf, fn); break;
     case  32: _s_post<Fn, w,  32>(conf, fn); break;
-    case  64: _s_post<Fn, w,  64>(conf, fn); break;
-    case 128: _s_post<Fn, w, 128>(conf, fn); break;
+//    case  64: _s_post<Fn, w,  64>(conf, fn); break;
+//    case 128: _s_post<Fn, w, 128>(conf, fn); break;
 #endif
     default:  _fail(conf);
   }
@@ -173,8 +175,8 @@ _w(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
 #ifndef AMSFILTER_PARTIAL_BUILD
     case  16: _s<Fn,  16>(conf, fn); break;
     case  32: _s<Fn,  32>(conf, fn); break;
-    case  64: _s<Fn,  64>(conf, fn); break;
-    case 128: _s<Fn, 128>(conf, fn); break;
+//    case  64: _s<Fn,  64>(conf, fn); break;
+//    case 128: _s<Fn, 128>(conf, fn); break;
 #endif
     default:  _fail(conf);
   }
