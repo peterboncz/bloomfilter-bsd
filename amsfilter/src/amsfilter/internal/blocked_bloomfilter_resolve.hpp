@@ -113,8 +113,11 @@ template<typename Fn, u32 w, u32 s, u32 z>
 static void
 _z_post(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
   // Zone count must not exceed the sector count.
+  // Note: A BBF with s>1 and z=1 is equivalent to s=1, z=1.
   using selector_t =
-      typename std::conditional<(z <= s), valid_t, invalid_t>::type;
+      typename std::conditional<
+          (z == s) || ((z > 1) && (z < s)),
+          valid_t, invalid_t>::type;
   const selector_t selector;
   _k<Fn, w, s, z>(conf, fn, selector);
 }

@@ -30,7 +30,7 @@ struct bbf_block_switch {
   static constexpr u1 early_out = false;
 
   // Is zoned (aka cache-sectorized).
-  static constexpr u1 is_zoned = zone_cnt > 0 && zone_cnt < sector_cnt
+  static constexpr u1 is_zoned = zone_cnt > 1 && zone_cnt < sector_cnt
       && sector_cnt == word_cnt && sector_cnt > 1;
 
   /// Classic blocked Bloom filter, where the block size exceeds the size of a

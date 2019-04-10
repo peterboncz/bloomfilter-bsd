@@ -35,15 +35,6 @@ GENERATE( 2, 2, 2, 10);
 GENERATE( 2, 2, 2, 12);
 GENERATE( 2, 2, 2, 14);
 GENERATE( 2, 2, 2, 16);
-
-GENERATE( 2, 2, 1,  2);
-GENERATE( 2, 2, 1,  4);
-GENERATE( 2, 2, 1,  6);
-GENERATE( 2, 2, 1,  8);
-GENERATE( 2, 2, 1, 10);
-GENERATE( 2, 2, 1, 12);
-GENERATE( 2, 2, 1, 14);
-GENERATE( 2, 2, 1, 16);
 //===----------------------------------------------------------------------===//
 } // namespace internal
 } // namespace cuda
