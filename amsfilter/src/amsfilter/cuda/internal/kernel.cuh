@@ -1,7 +1,6 @@
 #pragma once
 
 #include <dtl/dtl.hpp>
-
 #include "block_gather.cuh"
 #include "cuda_helper.cuh"
 

@@ -1,0 +1,35 @@
+#include <amsfilter/common.hpp>
+#include <amsfilter/internal/blocked_bloomfilter_template.hpp>
+#include "macro.inc"
+
+GENERATE(16, 1, 1,  1);
+GENERATE(16, 1, 1,  2);
+GENERATE(16, 1, 1,  3);
+GENERATE(16, 1, 1,  4);
+GENERATE(16, 1, 1,  5);
+GENERATE(16, 1, 1,  6);
+GENERATE(16, 1, 1,  7);
+GENERATE(16, 1, 1,  8);
+GENERATE(16, 1, 1,  9);
+GENERATE(16, 1, 1, 10);
+GENERATE(16, 1, 1, 11);
+GENERATE(16, 1, 1, 12);
+GENERATE(16, 1, 1, 13);
+GENERATE(16, 1, 1, 14);
+GENERATE(16, 1, 1, 15);
+GENERATE(16, 1, 1, 16);
+GENERATE(16,16,16, 16);
+GENERATE(16,16, 2,  2);
+GENERATE(16,16, 2,  4);
+GENERATE(16,16, 2,  6);
+GENERATE(16,16, 2,  8);
+GENERATE(16,16, 2, 10);
+GENERATE(16,16, 2, 12);
+GENERATE(16,16, 2, 14);
+GENERATE(16,16, 2, 16);
+GENERATE(16,16, 4,  4);
+GENERATE(16,16, 4,  8);
+GENERATE(16,16, 4, 12);
+GENERATE(16,16, 4, 16);
+GENERATE(16,16, 8,  8);
+GENERATE(16,16, 8, 16);

@@ -1,13 +1,18 @@
 #pragma once
 
-#include <dtl/dtl.hpp>
+#define AMSFILTER_CUDA_PROBE_EXTERN_TEMPLATES
 
+#include <dtl/dtl.hpp>
 #include <amsfilter/amsfilter.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_template.hpp>
 #include <cuda_runtime.h>
 #include "cuda_helper.cuh"
 #include "kernel.cuh"
+
+#ifdef AMSFILTER_CUDA_PROBE_EXTERN_TEMPLATES
+#include <amsfilter/cuda/internal/kernel_instances/kernel_extern_templates.cuh>
+#endif
 
 namespace amsfilter {
 namespace cuda {

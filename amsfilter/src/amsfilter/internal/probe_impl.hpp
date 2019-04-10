@@ -1,10 +1,16 @@
 #pragma once
 
+#define AMSFILTER_PROBE_EXTERN_TEMPLATES
+
 #include <dtl/dtl.hpp>
 
 #include <amsfilter/amsfilter.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_template.hpp>
+
+#ifdef AMSFILTER_PROBE_EXTERN_TEMPLATES
+#include <amsfilter/internal/probe_instances/probe_extern_templates.hpp>
+#endif
 
 namespace amsfilter {
 namespace internal {
