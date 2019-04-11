@@ -1,5 +1,6 @@
 #pragma once
 
+#include <dtl/dtl.hpp>
 #include <cuda_runtime.h>
 
 //===----------------------------------------------------------------------===//
@@ -16,6 +17,9 @@ __cuda_check_error(const char *file, const int line ) {
   }
 }
 //===----------------------------------------------------------------------===//
+namespace amsfilter {
+namespace cuda {
+//===----------------------------------------------------------------------===//
 static std::string
 get_cuda_device_name(u32 cuda_device_no) {
   cudaDeviceProp device_prop;
@@ -30,3 +34,5 @@ get_cuda_device_count() {
   return static_cast<u32>(count);
 }
 //===----------------------------------------------------------------------===//
+} // namespace cuda
+} // namespace amsfilter
