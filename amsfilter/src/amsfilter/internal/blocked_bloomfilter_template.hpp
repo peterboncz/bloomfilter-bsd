@@ -2,6 +2,7 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_batch_probe_base.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_sgew.hpp>
@@ -98,6 +99,7 @@ using bbf_t = dtl::blocked_bloomfilter_logic<key_t, dtl::hasher,
 //===----------------------------------------------------------------------===//
 /// The base class for all blocked Bloom filters.
 using bbf_base_t = dtl::blocked_bloomfilter_logic_base;
+using bbf_batch_probe_base_t = dtl::blocked_bloomfilter_batch_probe_base;
 //===----------------------------------------------------------------------===//
 /// The default instance.
 using bbf_default_t = bbf_t<1, 1, 1, 4, dtl::block_addressing::POWER_OF_TWO>;

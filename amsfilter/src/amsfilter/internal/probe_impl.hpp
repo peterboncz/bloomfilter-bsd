@@ -3,6 +3,7 @@
 #define AMSFILTER_PROBE_EXTERN_TEMPLATES
 
 #include <dtl/dtl.hpp>
+#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_batch_probe.hpp>
 
 #include <amsfilter/amsfilter.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
@@ -21,8 +22,9 @@ struct probe_impl {
   using key_t = amsfilter::internal::key_t;
   using word_t = amsfilter::internal::word_t;
 
-  /// Pointer to the filter logic instance.
-  std::unique_ptr<amsfilter::internal::bbf_base_t> filter_logic_;
+  /// Pointer to the filter (probe) logic instance.
+  std::unique_ptr<amsfilter::internal::bbf_batch_probe_base_t>
+      filter_batch_probe_logic_;
   /// The blocked Bloom filter parameters.
   Config config_;
   /// The tuning parameters, used for hardware related optimizations.
@@ -54,7 +56,7 @@ struct probe_impl {
       word_t* __restrict result_bitmap) {
     if (key_cnt == 0) return;
     // Execute the kernel.
-    filter_logic_->batch_contains_bitmap(
+    filter_batch_probe_logic_->batch_contains_bitmap(
         filter_data, keys, key_cnt, result_bitmap,
         tuning_params_.unroll_factor);
   }
@@ -90,8 +92,10 @@ struct probe_impl {
               + ".");
     }
     // Instantiate the resolved type.
-    auto filter_logic = std::make_unique<resolved_type>(desired_length_);
-    filter_logic_ = std::move(filter_logic);
+    resolved_type filter_logic(desired_length_);
+    using batch_probe_type = dtl::blocked_bloomfilter_batch_probe<resolved_type>;
+    auto batch_probe_logic = std::make_unique<batch_probe_type>(filter_logic);
+    filter_batch_probe_logic_ = std::move(batch_probe_logic);
   }
   //===--------------------------------------------------------------------===//
 
