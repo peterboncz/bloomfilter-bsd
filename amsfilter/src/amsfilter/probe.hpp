@@ -3,7 +3,6 @@
 #include <memory>
 
 #include <dtl/dtl.hpp>
-#include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <amsfilter/amsfilter.hpp>
 #include <amsfilter/common.hpp>
 
