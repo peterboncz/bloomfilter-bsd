@@ -4,8 +4,8 @@
 
 #include <dtl/dtl.hpp>
 #include <amsfilter/amsfilter.hpp>
-#include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_template.hpp>
+#include <amsfilter/internal/filter_resolve.hpp>
 #include <cuda_runtime.h>
 #include "cuda_helper.cuh"
 #include "kernel.cuh"
@@ -29,7 +29,7 @@ struct probe_impl {
   using word_t = amsfilter::internal::word_t;
 
   /// Pointer to the filter logic instance.
-  std::unique_ptr<amsfilter::internal::bbf_base_t> filter_logic_;
+  std::unique_ptr<amsfilter::internal::filter_base_t> filter_logic_;
   /// The blocked Bloom filter parameters.
   Config config_;
   /// The (desired) bit length of the Bloom filter.

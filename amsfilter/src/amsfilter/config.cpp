@@ -1,5 +1,5 @@
 #include <dtl/dtl.hpp>
-#include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
+#include <amsfilter/internal/filter_resolve.hpp>
 #include "config.hpp"
 
 namespace amsfilter {
@@ -21,7 +21,7 @@ public:
         || resolved_type::zone_cnt != conf.zone_cnt
         || resolved_type::k != conf.k
         || resolved_type::addr_mode != conf.addr_mode) {
-      // No valid.
+      // Not valid.
       return;
     }
     // Valid.

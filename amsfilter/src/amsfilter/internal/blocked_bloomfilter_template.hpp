@@ -10,13 +10,10 @@
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_block_logic_zoned.hpp>
 #include <dtl/filter/blocked_bloomfilter/hash_family.hpp>
 
+#include "filter_template.hpp"
+
 namespace amsfilter {
 namespace internal {
-//===----------------------------------------------------------------------===//
-// Typedefs. - Currently, only 32-bit keys are supported.
-using key_t = $u32;
-using hash_value_t = $u32;
-using word_t = $u32;
 //===----------------------------------------------------------------------===//
 /// Type switch for the different block types. - The proper block type is chosen
 /// based on the parameters 'word_cnt', 'sector_cnt', and 'zone_cnt'.
@@ -96,10 +93,6 @@ template<
 >
 using bbf_t = dtl::blocked_bloomfilter_logic<key_t, dtl::hasher,
     typename bbf_block_switch<word_cnt, sector_cnt, zone_cnt, k>::type, addr>;
-//===----------------------------------------------------------------------===//
-/// The base class for all blocked Bloom filters.
-using bbf_base_t = dtl::blocked_bloomfilter_logic_base;
-using bbf_batch_probe_base_t = dtl::blocked_bloomfilter_batch_probe_base;
 //===----------------------------------------------------------------------===//
 /// The default instance.
 using bbf_default_t = bbf_t<1, 1, 1, 4, dtl::block_addressing::POWER_OF_TWO>;

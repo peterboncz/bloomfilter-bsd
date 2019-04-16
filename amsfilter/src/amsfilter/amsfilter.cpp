@@ -2,12 +2,12 @@
 
 #include <dtl/dtl.hpp>
 #include <dtl/simd.hpp>
-
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_config.hpp>
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_logic.hpp>
 
 #include <amsfilter/internal/blocked_bloomfilter_template.hpp>
-#include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
+#include <amsfilter/internal/cuckoofilter_template.hpp>
+#include <amsfilter/internal/filter_resolve.hpp>
 
 #include "amsfilter.hpp"
 
@@ -21,7 +21,7 @@ using namespace amsfilter::internal;
 struct AmsFilter::impl {
 
   /// Pointer to the filter logic instance.
-  std::unique_ptr<bbf_base_t> instance;
+  std::unique_ptr<filter_base_t> instance;
   /// The blocked Bloom filter parameters.
   Config config;
   /// The desired length of the Bloom filter (in bits).

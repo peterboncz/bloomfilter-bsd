@@ -7,6 +7,7 @@
 namespace amsfilter {
 namespace internal {
 namespace resolve {
+namespace blocked_bloomfilter {
 //===----------------------------------------------------------------------===//
 struct valid_t {};
 struct invalid_t {};
@@ -184,16 +185,16 @@ _w(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
     default:  _fail(conf);
   }
 }
-//===----------------------------------------------------------------------===//
-} // namespace resolve
-//===----------------------------------------------------------------------===//
+
 // Hard to explain
 template<typename Fn>
 static void
 get_instance(const dtl::blocked_bloomfilter_config& conf, Fn& fn) {
-  if (conf.word_size != 4) resolve::_fail(conf);
-  resolve::_w<Fn>(conf,fn);
+  if (conf.word_size != 4) _fail(conf);
+  _w<Fn>(conf,fn);
 }
 //===----------------------------------------------------------------------===//
+} // namespace blocked_bloomfilter
+} // namespace resolve
 } // namespace internal
 } // namespace amsfilter
