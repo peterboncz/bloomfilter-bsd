@@ -38,8 +38,9 @@ class ProbeLite {
   /// Returns the number of words required to store the resulting bitmap.
   static std::size_t
   bitmap_word_cnt(std::size_t max_batch_size) {
-    return (max_batch_size + (bitwidth<bitmap_storage_t> - 1))
-        / bitwidth<bitmap_storage_t>;
+    return max_batch_size; // TODO undo
+//    return (max_batch_size + (bitwidth<bitmap_storage_t> - 1))
+//        / bitwidth<bitmap_storage_t>;
   }
 
 public:
@@ -85,7 +86,7 @@ public:
     return true;
   }
 
-  /// Blocks until a asynchronously executed probe is finished.
+  /// Blocks until probing is finished.
   void __forceinline__
   wait() {
     // Do nothing. Host-side execution is synchronous.
