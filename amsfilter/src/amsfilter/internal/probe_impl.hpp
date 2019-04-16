@@ -6,8 +6,9 @@
 #include <dtl/filter/blocked_bloomfilter/blocked_bloomfilter_batch_probe.hpp>
 
 #include <amsfilter/amsfilter.hpp>
-#include <amsfilter/internal/blocked_bloomfilter_resolve.hpp>
 #include <amsfilter/internal/blocked_bloomfilter_template.hpp>
+#include <amsfilter/internal/cuckoofilter_template.hpp>
+#include <amsfilter/internal/filter_resolve.hpp>
 
 #ifdef AMSFILTER_PROBE_EXTERN_TEMPLATES
 #include <amsfilter/internal/probe_instances/probe_extern_templates.hpp>
@@ -23,7 +24,7 @@ struct probe_impl {
   using word_t = amsfilter::internal::word_t;
 
   /// Pointer to the filter (probe) logic instance.
-  std::unique_ptr<amsfilter::internal::bbf_batch_probe_base_t>
+  std::unique_ptr<amsfilter::internal::filter_batch_probe_base_t>
       filter_batch_probe_logic_;
   /// The blocked Bloom filter parameters.
   Config config_;
