@@ -13,6 +13,14 @@ struct blocked_bloomfilter_logic_base {
   virtual void
   insert(word_t* __restrict filter_data, const key_t key) noexcept = 0;
 
+  virtual void
+  batch_insert(word_t* __restrict filter_data, const key_t* keys,
+      u32 key_cnt) noexcept = 0;
+
+  virtual void
+  batch_insert_concurrent(word_t* __restrict filter_data, const key_t* keys,
+      u32 key_cnt) noexcept = 0;
+
   __host__ __device__
   virtual u1
   contains(const word_t* __restrict filter_data, const key_t key) const

@@ -79,8 +79,19 @@ AmsFilter::~AmsFilter() = default;
 
 $u1
 AmsFilter::insert(AmsFilter::word_t* __restrict filter_data,
-    const AmsFilter::key_t key) {
-  pimpl_->instance->insert(filter_data, key);
+    const AmsFilter::key_t key, u1 thread_safe) {
+  return batch_insert(filter_data, &key, 1, thread_safe);
+}
+
+$u1
+AmsFilter::batch_insert(word_t* __restrict filter_data,
+    const key_t* __restrict keys, const std::size_t key_cnt, u1 thread_safe) {
+  if (thread_safe) {
+    pimpl_->instance->batch_insert_concurrent(filter_data, keys, key_cnt);
+  }
+  else {
+    pimpl_->instance->batch_insert(filter_data, keys, key_cnt);
+  }
   return true; // inserts never fail
 }
 

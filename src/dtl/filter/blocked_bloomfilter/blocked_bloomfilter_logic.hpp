@@ -91,7 +91,7 @@ struct blocked_bloomfilter_logic : public blocked_bloomfilter_logic_base {
   //===----------------------------------------------------------------------===//
   // Insert
   //===----------------------------------------------------------------------===//
-//  __forceinline__ __host__
+  __forceinline__ __host__
   void
   insert(word_t* __restrict filter_data,
          const key_t key) noexcept {
@@ -102,6 +102,17 @@ struct blocked_bloomfilter_logic : public blocked_bloomfilter_logic_base {
     auto block_ptr = &filter_data[bitvector_word_idx];
 
     block_t::insert(block_ptr, key);
+  }
+  __forceinline__ __host__
+  void
+  insert_concurrent(word_t* __restrict filter_data, const key_t key) noexcept {
+    const hash_value_t block_addressing_hash_val = Hasher<const key_t, 0>::hash(key);
+    const hash_value_t block_idx = addr.get_block_idx(block_addressing_hash_val);
+    const hash_value_t bitvector_word_idx = block_idx << word_cnt_per_block_log2;
+
+    auto block_ptr = &filter_data[bitvector_word_idx];
+
+    block_t::insert_atomic(block_ptr, key);
   }
   //===----------------------------------------------------------------------===//
 
@@ -114,6 +125,13 @@ struct blocked_bloomfilter_logic : public blocked_bloomfilter_logic_base {
                const key_t* keys, u32 key_cnt) noexcept {
     for (std::size_t i = 0; i < key_cnt; i++) {
       insert(filter_data, keys[i]);
+    }
+  }
+  void
+  batch_insert_concurrent(word_t* __restrict filter_data, const key_t* keys,
+      u32 key_cnt) noexcept {
+    for (std::size_t i = 0; i < key_cnt; i++) {
+      insert_concurrent(filter_data, keys[i]);
     }
   }
   //===----------------------------------------------------------------------===//

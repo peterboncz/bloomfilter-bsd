@@ -85,8 +85,21 @@ struct multiword_sector {
     multiword_sector<key_t, word_t, word_cnt, k,
                      hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
                      remaining_k_cnt>
+                     ::insert(sector_ptr, key, hash_val);
+  }
+
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict sector_ptr, const key_t key) noexcept {
+
+    hash_value_t hash_val = 0;
+
+    // Call the recursive function
+    static constexpr u32 remaining_hash_bits = 0;
+    multiword_sector<key_t, word_t, word_cnt, k,
+                     hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
+                     remaining_k_cnt>
                      ::insert_atomic(sector_ptr, key, hash_val);
-//                     ::insert(sector_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -451,6 +464,20 @@ struct multisector_block {
                       remaining_sector_cnt, early_out>
       ::insert(block_ptr, key, hash_val);
   }
+
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key) noexcept {
+
+    hash_value_t hash_val = 0;
+
+    // Call the recursive function
+    static constexpr u32 remaining_hash_bits = 0;
+    multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
+                      hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
+                      remaining_sector_cnt, early_out>
+      ::insert_atomic(block_ptr, key, hash_val);
+  }
   //===----------------------------------------------------------------------===//
 
 
@@ -469,13 +496,32 @@ struct multisector_block {
       multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
                        hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
                        k_cnt_per_sector>;
-    sector_t::insert_atomic(sector_ptr, key, hash_val);
-//    sector_t::insert(sector_ptr, key, hash_val);
+    sector_t::insert(sector_ptr, key, hash_val);
 
     multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
                       hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
                       remaining_sector_cnt - 1, early_out>
       ::insert(block_ptr, key, hash_val);
+  }
+
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+
+    // Sector pointer
+    word_t* sector_ptr = block_ptr + (word_cnt_per_sector * current_sector_idx);
+
+    // Process remaining k's recursively, if any
+    using sector_t =
+      multiword_sector<key_t, word_t, word_cnt_per_sector, k_cnt_per_sector,
+                       hasher, hash_value_t, hash_fn_idx, remaining_hash_bit_cnt,
+                       k_cnt_per_sector>;
+    sector_t::insert_atomic(sector_ptr, key, hash_val);
+
+    multisector_block<key_t, word_t, word_cnt, sector_cnt, k,
+                      hasher, hash_value_t, sector_t::hash_fn_idx_end, sector_t::remaining_hash_bits,
+                      remaining_sector_cnt - 1, early_out>
+      ::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -616,6 +662,11 @@ struct multisector_block<key_t, word_t, word_cnt, s, k, hasher, hash_value_t, ha
   __forceinline__
   static void
   insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+    // End of recursion.
+  }
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // End of recursion.
   }
   //===----------------------------------------------------------------------===//

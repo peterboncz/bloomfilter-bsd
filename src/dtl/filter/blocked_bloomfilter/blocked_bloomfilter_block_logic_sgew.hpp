@@ -267,7 +267,19 @@ struct multiword_block {
     static constexpr u32 remaining_hash_bits = 0;
     multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
         hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt, early_out>
-//        ::insert(block_ptr, key, hash_val);
+        ::insert(block_ptr, key, hash_val);
+  }
+
+  __forceinline__ __unroll_loops__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key) noexcept {
+
+    hash_value_t hash_val = 0;
+
+    // Call the recursive function
+    static constexpr u32 remaining_hash_bits = 0;
+    multiword_block<key_t, word_t, word_cnt, sector_cnt, k,
+        hasher, hash_value_t, hash_fn_idx, remaining_hash_bits, remaining_word_cnt, early_out>
         ::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//

@@ -36,7 +36,12 @@ public:
 
   /// Inserts the given key.
   $u1
-  insert(word_t* __restrict filter_data, key_t key);
+  insert(word_t* __restrict filter_data, key_t key, u1 thread_safe = true);
+
+  /// Inserts a batch of keys.
+  $u1
+  batch_insert(word_t* __restrict filter_data, const key_t* __restrict keys,
+      const std::size_t key_cnt, u1 thread_safe = true);
 
   /// Probes the filter for the given key.
   $u1

@@ -34,14 +34,20 @@ public:
   AmsFilterLite& operator=(AmsFilterLite&& other) = default;
   ~AmsFilterLite() = default;
 
-  /// Inserts the given key.
+  /// Inserts the given key. (thread-safe)
   $u1
   insert(key_t key) {
-    amsfilter_.insert(filter_data_->data(), key);
-    return true; // inserts never fail
+    u1 thread_safe = true;
+    return amsfilter_.insert(filter_data_->data(), key, thread_safe);
   }
 
-  // TODO implement batch_insert
+  /// Inserts a batch of keys. (thread-safe)
+  $u1
+  batch_insert(key_t* __restrict keys, const std::size_t key_cnt) {
+    u1 thread_safe = true;
+    return amsfilter_.batch_insert(filter_data_->data(), keys, key_cnt,
+        thread_safe);
+  }
 
   /// Probes the filter for the given key.
   $u1

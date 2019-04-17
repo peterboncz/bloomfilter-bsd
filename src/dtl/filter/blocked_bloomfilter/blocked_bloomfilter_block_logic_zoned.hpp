@@ -102,6 +102,20 @@ struct multizone_block {
                     remaining_zone_cnt, early_out>
       ::insert(block_ptr, key, hash_val);
   }
+
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key) noexcept {
+
+    hash_value_t hash_val = 0;
+
+    // Call the recursive function
+    static constexpr u32 remaining_hash_bits = 0;
+    multizone_block<key_t, word_t, word_cnt, zone_cnt, k,
+                    hasher, hash_value_t, hash_fn_idx, remaining_hash_bits,
+                    remaining_zone_cnt, early_out>
+      ::insert_atomic(block_ptr, key, hash_val);
+  }
   //===----------------------------------------------------------------------===//
 
 
@@ -145,6 +159,49 @@ struct multizone_block {
                       word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits,
                       remaining_zone_cnt - 1>;
     block_t::insert(block_ptr, key, hash_val);
+  }
+
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+
+    // Rehash if necessary
+    hash_val = rehash ? hasher<key_t, hash_fn_idx>::hash(key) : hash_val;
+
+    // Word index within zone
+    constexpr u32 shift = remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_zone;
+    u32 word_idx_within_zone = (hash_val >> shift) & zone_mask(); // TODO consider using bit-extract
+
+    // Word index within block
+    u32 word_idx = (word_cnt_per_zone * current_zone_idx) + word_idx_within_zone;
+
+    word_t bit_mask = 0;
+
+    using word_block_t =
+      word_block<key_t, word_t, 1 /*sector_cnt_per_word*/, k_cnt_per_zone,
+                 hasher, hash_value_t, hash_fn_idx_after_rehash, remaining_hash_bit_cnt_after_rehash - hash_bit_cnt_per_zone,
+                 k_cnt_per_zone>;
+    word_block_t::which_bits(key, hash_val, bit_mask);
+
+    // Atomically update the bit vector
+    word_t* word_ptr = &block_ptr[word_idx];
+    std::atomic<word_t>* atomic_word_ptr = reinterpret_cast<std::atomic<word_t>*>(word_ptr);
+    $u1 success = false;
+    do {
+      // Load the word of interest
+      word_t word = atomic_word_ptr->load();
+      // Update the bit vector
+      word_t updated_word = word | bit_mask;
+      success = atomic_word_ptr->compare_exchange_weak(word, updated_word);
+    } while (!success);
+
+    // Process remaining zones recursively, if any
+    using block_t =
+      multizone_block<key_t, word_t, word_cnt, zone_cnt, k,
+                      hasher, hash_value_t,
+                      word_block_t::hash_fn_idx_end, word_block_t::remaining_hash_bits,
+                      remaining_zone_cnt - 1>;
+    block_t::insert_atomic(block_ptr, key, hash_val);
   }
   //===----------------------------------------------------------------------===//
 
@@ -309,6 +366,11 @@ struct multizone_block<key_t, word_t, word_cnt, z, k, hasher, hash_value_t, hash
   __forceinline__
   static void
   insert(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
+    // End of recursion.
+  }
+  __forceinline__
+  static void
+  insert_atomic(word_t* __restrict block_ptr, const key_t key, hash_value_t& hash_val) noexcept {
     // End of recursion.
   }
   //===----------------------------------------------------------------------===//

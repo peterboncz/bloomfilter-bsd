@@ -44,7 +44,7 @@ struct dispatch {
     // process remaining keys sequentially
     if (read_pos < key_cnt) {
       const auto last_word_idx = read_pos;
-      result_bitmap[last_word_idx] = u8(0);
+      result_bitmap[last_word_idx] = u8(0); // FIXME asan
       for (; read_pos < key_cnt; read_pos++) {
         u1 is_match = filter.contains(filter_data, keys[read_pos]);
         result_bitmap[last_word_idx] |= u8(is_match) << (read_pos % 8);
