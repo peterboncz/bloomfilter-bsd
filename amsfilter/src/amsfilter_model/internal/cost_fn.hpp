@@ -61,9 +61,8 @@ public:
   }
 };
 //===----------------------------------------------------------------------===//
-/// Function to compute the lookup costs based on the filter size. The costs
-/// are approximated using linear interpolation on reference data points stored
-/// in the database.
+/// Function to compute the filter overhead based on the filter size and the
+/// false-positive rate. (overhead = lookup cost + fpr * work cost)
 class OverheadFn {
 
   LookupCostFn tl_;
