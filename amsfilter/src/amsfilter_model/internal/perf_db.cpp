@@ -180,7 +180,7 @@ PerfDb::init() {
       "                and thread_cnt = :thread_cnt1"
       "                and key_location = :key_location1"
       "              order by abs(n - :n) limit 2)"
-      "   and tw in (select distinct n from skyline "
+      "   and tw in (select distinct tw from skyline "
       "               where device = :device2"
       "                 and thread_cnt = :thread_cnt2"
       "                 and key_location = :key_location2"
