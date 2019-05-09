@@ -47,6 +47,7 @@ struct replicas {
         cudaSetDevice(cuda_device_no);
         data_replicas_.emplace_back(
             std::make_shared<device_vector_t>(input_begin, input_end));
+        replica_device_map_[cuda_device_no] = data_replicas_.size() - 1;
       }
       else {
         replica_idx =
