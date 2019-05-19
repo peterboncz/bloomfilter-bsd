@@ -281,6 +281,7 @@ main() {
   std::sort(configs.begin(), configs.end());
   std::cout << "Number of valid configurations = " << configs.size() << std::endl;
 
+  if (false) { // HACK
   //===--------------------------------------------------------------------===//
   // Determine the best performing SIMD unrolling factors.
   //===--------------------------------------------------------------------===//
@@ -464,6 +465,8 @@ main() {
   }
 
   std::cout << "Done with calibration." << std::endl;
+  } // if (false)  HACK
+
   if (true) {
     std::cout << "- Computing the skyline matrix(es):" << std::endl;
 

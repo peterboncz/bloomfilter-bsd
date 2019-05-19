@@ -27,11 +27,11 @@ get_valid_configs() {
               AmsFilter instance(c, 1024);
               configs.push_back(c);
             } catch (...) {}
-            c.addr_mode = dtl::block_addressing::MAGIC;
-            try {
-              AmsFilter instance(c, 1024);
-              configs.push_back(c);
-            } catch (...) {}
+//            c.addr_mode = dtl::block_addressing::MAGIC;
+//            try {
+//              AmsFilter instance(c, 1024);
+//              configs.push_back(c);
+//            } catch (...) {}
           }
         }
       }
