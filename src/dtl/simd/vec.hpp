@@ -517,6 +517,7 @@ struct v : v_base {
     using bit_not = dtl::simd::bit_not<scalar_type, nested_type>;
 
     using less = dtl::simd::less<scalar_type, nested_type, nested_type, nested_mask_type>;
+    using less_equal = dtl::simd::less_equal<scalar_type, nested_type, nested_type, nested_mask_type>;
     using equal = dtl::simd::equal<scalar_type, nested_type, nested_type, nested_mask_type>;
     using not_equal = dtl::simd::not_equal<scalar_type, nested_type, nested_type, nested_mask_type>;
     using greater = dtl::simd::greater<scalar_type, nested_type, nested_type, nested_mask_type>; // TODO remove
@@ -1013,6 +1014,16 @@ struct v : v_base {
   __forceinline__ m
   operator<(const scalar_type& s) const noexcept {
     return m { binary_op<is_compound>(typename op::less(), data, make_nested(s)) };
+  }
+
+  __forceinline__ m
+  operator<=(const v& o) const noexcept {
+    return m { binary_op<is_compound>(typename op::less_equal(), data, o.data) };
+  }
+
+  __forceinline__ m
+  operator<=(const scalar_type& s) const noexcept {
+    return m { binary_op<is_compound>(typename op::less_equal(), data, make_nested(s)) };
   }
 
   __forceinline__ m

@@ -670,6 +670,31 @@ struct less<$i32, __m256i, __m256i, mask8> : vector_fn<$i32, __m256i, __m256i, m
 };
 
 template<>
+struct less<$u32, __m256i, __m256i, mask8> : vector_fn<$u32, __m256i, __m256i, mask8> {
+  __forceinline__ mask8 operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask8 { _mm256_cmpgt_epi32(rhs, lhs) };
+  }
+};
+
+template<>
+struct less_equal<$i32, __m256i, __m256i, mask8> : vector_fn<$i32, __m256i, __m256i, mask8> {
+  __forceinline__ mask8 operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask8 { _mm256_or_si256(
+        _mm256_cmpgt_epi32(rhs, lhs),
+        _mm256_cmpeq_epi32(rhs, lhs))};
+  }
+};
+
+template<>
+struct less_equal<$u32, __m256i, __m256i, mask8> : vector_fn<$u32, __m256i, __m256i, mask8> {
+  __forceinline__ mask8 operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
+    return mask8 { _mm256_or_si256(
+        _mm256_cmpgt_epi32(rhs, lhs),
+        _mm256_cmpeq_epi32(rhs, lhs))};
+  }
+};
+
+template<>
 struct less<$i64, __m256i, __m256i, mask4> : vector_fn<$i64, __m256i, __m256i, mask4> {
   __forceinline__ mask4 operator()(const __m256i& lhs, const __m256i& rhs) const noexcept {
     return mask4 { _mm256_cmpgt_epi64(rhs, lhs) };
