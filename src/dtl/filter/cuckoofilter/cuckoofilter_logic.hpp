@@ -231,16 +231,22 @@ public:
   }
 
   /// Compute the alternative bucket index
-  /// where # of buckets is NOT a power of two (aka MAGIC addressing)
+  /// where the # of buckets is NOT a power of two (aka MAGIC addressing)
+  /// See [1] for more details on partial-key cuckoo hashing in tables that are
+  /// not a power of two in size.
+  ///
+  /// [1] https://databasearchitects.blogspot.com/2019/07/cuckoo-filters-with-arbitrarily-sized.html
   __forceinline__ __host__ __device__
   uint32_t
   alt_index(const uint32_t bucket_idx, const uint32_t tag,
             const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
-    // If the number of buckets is not a power of two, we cannot use XOR anymore.
-    // Instead we use the following self-inverse function:
-    // f_sig(x) = - (s + x) mod m
-    // where m denotes the number of buckets.
-    return block_addr.get_block_idx(-(bucket_idx + (tag * 0x5bd1e995)));
+    auto c = block_addr.get_block_cnt();
+    auto s_mod_m = block_addr.get_block_idx(tag * 0x5bd1e995);
+    auto x = c - s_mod_m;
+    auto mask = (x < bucket_idx)*(~0);
+    auto ret_val = (mask & c) + (x - bucket_idx);
+    return ret_val;
+//    return block_addr.get_block_idx(-(bucket_idx + (tag * 0x5bd1e995)));
   }
   // vectorized
   template<typename Tv, typename = std::enable_if_t<dtl::is_vector<Tv>::value>>
@@ -248,10 +254,14 @@ public:
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
   alt_index(const Tv& bucket_idx, const Tv& tag,
             const dtl::block_addressing_logic<dtl::block_addressing::MAGIC>& addr_logic) const {
-    return block_addr.get_block_idxs(Tv::make(0) - (bucket_idx + (tag * 0x5bd1e995))); // TODO make(0) can be optimized
+    auto c = Tv::make(block_addr.get_block_cnt());
+    auto s_mod_m = block_addr.get_block_idxs(tag * 0x5bd1e995);
+    auto x = c - s_mod_m;
+    auto ret_val = x - bucket_idx;
+    ret_val[x < bucket_idx] += c;
+    return ret_val;
+//    return block_addr.get_block_idxs(Tv::make(0) - (bucket_idx + (tag * 0x5bd1e995)));
   }
-
-
 
   /// Compute the alternative bucket index.
   __forceinline__ __host__ __device__
