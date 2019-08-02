@@ -1,7 +1,7 @@
 #pragma once
 
 #include <random>
-#include <math.h>
+#include <cmath>
 
 #include <dtl/dtl.hpp>
 
@@ -207,82 +207,3 @@ fpr(u64 associativity,
 
 } // namespace cuckoofilter
 } // namespace dtl
-
-
-
-//f64
-//fpr_k_partitioned(u64 m,
-//                  u64 n,
-//                  u64 k) {
-//  f64 c = (m * 1.0) / n;
-//  return fpr((m * 1.0)/k, n, 1);
-//}
-//f64
-//fpr_k_partitioned(u64 m,
-//                  u64 n,
-//                  u64 k) {
-//  f64 c = (m * 1.0) / n;
-//  return std::pow(1.0 - std::exp(-(k*1.0) / c), k);
-//}
-
-//f64
-//fpr_zoned(u64 m,
-//          u64 n,
-//          u64 k,
-//          u64 B, /* block size in bits */
-//          u64 z, /* number of zones */
-//          f64 epsilon = 0.000001) {
-//  return std::pow(fpr_blocked(m/z,n,k/z,64), z);
-//}
-
-//f64
-//fpr_blocked_k_partitioned(u64 m,
-//                          u64 n,
-//                          u64 k,
-//                          u64 B, /* block size in bits */
-//                          f64 epsilon = 0.000001) {
-//  $f64 f = 0;
-//  $f64 c = (m * 1.0) / n;
-//  $f64 lambda = (B * 1.0) / c;
-//  boost::math::poisson_distribution<> poisson(lambda);
-//
-//  std::random_device rd;
-//  std::mt19937 gen(rd());
-//
-//  $f64 d_sum = 0.0;
-//  $u64 i = 0;
-//  while ((d_sum + epsilon) < 1.0) {
-//    auto d = boost::math::pdf(poisson, i);
-//    d_sum += d;
-//    f += d * fpr_k_partitioned(B, i, k);
-//    i++;
-//  }
-//  return f;
-//}
-
-//f64
-//fpr_blocked_sectorized(u64 m,
-//                       u64 n,
-//                       u64 k,
-//                       u64 B, /* block size in bits */
-//                       u64 S, /* sector size in bits */
-//                       f64 epsilon = 0.000001) {
-//  $f64 f = 0;
-//  $f64 c = (m * 1.0) / n;
-//  $f64 lambda = (B * 1.0) / c;
-//  $f64 s = (B * 1.0) / S;
-//  boost::math::poisson_distribution<> poisson(lambda);
-//
-//  std::random_device rd;
-//  std::mt19937 gen(rd());
-//
-//  $f64 d_sum = 0.0;
-//  $u64 i = 0;
-//  while ((d_sum + epsilon) < 1.0) {
-//    auto d = boost::math::pdf(poisson, i);
-//    d_sum += d;
-//    f += d * std::pow(fpr(S, i, (k * 1.0)/s), s);
-//    i++;
-//  }
-//  return f;
-//}
