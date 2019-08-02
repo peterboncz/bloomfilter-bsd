@@ -115,20 +115,20 @@ set(BLOOM_FILTER_SOURCE_FILES
         src/dtl/filter/blocked_bloomfilter/hash_family.hpp
         src/dtl/filter/blocked_bloomfilter/math.hpp
 
-        # model
-        src/dtl/filter/model/benchmark.hpp
-        src/dtl/filter/model/benchmark.cpp
-        src/dtl/filter/model/calibration.hpp
-        src/dtl/filter/model/calibration.cpp
-        src/dtl/filter/model/calibration_data.hpp
-        src/dtl/filter/model/calibration_data.cpp
-        src/dtl/filter/model/cost_fn.hpp
-        src/dtl/filter/model/optimizer.hpp
-        src/dtl/filter/model/optimizer.cpp
-        src/dtl/filter/model/skyline_matrix.hpp
-        src/dtl/filter/model/timing.hpp
-        src/dtl/filter/model/tuning_params.hpp
-        src/dtl/filter/model/util.hpp
+        # model (WORK IN PROGRESS)
+#        src/dtl/filter/model/benchmark.hpp
+#        src/dtl/filter/model/benchmark.cpp
+#        src/dtl/filter/model/calibration.hpp
+#        src/dtl/filter/model/calibration.cpp
+#        src/dtl/filter/model/calibration_data.hpp
+#        src/dtl/filter/model/calibration_data.cpp
+#        src/dtl/filter/model/cost_fn.hpp
+#        src/dtl/filter/model/optimizer.hpp
+#        src/dtl/filter/model/optimizer.cpp
+#        src/dtl/filter/model/skyline_matrix.hpp
+#        src/dtl/filter/model/timing.hpp
+#        src/dtl/filter/model/tuning_params.hpp
+#        src/dtl/filter/model/util.hpp
         src/dtl/filter/platform.hpp
         src/dtl/filter/platform.cpp
 
@@ -227,26 +227,27 @@ set(LIBS
         ${NUMA_LIBRARY}
         )
 
+# (WORK IN PROGRESS) -----------------------------------------------------------
+
 # replacement for 'add_executable'
-function(add_multiarch_executable executable_name files)
-    foreach(arch ${ARCHS})
-        add_executable(${executable_name}_${arch} ${files})
-        # workaround for older compilers which don't know the 'skx' architecture.
-        if (arch STREQUAL "skx")
-            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
-        else()
-            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
-        endif()
-        target_link_libraries(${executable_name}_${arch} ${LIBS} dtl_${arch})
-    endforeach(arch ${ARCHS})
-endfunction(add_multiarch_executable)
+#function(add_multiarch_executable executable_name files)
+#    foreach(arch ${ARCHS})
+#        add_executable(${executable_name}_${arch} ${files})
+#        # workaround for older compilers which don't know the 'skx' architecture.
+#        if (arch STREQUAL "skx")
+##            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
+#            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=skylake-avx512")
+#        else()
+#            set_target_properties(${executable_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
+#        endif()
+#        target_link_libraries(${executable_name}_${arch} ${LIBS} dtl_${arch})
+#    endforeach(arch ${ARCHS})
+#endfunction(add_multiarch_executable)
 
-
-
-set(CALIBRATION_TOOL_FILES ${SOURCE_FILES}
-        tool/calibration/src/filter-calibration-tool.cpp
-        tool/calibration/src/skyline_matrix_builder.hpp
-        tool/calibration/src/skyline_matrix_builder.cpp
-        tool/calibration/src/util.hpp
-        )
-add_multiarch_executable(filter-calibration-tool "${CALIBRATION_TOOL_FILES}")
+#set(CALIBRATION_TOOL_FILES ${SOURCE_FILES}
+#        tool/calibration/src/filter-calibration-tool.cpp
+#        tool/calibration/src/skyline_matrix_builder.hpp
+#        tool/calibration/src/skyline_matrix_builder.cpp
+#        tool/calibration/src/util.hpp
+#        )
+#add_multiarch_executable(filter-calibration-tool "${CALIBRATION_TOOL_FILES}")
