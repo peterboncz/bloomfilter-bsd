@@ -54,8 +54,8 @@ cf::batch_contains(const cf::word_t* __restrict filter_data,
 }
 
 void
-cf::calibrate() {
-  tuner.tune_unroll_factor();
+cf::calibrate(u64 filter_size_bits) {
+  tuner.tune_unroll_factor(filter_size_bits);
 }
 
 void

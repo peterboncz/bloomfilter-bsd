@@ -3,9 +3,11 @@
 #include <chrono>
 #include <map>
 #include <random>
+#include <string>
 
 #include <dtl/dtl.hpp>
 #include <dtl/thread.hpp>
+#include <boost/algorithm/string.hpp>
 #include "block_addressing_logic.hpp"
 #include "blocked_bloomfilter_tune.hpp"
 #include "zoned_blocked_bloomfilter.hpp"
@@ -99,20 +101,21 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
 
   $u32
-  tune_unroll_factor(const blocked_bloomfilter_config& config) override {
+  tune_unroll_factor(const blocked_bloomfilter_config& config,
+      u64 filter_size_bits) override {
     assert(sizeof(word_t) == config.word_size);
 
     blocked_bloomfilter_config c = config;
     c.sector_cnt = c.word_cnt_per_block;
 
-    tuning_params tp = calibrate(c);
+    tuning_params tp = calibrate(c, filter_size_bits);
     calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
 
 
   void
-  tune_unroll_factor() override {
+  tune_unroll_factor(u64 filter_size_bits) override {
 
     for ($u32 word_cnt_per_block = 4; word_cnt_per_block <= 16; word_cnt_per_block *= 2) {
       for ($u32 zone_cnt = 2; zone_cnt <= 8; zone_cnt *= 2) {
@@ -128,7 +131,7 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
             c.zone_cnt = zone_cnt;
             c.addr_mode = addr_mode;
             try {
-              tune_unroll_factor(c);
+              tune_unroll_factor(c, filter_size_bits);
             }
             catch (...) {} // ignore
           }
@@ -142,7 +145,7 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
 
   //===----------------------------------------------------------------------===//
   tuning_params
-  calibrate(const blocked_bloomfilter_config& c) {
+  calibrate(const blocked_bloomfilter_config& c, u64 filter_size_bits) {
     using key_t = $u32;
 //    if (early_out) {
 //      std::cerr << "WARNING: Using 'early out' in combination with SIMD unrolling may cause performance degradations!" << std::endl;
@@ -179,7 +182,7 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
       for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u * 2) {
         std::cerr << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
 
-        u64 desired_filter_size_bits = 4ull * 1024 * 8;
+        u64 desired_filter_size_bits = dtl::next_power_of_two(filter_size_bits);
         const std::size_t m = desired_filter_size_bits
             + (128 * static_cast<u32>(c.addr_mode)); // enforce MAGIC addressing
 
@@ -228,6 +231,15 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
           cycles_per_lookup_min = cycles_per_lookup;
           u_min = u;
         }
+        // Write CSV output to stdout.
+        std::string filter_info = bbf.name();
+        boost::replace_all(filter_info, "\"", "\"\""); // escape JSON for CSV output
+        std::cout
+            << "\"" << filter_info << "\""
+            << "," << m
+            << "," << cycles_per_lookup
+            << std::endl;
+
       }
       std::cerr << " picked u = " << u_min << " (" << cycles_per_lookup_min << " [cycles/lookup])"
                 << ", speedup over u(0) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_scalar / cycles_per_lookup_min)

@@ -133,13 +133,13 @@ struct cuckoofilter {
       : m(src.m), m_actual(src.m_actual),
         bits_per_tag(src.bits_per_tag), tags_per_bucket(src.tags_per_bucket),
         instance(src.instance),
+        tune(src.tune),
         insert(std::move(src.insert)),
         batch_insert(std::move(src.batch_insert)),
         contains(std::move(src.contains)),
         batch_contains(std::move(src.batch_contains)),
         count_occupied_slots(std::move(src.count_occupied_slots)),
-        get_bucket_count(std::move(src.get_bucket_count)),
-        tune(src.tune) {
+        get_bucket_count(std::move(src.get_bucket_count)) {
     // Invalidate pointer in src
     src.instance = nullptr;
   }

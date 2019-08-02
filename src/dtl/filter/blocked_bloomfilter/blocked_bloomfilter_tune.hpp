@@ -40,7 +40,8 @@ struct blocked_bloomfilter_tune {
   /// Determines the best performing SIMD unrolling factor for the given
   /// blocked Bloom filter config.
   virtual $u32
-  tune_unroll_factor(const blocked_bloomfilter_config& config) {
+  tune_unroll_factor(const blocked_bloomfilter_config& config,
+      u64 filter_size_bits) {
     throw std::runtime_error("Not supported");
   }
 
@@ -48,7 +49,7 @@ struct blocked_bloomfilter_tune {
   /// Determines the best performing SIMD unrolling factor for all valid
   /// blocked Bloom filter configs.
   virtual void
-  tune_unroll_factor() {
+  tune_unroll_factor(u64 filter_size_bits) {
     throw std::runtime_error("Not supported");
   }
 

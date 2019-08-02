@@ -458,7 +458,7 @@ struct blocked_cuckoofilter {
   /// Runs the calibration code. Results are stored in global variables.
   // TODO memoization in a global file / tool to calibrate
   static void
-  calibrate() __attribute__ ((noinline)) {
+  calibrate(u64 filter_size_bits) __attribute__ ((noinline)) {
     std::cerr << "Running calibration..." << std::endl;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -495,13 +495,13 @@ struct blocked_cuckoofilter {
               $u32 sector_cnt = w;
               try {
                 // with sectorization
-                blocked_cuckoofilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt); // word_cnt = sector_cnt
+                blocked_cuckoofilter bbf(filter_size_bits + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt); // word_cnt = sector_cnt
               }
               catch (...) {
                 // fall back to 1 sector
                 sector_cnt = 1;
               }
-              blocked_cuckoofilter bbf(data_size + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
+              blocked_cuckoofilter bbf(filter_size_bits + 128 * static_cast<u32>(addr_mode), k, w, sector_cnt);
               std::vector<word_t, dtl::mem::numa_allocator<word_t>> filter_data(bbf.size(), 0);
 
               $u64 rep_cntr = 0;

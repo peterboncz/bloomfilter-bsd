@@ -276,6 +276,7 @@ struct find_tag_in_buckets_simd<16, 2> {
     auto fm = reinterpret_cast<__mmask16*>(&found_mask.data);
 
 #if !defined(__AVX512BW__)
+#warning AVX-512BW instruction set not available. Falling back to AVX2 comparisons.
     const r512 msb_off = {.i = _mm512_set1_epi32( uint32_t(-1) >> 1 )};
     const auto zero = _mm512_setzero_si512();
 #endif

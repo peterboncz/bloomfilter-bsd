@@ -44,7 +44,8 @@ struct cuckoofilter_tune {
   virtual $u32
   tune_unroll_factor(u32 bits_per_tag,
                      u32 tags_per_bucket,
-                     dtl::block_addressing addr_mode) {
+                     dtl::block_addressing addr_mode,
+                     u64 filter_size_bits) {
     throw std::runtime_error("Not supported");
   }
 
@@ -52,7 +53,7 @@ struct cuckoofilter_tune {
   /// Determines the best performing SIMD unrolling factor for all valid
   /// filter configs.
   virtual void
-  tune_unroll_factor() {
+  tune_unroll_factor(u64 filter_size_bits) {
     throw std::runtime_error("Not supported");
   }
 

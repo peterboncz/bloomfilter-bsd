@@ -3,9 +3,11 @@
 #include <chrono>
 #include <map>
 #include <random>
+#include <string>
 
 #include <dtl/dtl.hpp>
 #include <dtl/filter/blocked_bloomfilter/block_addressing_logic.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "immintrin.h"
 
@@ -89,21 +91,22 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
   $u32
   tune_unroll_factor(u32 bits_per_tag,
                      u32 tags_per_bucket,
-                     dtl::block_addressing addr_mode) override {
+                     dtl::block_addressing addr_mode,
+                     u64 filter_size_bits) override {
 
     config c { bits_per_tag, tags_per_bucket, addr_mode};
-    tuning_params tp = calibrate(c);
+    tuning_params tp = calibrate(c, filter_size_bits);
     calibration_data::get_default_instance().put_tuning_params(c, tp);
     return tp.unroll_factor;
   }
 
 
   void
-  tune_unroll_factor() {
+  tune_unroll_factor(u64 filter_size_bits) {
     for ($u32 bits_per_tag : { 4u, 8u, 12u, 16u, 32u } ) {
       for ($u32 tags_per_bucket : { 1u, 2u, 4u } ) {
         for (auto addr_mode : {dtl::block_addressing::POWER_OF_TWO, dtl::block_addressing::MAGIC}) {
-          tune_unroll_factor(bits_per_tag, tags_per_bucket, addr_mode);
+          tune_unroll_factor(bits_per_tag, tags_per_bucket, addr_mode, filter_size_bits);
         }
       }
     }
@@ -112,7 +115,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
 
   //===----------------------------------------------------------------------===//
   tuning_params
-  calibrate(const config& c) {
+  calibrate(const config& c, u64 filter_size_bits) {
     using key_t = $u32;
     using word_t = $u32;
 
@@ -146,7 +149,7 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
       for ($u32 u = 0; u <= max_unroll_factor; u = (u == 0) ? 1 : u * 2) {
         std::cerr << std::setw(2) << "u(" << std::to_string(u) + ") = "<< std::flush;
 
-        u64 desired_filter_size_bits = 4ull * 1024 * 8;
+        u64 desired_filter_size_bits = dtl::next_power_of_two(filter_size_bits);
         const std::size_t m = desired_filter_size_bits
             + (128 * static_cast<u32>(c.addr_mode)); // enforce MAGIC addressing
 
@@ -195,6 +198,15 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
           cycles_per_lookup_min = cycles_per_lookup;
           u_min = u;
         }
+        // Write CSV output to stdout.
+        std::string filter_info = cf.name();
+        boost::replace_all(filter_info, "\"", "\"\""); // escape JSON for CSV output
+        std::cout
+            << "\"" << filter_info << "\""
+            << "," << m
+            << "," << cycles_per_lookup
+            << std::endl;
+
       }
       std::cerr << " picked u = " << u_min << " (" << cycles_per_lookup_min << " [cycles/lookup])"
                 << ", speedup over u(0) = " << std::setprecision(3) << std::setw(4) << std::right << (cycles_per_lookup_scalar / cycles_per_lookup_min)

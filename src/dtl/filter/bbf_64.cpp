@@ -58,8 +58,8 @@ bbf_64::batch_contains(const bbf_64::word_t* __restrict filter_data,
 }
 
 void
-bbf_64::calibrate() {
-  tuner.tune_unroll_factor();
+bbf_64::calibrate(u64 filter_size_bits) {
+  tuner.tune_unroll_factor(filter_size_bits);
 }
 
 void

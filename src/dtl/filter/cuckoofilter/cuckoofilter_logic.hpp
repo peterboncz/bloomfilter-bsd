@@ -227,6 +227,8 @@ public:
   dtl::vec<uint32_t, dtl::vector_length<Tv>::value>
   alt_index(const Tv& bucket_idx, const Tv& tag,
             const dtl::block_addressing_logic<dtl::block_addressing::POWER_OF_TWO>& addr_logic) const {
+//    auto c = Tv::make(block_addr.block_cnt_mask);
+//    return (bucket_idx ^ (tag * 0x5bd1e995)) & c;
     return (bucket_idx ^ (tag * 0x5bd1e995)) & block_addr.block_cnt_mask;
   }
 

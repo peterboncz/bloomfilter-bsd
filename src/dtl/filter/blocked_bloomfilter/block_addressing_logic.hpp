@@ -69,7 +69,7 @@ struct block_addressing_logic<block_addressing::MAGIC>
  public:
 
   explicit
-  block_addressing_logic(const std::size_t desired_block_cnt) noexcept
+  block_addressing_logic(const std::size_t desired_block_cnt)
       : block_cnt(determine_block_cnt(desired_block_cnt)),
         block_cnt_log2(dtl::log_2(dtl::next_power_of_two(block_cnt))),
         block_cnt_mask(dtl::next_power_of_two(block_cnt) - 1),
@@ -171,7 +171,7 @@ struct block_addressing_logic<block_addressing::POWER_OF_TWO>
  public:
 
   explicit
-  block_addressing_logic(const std::size_t desired_block_cnt) noexcept
+  block_addressing_logic(const std::size_t desired_block_cnt)
       : block_cnt(determine_block_cnt(desired_block_cnt)),
         block_cnt_log2(dtl::log_2(block_cnt)),
         block_cnt_mask(u64(block_cnt) - 1) {
@@ -287,7 +287,7 @@ struct block_addressing_logic<block_addressing::DYNAMIC>
 
 
   block_addressing_logic(const std::size_t desired_block_cnt,
-                         const block_addressing enforce_addr_mode = block_addressing::DYNAMIC) noexcept
+                         const block_addressing enforce_addr_mode = block_addressing::DYNAMIC)
       : addr_mode(enforce_addr_mode == block_addressing::DYNAMIC ? determine_addressing_mode(desired_block_cnt) : enforce_addr_mode),
         magic_addr(desired_block_cnt),
         pow2_addr(desired_block_cnt) {

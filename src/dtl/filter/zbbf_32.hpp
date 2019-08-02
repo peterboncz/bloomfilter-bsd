@@ -44,7 +44,7 @@ public:
   size() const;
 
   static void
-  calibrate();
+  calibrate(u64 filter_size_bits = 4ull * 1024 * 8);
 
   static void
   force_unroll_factor(u32 u);

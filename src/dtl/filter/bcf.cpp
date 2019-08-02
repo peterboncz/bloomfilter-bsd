@@ -50,8 +50,8 @@ bcf::batch_contains(const bcf::word_t* __restrict filter_data,
 }
 
 void
-bcf::calibrate() {
-  impl::bcf_t::calibrate();
+bcf::calibrate(u64 filter_size_bits) {
+  impl::bcf_t::calibrate(filter_size_bits);
 }
 
 void

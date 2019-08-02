@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(dtl)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-unused-variable -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-unused-variable -Wno-sign-compare -Wno-ignored-attributes")
 
 #include_directories(SYSTEM ../)
 include_directories(src/ PUBLIC)
@@ -34,7 +34,8 @@ function(add_multiarch_library library_name files)
         add_library(${library_name}_${arch} ${files})
         # workaround for older compilers which don't know the 'skx' architecture.
         if (arch STREQUAL "skx")
-            set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
+#            set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=knl -mavx512bw")
+            set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=skylake-avx512")
         else()
             set_target_properties(${library_name}_${arch} PROPERTIES COMPILE_FLAGS "-march=${arch}")
         endif()
