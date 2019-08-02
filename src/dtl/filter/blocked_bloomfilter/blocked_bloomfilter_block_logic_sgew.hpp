@@ -197,7 +197,8 @@ struct word_block<key_t, word_t, s, k, hasher, hash_value_t, hash_fn_idx, remain
 //} // anonymous namespace
 } // namespace dtl
 
-#include "blocked_bloomfilter_block_logic_sgew_specialization.hpp"
+// FIXME buggy
+//#include "blocked_bloomfilter_block_logic_sgew_specialization.hpp"
 
 
 namespace dtl {
