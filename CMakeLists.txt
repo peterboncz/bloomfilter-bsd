@@ -120,14 +120,14 @@ set(BLOOM_FILTER_SOURCE_FILES
 #        src/dtl/filter/model/benchmark.cpp
 #        src/dtl/filter/model/calibration.hpp
 #        src/dtl/filter/model/calibration.cpp
-#        src/dtl/filter/model/calibration_data.hpp
-#        src/dtl/filter/model/calibration_data.cpp
+        src/dtl/filter/model/calibration_data.hpp
+        src/dtl/filter/model/calibration_data.cpp
 #        src/dtl/filter/model/cost_fn.hpp
 #        src/dtl/filter/model/optimizer.hpp
 #        src/dtl/filter/model/optimizer.cpp
 #        src/dtl/filter/model/skyline_matrix.hpp
-#        src/dtl/filter/model/timing.hpp
-#        src/dtl/filter/model/tuning_params.hpp
+        src/dtl/filter/model/timing.hpp
+        src/dtl/filter/model/tuning_params.hpp
 #        src/dtl/filter/model/util.hpp
         src/dtl/filter/platform.hpp
         src/dtl/filter/platform.cpp
