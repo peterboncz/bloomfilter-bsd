@@ -46,9 +46,9 @@ now_nanos() {
 }
 
 struct statistics {
-  $f64 match_count;
-  $f64 avg_nanos;
-  $f64 avg_cycles;
+  $f64 match_count = 0;
+  $f64 avg_nanos = 0;
+  $f64 avg_cycles = 0;
 };
 //===----------------------------------------------------------------------===//
 
