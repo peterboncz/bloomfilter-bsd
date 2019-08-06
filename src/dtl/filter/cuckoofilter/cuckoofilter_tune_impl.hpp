@@ -202,7 +202,8 @@ struct cuckoofilter_tune_impl : cuckoofilter_tune {
         std::string filter_info = cf.name();
         boost::replace_all(filter_info, "\"", "\"\""); // escape JSON for CSV output
         std::cout
-            << "\"" << filter_info << "\""
+            << "\"calibration\""
+            << ",\"" << filter_info << "\""
             << "," << m
             << "," << cycles_per_lookup
             << std::endl;

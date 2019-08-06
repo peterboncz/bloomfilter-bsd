@@ -235,7 +235,8 @@ struct zoned_blocked_bloomfilter_tune_impl : blocked_bloomfilter_tune {
         std::string filter_info = bbf.name();
         boost::replace_all(filter_info, "\"", "\"\""); // escape JSON for CSV output
         std::cout
-            << "\"" << filter_info << "\""
+            << "\"calibration\""
+            << ",\"" << filter_info << "\""
             << "," << m
             << "," << cycles_per_lookup
             << std::endl;
