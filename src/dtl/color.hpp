@@ -29,6 +29,8 @@ struct color_modifier {
   operator<<(std::ostream& os, const color_modifier& mod) {
     return os << "\033[" << static_cast<uint32_t>(mod.code) << "m";
   }
+  std::string str() const {
+    return "\033[" + std::to_string(static_cast<uint32_t>(code)) + "m"; }
 };
 
 } // namespace dtl

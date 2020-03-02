@@ -151,6 +151,12 @@ struct array_info<std::array<T, N>> {
   #define __unroll_loops__
 #endif
 
+#if defined(NDEBUG)
+  #define D(stmt)
+#else
+  #define D(stmt) stmt
+#endif
+
 // add missing operator function objects
 namespace std {
 

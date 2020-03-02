@@ -25,7 +25,7 @@ u32 pop_count(u64 a) { return __popcll(a); }
 //__forceinline__
 //constexpr u32 pop_count(u32 a) { return __builtin_popcount(a); }
 __forceinline__
-constexpr u32 pop_count(u64 a) { return __builtin_popcountll(a); }
+constexpr auto pop_count(u64 a) { return __builtin_popcountll(a); }
 #endif
 
 
@@ -35,7 +35,7 @@ __forceinline__ __device__
 u64 lz_count(u32 a) { return __clz(a); }
 #else
 __forceinline__
-constexpr u64 lz_count(u32 a) { return __builtin_clz(a); }
+constexpr auto lz_count(u32 a) { return __builtin_clz(a); }
 #endif
 
 /// Counts the number of leading zeros.
@@ -44,21 +44,31 @@ __forceinline__ __device__
 u64 lz_count(u64 a) { return __clzll(a); }
 #else
 __forceinline__
-constexpr u64 lz_count(u64 a) { return __builtin_clzll(a); }
+constexpr auto lz_count(u64 a) { return __builtin_clzll(a); }
 #endif
 
 
 /// counts the number of tailing zeros
-inline u64
+inline auto
+tz_count(u8 a) { return __builtin_ctz(u32(a)); }
+inline auto
+tz_count(u16 a) { return __builtin_ctz(a); }
+inline auto
 tz_count(u32 a) { return __builtin_ctz(a); }
 
 /// counts the number of tailing zeros
-inline u64
+inline auto
 tz_count(u64 a) { return __builtin_ctzll(a); }
 
 #if defined(__BMI__)
 inline u32
 blsr_u32(u32 a) { return _blsr_u32(a); };
+inline u32
+blsr(u32 a) { return _blsr_u32(a); };
+inline u64
+blsr(u64 a) { return _blsr_u64(a); };
+inline u64
+blsr_u64(u64 a) { return _blsr_u64(a); };
 #else
 inline u32
 blsr_u32(u32 a) { return (a - 1) & a; };
@@ -94,6 +104,12 @@ bit_test(u8 a, u32 i) {
 
 __forceinline__ __host__ __device__
 constexpr u1
+bit_test(u16 a, u32 i) {
+  return a & (u16(1) << i);
+}
+
+__forceinline__ __host__ __device__
+constexpr u1
 bit_test(u32 a, u32 i) {
   return a & (u32(1) << i);
 }
@@ -102,6 +118,7 @@ __forceinline__ __host__ __device__
 constexpr u1
 bit_test(u64 a, u32 i) {
   return a & (u64(1) << i);
+//  return (a >> i) & u64(1);
 }
 __forceinline__ __host__ __device__
 constexpr u1
